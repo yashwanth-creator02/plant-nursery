@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+:root {
+  /* Ledger palette — warm paper with deep pine ink, not the usual
+     cream/terracotta or violet SaaS defaults. */
+  --paper: #edeae1;
+  --paper-flat: #e4e0d4;
+  --surface: #fdfcf9;
+  --ink: #1f281f;
+  --ink-soft: #4a5248;
+  --line: #d7d1c0;
+  --line-strong: #b7ae97;
+  --pine: #2f5d4c;
+  --pine-deep: #21453a;
+  --pine-tint: #e3ece7;
+  --rust: #a4491f;
+  --rust-tint: #f3e4da;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-flat: var(--paper-flat);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-pine: var(--pine);
+  --color-pine-deep: var(--pine-deep);
+  --color-pine-tint: var(--pine-tint);
+  --color-rust: var(--rust);
+  --color-rust-tint: var(--rust-tint);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+  --font-serif: var(--font-source-serif);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Tabular numerals everywhere money/quantities show up, so columns line
+   up like a real ledger. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #invoice-print,
+  #invoice-print * {
+    visibility: visible;
+  }
+  #invoice-print {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+  }
+  @page {
+    margin: 14mm;
+  }
+}

@@ -1,0 +1,144 @@
+import { NextRequest, NextResponse } from "next/server";
+import { desc, eq } from "drizzle-orm";
+import { z } from "zod";
+import { db } from "@/db";
+import { invoiceItems, invoices, stockItems } from "@/db/schema";
+import { requireUser } from "@/lib/session";
+import { handleApiError } from "@/lib/api-utils";
+import { generateInvoiceNumber } from "@/lib/invoice-number";
+
+const lineItemSchema = z.object({
+  stockItemId: z.string().uuid().nullable().optional(),
+  name: z.string().trim().min(1),
+  price: z.number().nonnegative(),
+  quantity: z.number().int().positive(),
+});
+
+const createSchema = z.object({
+  customerName: z.string().trim().optional().default(""),
+  customerDetails: z.string().trim().optional().default(""),
+  notes: z.string().trim().optional().default(""),
+  status: z.enum(["draft", "final"]).default("draft"),
+  items: z.array(lineItemSchema).min(1, "Add at least one item"),
+});
+
+export async function GET() {
+  try {
+    const user = await requireUser();
+
+    const rows = await db.query.invoices.findMany({
+      where: user.role === "admin" ? undefined : eq(invoices.createdBy, user.id),
+      orderBy: [desc(invoices.createdAt)],
+      with: {
+        createdByUser: { columns: { username: true } },
+      },
+    });
+
+    return NextResponse.json({ invoices: rows });
+  } catch (err) {
+    return handleApiError(err);
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const user = await requireUser();
+    const body = await req.json().catch(() => null);
+    const parsed = createSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? "Invalid data" },
+        { status: 400 }
+      );
+    }
+    const { customerName, customerDetails, notes, status, items } = parsed.data;
+
+    const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+    const result = await db.transaction(async (tx) => {
+      // If finalizing immediately, verify + deduct stock inside the
+      // transaction so a stock shortfall rolls back the whole invoice.
+      if (status === "final") {
+        for (const li of items) {
+          if (!li.stockItemId) continue;
+          const [stockItem] = await tx
+            .select()
+            .from(stockItems)
+            .where(eq(stockItems.id, li.stockItemId))
+            .limit(1);
+          if (!stockItem) continue;
+          if (stockItem.quantity < li.quantity) {
+            throw new StockShortageError(stockItem.name, stockItem.quantity);
+          }
+        }
+        for (const li of items) {
+          if (!li.stockItemId) continue;
+          await tx
+            .update(stockItems)
+            .set({
+              quantity: sqlDecrement(li.quantity),
+              updatedAt: new Date(),
+            })
+            .where(eq(stockItems.id, li.stockItemId));
+        }
+      }
+
+      const invoiceNumber = await generateInvoiceNumber();
+
+      const [invoice] = await tx
+        .insert(invoices)
+        .values({
+          invoiceNumber,
+          customerName,
+          customerDetails,
+          notes,
+          status,
+          total: total.toFixed(2),
+          createdBy: user.id,
+          finalizedAt: status === "final" ? new Date() : null,
+        })
+        .returning();
+
+      await tx.insert(invoiceItems).values(
+        items.map((li) => ({
+          invoiceId: invoice.id,
+          stockItemId: li.stockItemId || null,
+          name: li.name,
+          price: li.price.toFixed(2),
+          quantity: li.quantity,
+          lineTotal: (li.price * li.quantity).toFixed(2),
+        }))
+      );
+
+      return invoice;
+    });
+
+    return NextResponse.json({ invoice: result }, { status: 201 });
+  } catch (err) {
+    if (err instanceof StockShortageError) {
+      return NextResponse.json(
+        {
+          error: `Not enough stock for "${err.itemName}" (${err.available} available).`,
+        },
+        { status: 409 }
+      );
+    }
+    return handleApiError(err);
+  }
+}
+
+class StockShortageError extends Error {
+  itemName: string;
+  available: number;
+  constructor(itemName: string, available: number) {
+    super("Stock shortage");
+    this.itemName = itemName;
+    this.available = available;
+  }
+}
+
+// Small helper for an atomic `quantity = quantity - n` update.
+import { sql } from "drizzle-orm";
+function sqlDecrement(n: number) {
+  return sql`${stockItems.quantity} - ${n}`;
+}
