@@ -10,7 +10,7 @@ export default function StockPage() {
   const [error, setError] = useState("");
 
   const [name, setName] = useState("");
-  const [unit, setUnit] = useState("");
+  const [unit, setUnit] = useState("pcs");
   const [price, setPrice] = useState("");
   const [quantity, setQuantity] = useState("");
   const [adding, setAdding] = useState(false);
@@ -47,7 +47,7 @@ export default function StockPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
-          unit: unit || undefined,
+          unit: unit || "pcs",
           price: Number(price) || 0,
           quantity: Number(quantity) || 0,
         }),
@@ -55,7 +55,7 @@ export default function StockPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Couldn't add item");
       setName("");
-      setUnit("");
+      setUnit("pcs");
       setPrice("");
       setQuantity("");
       load();
@@ -83,7 +83,7 @@ export default function StockPage() {
     setEditingId(item.id);
     setEditDraft({
       name: item.name,
-      unit: item.unit ?? "",
+      unit: item.unit || "pcs",
       price: item.price,
       quantity: String(item.quantity),
     });
@@ -98,7 +98,7 @@ export default function StockPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: editDraft.name,
-          unit: editDraft.unit || undefined,
+          unit: editDraft.unit || "pcs",
           price: Number(editDraft.price) || 0,
           quantity: Number(editDraft.quantity) || 0,
         }),
@@ -199,9 +199,7 @@ export default function StockPage() {
                 <th className="px-4 py-2.5 font-medium">Item</th>
                 <th className="px-4 py-2.5 font-medium">Unit</th>
                 <th className="px-4 py-2.5 text-right font-medium">Price</th>
-                <th className="px-4 py-2.5 text-right font-medium">
-                  Quantity
-                </th>
+                <th className="px-4 py-2.5 text-right font-medium">Quantity</th>
                 <th className="w-20 px-4 py-2.5"></th>
               </tr>
             </thead>
@@ -220,7 +218,7 @@ export default function StockPage() {
                           value={editDraft?.name}
                           onChange={(e) =>
                             setEditDraft((d) =>
-                              d ? { ...d, name: e.target.value } : d
+                              d ? { ...d, name: e.target.value } : d,
                             )
                           }
                           className="w-full rounded-md border border-line-strong bg-surface px-2 py-1 text-sm outline-none focus:border-pine"
@@ -235,13 +233,13 @@ export default function StockPage() {
                           value={editDraft?.unit}
                           onChange={(e) =>
                             setEditDraft((d) =>
-                              d ? { ...d, unit: e.target.value } : d
+                              d ? { ...d, unit: e.target.value } : d,
                             )
                           }
                           className="w-20 rounded-md border border-line-strong bg-surface px-2 py-1 text-sm outline-none focus:border-pine"
                         />
                       ) : (
-                        item.unit || "—"
+                        item.unit || "pcs"
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-right font-mono tabular text-ink">
@@ -253,7 +251,7 @@ export default function StockPage() {
                           value={editDraft?.price}
                           onChange={(e) =>
                             setEditDraft((d) =>
-                              d ? { ...d, price: e.target.value } : d
+                              d ? { ...d, price: e.target.value } : d,
                             )
                           }
                           className="w-24 rounded-md border border-line-strong bg-surface px-2 py-1 text-right text-sm outline-none focus:border-pine"
@@ -270,7 +268,7 @@ export default function StockPage() {
                           value={editDraft?.quantity}
                           onChange={(e) =>
                             setEditDraft((d) =>
-                              d ? { ...d, quantity: e.target.value } : d
+                              d ? { ...d, quantity: e.target.value } : d,
                             )
                           }
                           className="w-20 rounded-md border border-line-strong bg-surface px-2 py-1 text-right text-sm outline-none focus:border-pine"

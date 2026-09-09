@@ -23,7 +23,7 @@ export const users = pgTable("users", {
 export const stockItems = pgTable("stock_items", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
-  unit: text("unit"),
+  unit: text("unit").default("pcs"),
   price: numeric("price", { precision: 12, scale: 2 }).notNull(),
   quantity: integer("quantity").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),

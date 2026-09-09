@@ -8,7 +8,7 @@ import { handleApiError } from "@/lib/api-utils";
 
 const createSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
-  unit: z.string().trim().optional(),
+  unit: z.string().trim().default("pcs"),
   price: z.number().nonnegative(),
   quantity: z.number().int().nonnegative(),
 });
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       .insert(stockItems)
       .values({
         name,
-        unit: unit || null,
+        unit: unit || "pcs",
         price: price.toFixed(2),
         quantity,
       })

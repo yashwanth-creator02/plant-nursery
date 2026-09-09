@@ -78,15 +78,38 @@ export function ProfilePanel({
     }
   }
 
-  async function removeUser(id: string) {
-    if (!confirm("Remove this user? They won't be able to log in anymore.")) {
+  async function updateRole(id: string, role: "admin" | "staff") {
+    setError("");
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Couldn't update role");
+      loadUsers();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't update role");
+    }
+  }
+
+  async function removeUser(targetUser: ManagedUser) {
+    const isAdminTarget = targetUser.role === "admin";
+    const msg = isAdminTarget
+      ? `Remove admin "${targetUser.username}"? They will lose all admin and account access.`
+      : `Remove user "${targetUser.username}"? They won't be able to log in anymore.`;
+
+    if (!confirm(msg)) {
       return;
     }
     setError("");
     try {
-      const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/users/${targetUser.id}`, {
+        method: "DELETE",
+      });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || "Couldn't remove user");
       loadUsers();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't remove user");
@@ -124,9 +147,7 @@ export function ProfilePanel({
             <div className="truncate text-sm font-medium text-ink">
               {user?.username}
             </div>
-            <div className="text-xs capitalize text-ink-soft">
-              {user?.role}
-            </div>
+            <div className="text-xs capitalize text-ink-soft">{user?.role}</div>
           </div>
         </div>
 
@@ -190,28 +211,62 @@ export function ProfilePanel({
               {loadingUsers && (
                 <li className="py-2 text-xs text-ink-soft">Loading…</li>
               )}
-              {users?.map((u) => (
-                <li
-                  key={u.id}
-                  className="flex items-center justify-between py-2"
-                >
-                  <div>
-                    <div className="text-sm text-ink">{u.username}</div>
-                    <div className="text-xs capitalize text-ink-soft">
-                      {u.role}
+              {users?.map((u) => {
+                const isCurrent = u.id === user?.id;
+                return (
+                  <li
+                    key={u.id}
+                    className="flex items-center justify-between gap-2 py-2.5"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium text-ink">
+                        {u.username}
+                      </div>
+                      <div className="text-xs text-ink-soft">
+                        Joined{" "}
+                        {new Date(u.createdAt).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </div>
                     </div>
-                  </div>
-                  {u.id !== user?.id && (
-                    <button
-                      onClick={() => removeUser(u.id)}
-                      className="rounded p-1.5 text-ink-soft hover:bg-rust-tint hover:text-rust"
-                      aria-label={`Remove ${u.username}`}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  )}
-                </li>
-              ))}
+
+                    <div className="flex items-center gap-2">
+                      {isCurrent ? (
+                        <span className="rounded bg-pine-tint px-2 py-1 text-xs font-medium capitalize text-pine-deep">
+                          Admin (You)
+                        </span>
+                      ) : (
+                        <>
+                          <select
+                            value={u.role}
+                            onChange={(e) =>
+                              updateRole(
+                                u.id,
+                                e.target.value as "admin" | "staff",
+                              )
+                            }
+                            className="rounded border border-line-strong bg-surface px-2 py-1 text-xs font-medium capitalize text-ink outline-none transition-colors focus:border-pine"
+                            aria-label={`Change role for ${u.username}`}
+                          >
+                            <option value="staff">Staff</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                          <button
+                            onClick={() => removeUser(u)}
+                            className="rounded p-1 text-ink-soft transition-colors hover:bg-rust-tint hover:text-rust"
+                            title={`Remove ${u.role === "admin" ? "admin" : "user"} ${u.username}`}
+                            aria-label={`Remove ${u.username}`}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

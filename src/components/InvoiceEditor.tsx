@@ -1,3 +1,5 @@
+// src/components/InvoiceEditor.tsx
+
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -26,16 +28,16 @@ export function InvoiceEditor({
 
   const [invoiceId, setInvoiceId] = useState(initialInvoice?.id ?? null);
   const [invoiceNumber, setInvoiceNumber] = useState(
-    initialInvoice?.invoiceNumber ?? null
+    initialInvoice?.invoiceNumber ?? null,
   );
   const [status, setStatus] = useState<"draft" | "final">(
-    initialInvoice?.status ?? "draft"
+    initialInvoice?.status ?? "draft",
   );
   const [customerName, setCustomerName] = useState(
-    initialInvoice?.customerName ?? ""
+    initialInvoice?.customerName ?? "",
   );
   const [customerDetails, setCustomerDetails] = useState(
-    initialInvoice?.customerDetails ?? ""
+    initialInvoice?.customerDetails ?? "",
   );
   const [notes, setNotes] = useState(initialInvoice?.notes ?? "");
   const [items, setItems] = useState<InvoiceLineItem[]>(
@@ -45,11 +47,12 @@ export function InvoiceEditor({
       name: i.name,
       price: Number(i.price),
       quantity: i.quantity,
-    })) ?? []
+    })) ?? [],
   );
 
   const [stock, setStock] = useState<StockItem[]>([]);
   const [pickerStockId, setPickerStockId] = useState("");
+  const [pickerQty, setPickerQty] = useState("1");
   const [customMode, setCustomMode] = useState(false);
   const [customName, setCustomName] = useState("");
   const [customPrice, setCustomPrice] = useState("");
@@ -69,16 +72,21 @@ export function InvoiceEditor({
 
   const total = useMemo(
     () => items.reduce((sum, i) => sum + i.price * i.quantity, 0),
-    [items]
+    [items],
   );
 
   const dateLabel = new Date(
-    initialInvoice?.createdAt ?? Date.now()
-  ).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    initialInvoice?.createdAt ?? Date.now(),
+  ).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 
   function addStockItem() {
     const stockItem = stock.find((s) => s.id === pickerStockId);
     if (!stockItem) return;
+    const qty = Math.max(1, parseInt(pickerQty, 10) || 1);
     setItems((prev) => [
       ...prev,
       {
@@ -86,10 +94,11 @@ export function InvoiceEditor({
         stockItemId: stockItem.id,
         name: stockItem.name,
         price: Number(stockItem.price),
-        quantity: 1,
+        quantity: qty,
       },
     ]);
     setPickerStockId("");
+    setPickerQty("1");
   }
 
   function addCustomItem() {
@@ -112,7 +121,7 @@ export function InvoiceEditor({
 
   function updateItem(key: string, patch: Partial<InvoiceLineItem>) {
     setItems((prev) =>
-      prev.map((i) => (i.key === key ? { ...i, ...patch } : i))
+      prev.map((i) => (i.key === key ? { ...i, ...patch } : i)),
     );
   }
 
@@ -194,7 +203,7 @@ export function InvoiceEditor({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
+      <div className="mb-5 flex items-center justify-between gap-3 print:hidden">
         <div>
           <h1 className="font-serif text-xl font-semibold text-ink">
             {isFinal ? "Invoice" : invoiceId ? "Edit draft" : "New invoice"}
@@ -203,45 +212,6 @@ export function InvoiceEditor({
             <span className="mt-0.5 inline-block rounded-full bg-rust-tint px-2 py-0.5 text-xs font-medium text-rust">
               Draft — not yet finalized
             </span>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => {
-              resetForm();
-              router.push("/invoice");
-            }}
-            className="flex items-center gap-1.5 rounded-md border border-line-strong px-3 py-1.5 text-sm font-medium text-ink hover:bg-line/50"
-          >
-            <FilePlus2 size={15} /> New
-          </button>
-          {!isFinal && (
-            <>
-              <button
-                onClick={() => persist("draft")}
-                disabled={saving !== null}
-                className="flex items-center gap-1.5 rounded-md border border-line-strong px-3 py-1.5 text-sm font-medium text-ink hover:bg-line/50 disabled:opacity-50"
-              >
-                <Save size={15} />
-                {saving === "draft" ? "Saving…" : "Save as draft"}
-              </button>
-              <button
-                onClick={() => persist("final")}
-                disabled={saving !== null}
-                className="flex items-center gap-1.5 rounded-md bg-pine px-3 py-1.5 text-sm font-medium text-surface hover:opacity-90 disabled:opacity-50"
-              >
-                <Lock size={15} />
-                {saving === "final" ? "Finalizing…" : "Finalize & print"}
-              </button>
-            </>
-          )}
-          {isFinal && (
-            <button
-              onClick={() => window.print()}
-              className="flex items-center gap-1.5 rounded-md bg-pine px-3 py-1.5 text-sm font-medium text-surface hover:opacity-90"
-            >
-              <Printer size={15} /> Print invoice
-            </button>
           )}
         </div>
       </div>
@@ -327,9 +297,7 @@ export function InvoiceEditor({
               <th className="py-2 pr-2 font-medium">Item</th>
               <th className="w-20 py-2 px-2 text-right font-medium">Qty</th>
               <th className="w-28 py-2 px-2 text-right font-medium">Price</th>
-              <th className="w-32 py-2 pl-2 text-right font-medium">
-                Amount
-              </th>
+              <th className="w-32 py-2 pl-2 text-right font-medium">Amount</th>
               {!isFinal && <th className="w-8"></th>}
             </tr>
           </thead>
@@ -349,9 +317,7 @@ export function InvoiceEditor({
                 <td className="py-2 pr-2 text-ink">{item.name}</td>
                 <td className="py-2 px-2 text-right">
                   {isFinal ? (
-                    <span className="font-mono tabular">
-                      {item.quantity}
-                    </span>
+                    <span className="font-mono tabular">{item.quantity}</span>
                   ) : (
                     <input
                       type="number"
@@ -411,9 +377,7 @@ export function InvoiceEditor({
             {!customMode ? (
               <>
                 <label className="flex flex-1 min-w-[180px] flex-col gap-1">
-                  <span className="text-xs text-ink-soft">
-                    Add from stock
-                  </span>
+                  <span className="text-xs text-ink-soft">Add from stock</span>
                   <select
                     value={pickerStockId}
                     onChange={(e) => setPickerStockId(e.target.value)}
@@ -422,11 +386,27 @@ export function InvoiceEditor({
                     <option value="">Select an item…</option>
                     {stock.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.name} — {formatMoney(Number(s.price))} (
-                        {s.quantity} in stock)
+                        {s.name} — {formatMoney(Number(s.price))} ({s.quantity}{" "}
+                        {s.unit || "pcs"} in stock)
                       </option>
                     ))}
                   </select>
+                </label>
+                <label className="flex w-20 flex-col gap-1">
+                  <span className="text-xs text-ink-soft">Qty</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={pickerQty}
+                    onChange={(e) => setPickerQty(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addStockItem();
+                      }
+                    }}
+                    className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm outline-none focus:border-pine"
+                  />
                 </label>
                 <button
                   onClick={addStockItem}
@@ -521,6 +501,56 @@ export function InvoiceEditor({
               rows={2}
               className="w-full resize-none rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
             />
+          )}
+        </div>
+      </div>
+
+      {error && (
+        <p className="mt-4 rounded-md bg-rust-tint px-3 py-2 text-sm text-rust print:hidden">
+          {error}
+        </p>
+      )}
+
+      {/* Action buttons at bottom of invoice */}
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
+        <button
+          onClick={() => {
+            resetForm();
+            router.push("/invoice");
+          }}
+          className="flex items-center gap-1.5 rounded-md border border-line-strong px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:bg-line/50"
+        >
+          <FilePlus2 size={15} /> New invoice
+        </button>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {!isFinal && (
+            <>
+              <button
+                onClick={() => persist("draft")}
+                disabled={saving !== null}
+                className="flex items-center gap-1.5 rounded-md border border-line-strong px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:bg-line/50 disabled:opacity-50"
+              >
+                <Save size={15} />
+                {saving === "draft" ? "Saving…" : "Save as draft"}
+              </button>
+              <button
+                onClick={() => persist("final")}
+                disabled={saving !== null}
+                className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-2 text-sm font-medium text-surface shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                <Lock size={15} />
+                {saving === "final" ? "Finalizing…" : "Finalize & print"}
+              </button>
+            </>
+          )}
+          {isFinal && (
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-2 text-sm font-medium text-surface shadow-sm transition-opacity hover:opacity-90"
+            >
+              <Printer size={15} /> Print invoice
+            </button>
           )}
         </div>
       </div>

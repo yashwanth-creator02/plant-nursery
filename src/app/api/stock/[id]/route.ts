@@ -31,7 +31,7 @@ export async function PATCH(
 
     const values: Record<string, unknown> = { updatedAt: new Date() };
     if (parsed.data.name !== undefined) values.name = parsed.data.name;
-    if (parsed.data.unit !== undefined) values.unit = parsed.data.unit || null;
+    if (parsed.data.unit !== undefined) values.unit = parsed.data.unit.trim() || "pcs";
     if (parsed.data.price !== undefined)
       values.price = parsed.data.price.toFixed(2);
     if (parsed.data.quantity !== undefined)
