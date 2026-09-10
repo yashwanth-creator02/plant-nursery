@@ -21,6 +21,7 @@ const updateSchema = z.object({
   notes: z.string().trim().optional(),
   items: z.array(lineItemSchema).optional(),
   action: z.enum(["save", "finalize"]).default("save"),
+  force: z.boolean().optional().default(false),
 });
 
 class StockShortageError extends Error {
@@ -98,7 +99,7 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    const { invoiceNumber: customNumber, customerName, customerDetails, notes, items, action } = parsed.data;
+    const { invoiceNumber: customNumber, customerName, customerDetails, notes, items, action, force } = parsed.data;
 
     const result = await db.transaction(async (tx) => {
       let nextInvNum = existing.invoiceNumber;
@@ -121,16 +122,18 @@ export async function PATCH(
         const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
         if (action === "finalize") {
-          for (const li of items) {
-            if (!li.stockItemId) continue;
-            const [stockItem] = await tx
-              .select()
-              .from(stockItems)
-              .where(eq(stockItems.id, li.stockItemId))
-              .limit(1);
-            if (!stockItem) continue;
-            if (stockItem.quantity < li.quantity) {
-              throw new StockShortageError(stockItem.name, stockItem.quantity);
+          if (!force) {
+            for (const li of items) {
+              if (!li.stockItemId) continue;
+              const [stockItem] = await tx
+                .select()
+                .from(stockItems)
+                .where(eq(stockItems.id, li.stockItemId))
+                .limit(1);
+              if (!stockItem) continue;
+              if (stockItem.quantity < li.quantity) {
+                throw new StockShortageError(stockItem.name, stockItem.quantity);
+              }
             }
           }
           for (const li of items) {

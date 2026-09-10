@@ -20,6 +20,7 @@ const createSchema = z.object({
   customerDetails: z.string().trim().optional().default(""),
   notes: z.string().trim().optional().default(""),
   status: z.enum(["draft", "final"]).default("draft"),
+  force: z.boolean().optional().default(false),
   items: z.array(lineItemSchema).optional().default([]),
 });
 
@@ -52,24 +53,26 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const { invoiceNumber: customNumber, customerName, customerDetails, notes, status, items } = parsed.data;
+    const { invoiceNumber: customNumber, customerName, customerDetails, notes, status, force, items } = parsed.data;
 
     const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
     const result = await db.transaction(async (tx) => {
       // If finalizing immediately, verify + deduct stock inside the
-      // transaction so a stock shortfall rolls back the whole invoice.
+      // transaction so a stock shortfall rolls back the whole invoice unless forced.
       if (status === "final") {
-        for (const li of items) {
-          if (!li.stockItemId) continue;
-          const [stockItem] = await tx
-            .select()
-            .from(stockItems)
-            .where(eq(stockItems.id, li.stockItemId))
-            .limit(1);
-          if (!stockItem) continue;
-          if (stockItem.quantity < li.quantity) {
-            throw new StockShortageError(stockItem.name, stockItem.quantity);
+        if (!force) {
+          for (const li of items) {
+            if (!li.stockItemId) continue;
+            const [stockItem] = await tx
+              .select()
+              .from(stockItems)
+              .where(eq(stockItems.id, li.stockItemId))
+              .limit(1);
+            if (!stockItem) continue;
+            if (stockItem.quantity < li.quantity) {
+              throw new StockShortageError(stockItem.name, stockItem.quantity);
+            }
           }
         }
         for (const li of items) {

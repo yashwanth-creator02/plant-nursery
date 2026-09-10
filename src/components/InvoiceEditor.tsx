@@ -4,7 +4,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Printer, Save, FilePlus2, Trash2, Lock, PenTool, X } from "lucide-react";
+import { Plus, Printer, Save, FilePlus2, Trash2, Lock, PenTool, X, AlertTriangle } from "lucide-react";
 import {
   formatMoney,
   numberToIndianWords,
@@ -90,6 +90,12 @@ export function InvoiceEditor({
 
   const [saving, setSaving] = useState<"draft" | "final" | null>(null);
   const [error, setError] = useState("");
+  const [pendingShortage, setPendingShortage] = useState<{
+    stockItemId: string;
+    name: string;
+    requestedQty: number;
+    availableQty: number;
+  } | null>(null);
   const [restoredDraft, setRestoredDraft] = useState(false);
   const [suggestedInvoiceNumber, setSuggestedInvoiceNumber] = useState<string>("");
 
@@ -261,7 +267,7 @@ export function InvoiceEditor({
     day: "2-digit",
   });
 
-  function addStockItem() {
+  function addStockItem(force = false) {
     const stockItem = stock.find((s) => s.id === pickerStockId);
     if (!stockItem) return;
     const qty = pickerQty === "" ? 1 : Math.max(0, parseInt(pickerQty, 10) || 1);
@@ -271,18 +277,33 @@ export function InvoiceEditor({
     const currentQtyInBill = existingInBill ? existingInBill.quantity : 0;
     const totalRequested = currentQtyInBill + qty;
 
-    if (stockItem.quantity <= 0) {
-      setError(`Cannot add "${stockItem.name}": Out of stock (0 available).`);
-      return;
-    }
-    if (totalRequested > stockItem.quantity) {
-      setError(
-        `Cannot add "${stockItem.name}": Total requested quantity (${totalRequested}) exceeds available stock (${stockItem.quantity}).`
-      );
-      return;
+    if (!force) {
+      if (stockItem.quantity <= 0) {
+        setError(`Insufficient stock for "${stockItem.name}": Out of stock (0 available). Click "Force Add" to add anyway.`);
+        setPendingShortage({
+          stockItemId: stockItem.id,
+          name: stockItem.name,
+          requestedQty: qty,
+          availableQty: stockItem.quantity,
+        });
+        return;
+      }
+      if (totalRequested > stockItem.quantity) {
+        setError(
+          `Insufficient stock for "${stockItem.name}": Total requested quantity (${totalRequested}) exceeds available stock (${stockItem.quantity}). Click "Force Add" to add anyway.`
+        );
+        setPendingShortage({
+          stockItemId: stockItem.id,
+          name: stockItem.name,
+          requestedQty: qty,
+          availableQty: stockItem.quantity,
+        });
+        return;
+      }
     }
 
-    setError(""); // Clear error on valid addition
+    setError(""); // Clear error on valid or forced addition
+    setPendingShortage(null);
     if (existingInBill) {
       updateItem(existingInBill.key, { quantity: totalRequested });
     } else {
@@ -375,11 +396,18 @@ export function InvoiceEditor({
     setSaving(action);
     setError("");
     try {
+      const hasShortage = items.some((i) => {
+        if (!i.stockItemId) return false;
+        const s = stock.find((st) => st.id === i.stockItemId);
+        return s && (Number(i.quantity) || 0) > s.quantity;
+      });
+
       const payload = {
         invoiceNumber: invoiceNumber?.trim() || undefined,
         customerName: customerName.trim(),
         customerDetails: customerDetails.trim(),
         notes: notes.trim(),
+        force: hasShortage,
         items: items.map((i) => ({
           stockItemId: i.stockItemId,
           name: i.name.trim() || "Item",
@@ -445,6 +473,18 @@ export function InvoiceEditor({
       setSaving(null);
     }
   }
+
+  const selectedStockItem = stock.find((s) => s.id === pickerStockId);
+  const parsedPickerQty = pickerQty === "" ? 1 : Math.max(0, parseInt(pickerQty, 10) || 1);
+  const existingInBill = selectedStockItem
+    ? items.find((i) => i.stockItemId === selectedStockItem.id)
+    : null;
+  const currentQtyInBill = existingInBill ? existingInBill.quantity : 0;
+  const totalRequestedPicker = currentQtyInBill + parsedPickerQty;
+  const hasInsufficientQty = Boolean(
+    selectedStockItem &&
+      (selectedStockItem.quantity <= 0 || totalRequestedPicker > selectedStockItem.quantity)
+  );
 
   return (
     <div className="mx-auto max-w-3xl px-3 sm:px-6 py-4 sm:py-8">
@@ -891,15 +931,32 @@ export function InvoiceEditor({
 
       {/* Warning or error appears just below the invoice instead of upside */}
       {error && (
-        <div className="mt-4 mb-2 flex items-center justify-between rounded-md border border-rust/40 bg-rust-tint px-3.5 py-2.5 text-sm font-medium text-rust shadow-xs print:hidden">
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => setError("")}
-            className="ml-3 text-xs underline text-rust hover:opacity-80 cursor-pointer shrink-0"
-          >
-            Dismiss
-          </button>
+        <div className="mt-4 mb-2 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-600/40 bg-amber-500/10 px-3.5 py-2.5 text-sm font-medium text-amber-900 dark:text-amber-200 shadow-xs print:hidden">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <div className="flex items-center gap-2.5 shrink-0">
+            {pendingShortage && (
+              <button
+                type="button"
+                onClick={() => addStockItem(true)}
+                className="rounded-md bg-amber-600 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-700 shadow-xs cursor-pointer transition-colors"
+              >
+                Force Add to Bill
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setError("");
+                setPendingShortage(null);
+              }}
+              className="text-xs underline text-amber-800 dark:text-amber-300 hover:opacity-80 cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
 
@@ -943,7 +1000,7 @@ export function InvoiceEditor({
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
-                        addStockItem();
+                        addStockItem(false);
                       }
                     }}
                     className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm outline-none focus:border-pine"
@@ -952,12 +1009,24 @@ export function InvoiceEditor({
 
                 <button
                   type="button"
-                  onClick={addStockItem}
+                  onClick={() => addStockItem(false)}
                   disabled={!pickerStockId}
                   className="flex items-center gap-1.5 rounded-md bg-pine px-3.5 py-1.5 text-sm font-medium text-surface hover:opacity-90 disabled:opacity-50 shadow-sm cursor-pointer"
                 >
                   <Plus size={15} /> Add to bill
                 </button>
+
+                {hasInsufficientQty && (
+                  <button
+                    type="button"
+                    onClick={() => addStockItem(true)}
+                    className="flex items-center gap-1.5 rounded-md border border-amber-600/70 bg-amber-500/15 px-3 py-1.5 text-sm font-semibold text-amber-800 dark:text-amber-200 hover:bg-amber-500/25 shadow-xs cursor-pointer transition-colors"
+                    title={`Available in stock: ${selectedStockItem?.quantity ?? 0}. Click to force add.`}
+                  >
+                    <AlertTriangle size={15} className="text-amber-600 dark:text-amber-400" />
+                    Force Add
+                  </button>
+                )}
 
                 <button
                   type="button"
