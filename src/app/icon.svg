@@ -1,0 +1,84 @@
+<svg width="100%" height="100%" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Water Shell Outer Gradient -->
+    <linearGradient id="waterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="45%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+
+    <!-- Glass Reflection Gradient -->
+    <linearGradient id="glassGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.65" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
+    </linearGradient>
+
+    <!-- Leaf Gradients for vibrant depth -->
+    <linearGradient id="leafLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4ade80" />
+      <stop offset="100%" stop-color="#15803d" />
+    </linearGradient>
+
+    <linearGradient id="leafRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#86efac" />
+      <stop offset="100%" stop-color="#16a34a" />
+    </linearGradient>
+
+    <linearGradient id="leafTop" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#bbf7d0" />
+      <stop offset="100%" stop-color="#22c55e" />
+    </linearGradient>
+
+    <clipPath id="shellClip">
+      <circle cx="128" cy="128" r="116" />
+    </clipPath>
+  </defs>
+
+  <!-- Outer Glow Ring -->
+  <circle cx="128" cy="128" r="124" fill="none" stroke="#7dd3fc" stroke-width="2.5" opacity="0.4" />
+
+  <!-- Main Water Shell Circle -->
+  <circle cx="128" cy="128" r="116" fill="url(#waterGrad)" />
+
+  <!-- Top Glass Highlight Reflection -->
+  <ellipse cx="92" cy="84" rx="34" ry="20" fill="url(#glassGlow)" transform="rotate(-24 92 84)" />
+
+  <!-- Clipped Inner Environment (Ripples, Soil & Sprout) -->
+  <g clip-path="url(#shellClip)">
+    <!-- Water Wave Ripples at bottom -->
+    <path d="M 0 196 Q 48 180, 96 190 T 192 188 T 256 196 L 256 256 L 0 256 Z" fill="#0284c7" opacity="0.35" />
+    <path d="M 0 212 Q 48 198, 96 206 T 192 204 T 256 212 L 256 256 L 0 256 Z" fill="#0369a1" opacity="0.55" />
+
+    <!-- Rich Soil Mound -->
+    <ellipse cx="128" cy="184" rx="42" ry="16" fill="#3e2723" />
+    <ellipse cx="128" cy="178" rx="40" ry="12" fill="#5d4037" />
+
+    <!-- Central Sprout Stem -->
+    <path d="M 128 178 C 126 150, 130 114, 128 88" fill="none" stroke="#14532d" stroke-width="5.5" stroke-linecap="round" />
+
+    <!-- Left Leaf -->
+    <path d="M 128 152 C 94 146, 68 122, 74 92 C 104 98, 126 118, 128 152 Z" fill="url(#leafLeft)" />
+    <!-- Left Leaf Vein -->
+    <path d="M 128 152 C 112 136, 94 116, 74 92" fill="none" stroke="#14532d" stroke-width="1.5" opacity="0.5" />
+
+    <!-- Right Leaf -->
+    <path d="M 128 134 C 162 126, 188 102, 182 72 C 152 80, 130 102, 128 134 Z" fill="url(#leafRight)" />
+    <!-- Right Leaf Vein -->
+    <path d="M 128 134 C 146 118, 166 96, 182 72" fill="none" stroke="#14532d" stroke-width="1.5" opacity="0.5" />
+
+    <!-- Top Sprout Leaf -->
+    <path d="M 128 88 C 117 68, 120 48, 128 34 C 136 48, 139 68, 128 88 Z" fill="url(#leafTop)" />
+    <!-- Top Leaf Vein -->
+    <path d="M 128 88 L 128 34" fill="none" stroke="#15803d" stroke-width="1.2" opacity="0.5" />
+
+    <!-- Dew Drops inside water shell -->
+    <circle cx="94" cy="94" r="3.5" fill="#f0fdf4" opacity="0.85" />
+    <circle cx="156" cy="84" r="3" fill="#f0fdf4" opacity="0.8" />
+    <circle cx="132" cy="50" r="2.2" fill="#f0fdf4" opacity="0.8" />
+    <circle cx="82" cy="140" r="2" fill="#e0f2fe" opacity="0.6" />
+    <circle cx="174" cy="130" r="2" fill="#e0f2fe" opacity="0.6" />
+  </g>
+
+  <!-- Shell Rim Contour -->
+  <circle cx="128" cy="128" r="116" fill="none" stroke="#0284c7" stroke-width="2.5" opacity="0.6" />
+</svg>

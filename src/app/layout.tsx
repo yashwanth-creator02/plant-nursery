@@ -24,6 +24,9 @@ const sourceSerif = Source_Serif_4({
 export const metadata: Metadata = {
   title: "Ledger — Invoices & Stock",
   description: "Invoice generation and stock tracking",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

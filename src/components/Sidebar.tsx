@@ -126,7 +126,16 @@ export function Sidebar({
       {/* Desktop sidebar */}
       <aside className="hidden md:flex w-56 shrink-0 flex-col justify-between border-r border-line bg-paper-flat px-3 py-4">
         <div>
-          <div className="mb-6 px-2">
+          <div className="mb-6 px-2 flex items-center gap-2.5">
+            <svg className="h-6 w-6 shrink-0" viewBox="0 0 256 256" fill="none">
+              <circle cx="128" cy="128" r="116" fill="#0284c7" />
+              <path d="M 0 196 Q 48 180, 96 190 T 192 188 T 256 196 L 256 256 L 0 256 Z" fill="#0369a1" opacity="0.6" />
+              <ellipse cx="128" cy="180" rx="40" ry="14" fill="#3e2723" />
+              <path d="M 128 178 C 126 150, 130 114, 128 88" stroke="#14532d" strokeWidth="6" strokeLinecap="round" />
+              <path d="M 128 152 C 94 146, 68 122, 74 92 C 104 98, 126 118, 128 152 Z" fill="#4ade80" />
+              <path d="M 128 134 C 162 126, 188 102, 182 72 C 152 80, 130 102, 128 134 Z" fill="#86efac" />
+              <path d="M 128 88 C 117 68, 120 48, 128 34 C 136 48, 139 68, 128 88 Z" fill="#bbf7d0" />
+            </svg>
             <span className="font-serif text-lg font-semibold tracking-tight text-pine-deep">
               Ledger
             </span>
@@ -147,9 +156,20 @@ export function Sidebar({
           <aside className="relative flex h-full w-64 max-w-[85vw] flex-col justify-between border-r border-line bg-paper-flat px-4 py-4 shadow-xl">
             <div>
               <div className="mb-6 flex items-center justify-between px-1">
-                <span className="font-serif text-lg font-semibold tracking-tight text-pine-deep">
-                  Ledger
-                </span>
+                <div className="flex items-center gap-2">
+                  <svg className="h-6 w-6 shrink-0" viewBox="0 0 256 256" fill="none">
+                    <circle cx="128" cy="128" r="116" fill="#0284c7" />
+                    <path d="M 0 196 Q 48 180, 96 190 T 192 188 T 256 196 L 256 256 L 0 256 Z" fill="#0369a1" opacity="0.6" />
+                    <ellipse cx="128" cy="180" rx="40" ry="14" fill="#3e2723" />
+                    <path d="M 128 178 C 126 150, 130 114, 128 88" stroke="#14532d" strokeWidth="6" strokeLinecap="round" />
+                    <path d="M 128 152 C 94 146, 68 122, 74 92 C 104 98, 126 118, 128 152 Z" fill="#4ade80" />
+                    <path d="M 128 134 C 162 126, 188 102, 182 72 C 152 80, 130 102, 128 134 Z" fill="#86efac" />
+                    <path d="M 128 88 C 117 68, 120 48, 128 34 C 136 48, 139 68, 128 88 Z" fill="#bbf7d0" />
+                  </svg>
+                  <span className="font-serif text-lg font-semibold tracking-tight text-pine-deep">
+                    Ledger
+                  </span>
+                </div>
                 <button
                   onClick={onMobileClose}
                   className="rounded p-1.5 text-ink-soft hover:bg-line/60 hover:text-ink"

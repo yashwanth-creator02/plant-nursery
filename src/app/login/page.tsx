@@ -36,7 +36,16 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-paper px-4">
       <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
+        <div className="mb-8 text-center flex flex-col items-center">
+          <svg className="mb-3 h-12 w-12" viewBox="0 0 256 256" fill="none">
+            <circle cx="128" cy="128" r="116" fill="#0284c7" />
+            <path d="M 0 196 Q 48 180, 96 190 T 192 188 T 256 196 L 256 256 L 0 256 Z" fill="#0369a1" opacity="0.6" />
+            <ellipse cx="128" cy="180" rx="40" ry="14" fill="#3e2723" />
+            <path d="M 128 178 C 126 150, 130 114, 128 88" stroke="#14532d" strokeWidth="6" strokeLinecap="round" />
+            <path d="M 128 152 C 94 146, 68 122, 74 92 C 104 98, 126 118, 128 152 Z" fill="#4ade80" />
+            <path d="M 128 134 C 162 126, 188 102, 182 72 C 152 80, 130 102, 128 134 Z" fill="#86efac" />
+            <path d="M 128 88 C 117 68, 120 48, 128 34 C 136 48, 139 68, 128 88 Z" fill="#bbf7d0" />
+          </svg>
           <div className="font-serif text-2xl font-semibold tracking-tight text-pine-deep">
             Ledger
           </div>
