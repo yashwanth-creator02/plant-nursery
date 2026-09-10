@@ -1,3 +1,5 @@
+// src/components/ProfilePanel.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";

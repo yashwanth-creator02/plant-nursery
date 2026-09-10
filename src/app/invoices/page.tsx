@@ -1,3 +1,5 @@
+// src/app/invoices/page.tsx
+
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -29,7 +31,7 @@ export default function InvoicesPage() {
   const filtered = useMemo(
     () =>
       filter === "all" ? invoices : invoices.filter((i) => i.status === filter),
-    [invoices, filter]
+    [invoices, filter],
   );
 
   return (

@@ -307,7 +307,9 @@ export function InvoiceEditor({
                 <th className="py-2 pr-2 font-medium">Item</th>
                 <th className="w-20 py-2 px-2 text-right font-medium">Qty</th>
                 <th className="w-28 py-2 px-2 text-right font-medium">Price</th>
-                <th className="w-32 py-2 pl-2 text-right font-medium">Amount</th>
+                <th className="w-32 py-2 pl-2 text-right font-medium">
+                  Amount
+                </th>
                 {!isFinal && <th className="w-8"></th>}
               </tr>
             </thead>
