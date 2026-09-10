@@ -35,6 +35,20 @@ async function main() {
     ADD COLUMN IF NOT EXISTS header_snapshot TEXT;
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS invoice_sequences (
+      id TEXT PRIMARY KEY DEFAULT 'default',
+      next_invoice_number TEXT NOT NULL DEFAULT 'INV-2026-0001',
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+  `;
+
+  await sql`
+    INSERT INTO invoice_sequences (id, next_invoice_number)
+    VALUES ('default', 'INV-2026-0001')
+    ON CONFLICT (id) DO NOTHING;
+  `;
+
   console.log("Database migrations applied successfully.");
   await sql.end();
   process.exit(0);

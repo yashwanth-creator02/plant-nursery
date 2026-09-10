@@ -91,6 +91,37 @@ export function InvoiceEditor({
   const [saving, setSaving] = useState<"draft" | "final" | null>(null);
   const [error, setError] = useState("");
   const [restoredDraft, setRestoredDraft] = useState(false);
+  const [suggestedInvoiceNumber, setSuggestedInvoiceNumber] = useState<string>("");
+
+  // Fetch current sequence number and sync on updates
+  useEffect(() => {
+    function fetchSequence() {
+      fetch("/api/settings/invoice-sequence")
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.nextInvoiceNumber) {
+            setSuggestedInvoiceNumber(d.nextInvoiceNumber);
+            if (!initialInvoice && !invoiceId) {
+              setInvoiceNumber((prev) => prev || d.nextInvoiceNumber);
+            }
+          }
+        })
+        .catch(() => {});
+    }
+
+    if (!initialInvoice && !invoiceId) {
+      fetchSequence();
+    }
+
+    const handleSeqUpdate = () => {
+      fetchSequence();
+    };
+    window.addEventListener("invoiceSequenceUpdated", handleSeqUpdate);
+
+    return () => {
+      window.removeEventListener("invoiceSequenceUpdated", handleSeqUpdate);
+    };
+  }, [initialInvoice, invoiceId]);
 
   // Restore unsaved draft on initial load for new invoice
   useEffect(() => {
@@ -100,6 +131,7 @@ export function InvoiceEditor({
         if (savedDraft) {
           const parsed = JSON.parse(savedDraft);
           const hasContent =
+            Boolean(parsed.invoiceNumber?.trim()) ||
             Boolean(parsed.customerName?.trim()) ||
             Boolean(parsed.customerDetails?.trim()) ||
             Boolean(parsed.notes?.trim()) ||
@@ -108,6 +140,7 @@ export function InvoiceEditor({
             Boolean(parsed.customPrice?.trim());
 
           if (hasContent) {
+            if (parsed.invoiceNumber) setInvoiceNumber(parsed.invoiceNumber);
             if (parsed.customerName !== undefined) setCustomerName(parsed.customerName);
             if (parsed.customerDetails !== undefined) setCustomerDetails(parsed.customerDetails);
             if (parsed.notes !== undefined) setNotes(parsed.notes);
@@ -132,6 +165,7 @@ export function InvoiceEditor({
     if (initialInvoice || invoiceId || isFinal) return;
 
     const hasContent =
+      Boolean(invoiceNumber?.trim()) ||
       Boolean(customerName.trim()) ||
       Boolean(customerDetails.trim()) ||
       Boolean(notes.trim()) ||
@@ -144,6 +178,7 @@ export function InvoiceEditor({
         localStorage.setItem(
           "svl_invoice_draft_v1",
           JSON.stringify({
+            invoiceNumber,
             customerName,
             customerDetails,
             notes,
@@ -163,6 +198,7 @@ export function InvoiceEditor({
     initialInvoice,
     invoiceId,
     isFinal,
+    invoiceNumber,
     customerName,
     customerDetails,
     notes,
@@ -229,16 +265,38 @@ export function InvoiceEditor({
     const stockItem = stock.find((s) => s.id === pickerStockId);
     if (!stockItem) return;
     const qty = pickerQty === "" ? 1 : Math.max(0, parseInt(pickerQty, 10) || 1);
-    setItems((prev) => [
-      ...prev,
-      {
-        key: newKey(),
-        stockItemId: stockItem.id,
-        name: stockItem.name,
-        price: Number(stockItem.price) || 0,
-        quantity: qty,
-      },
-    ]);
+
+    // Immediate stock check before adding to bill
+    const existingInBill = items.find((i) => i.stockItemId === stockItem.id);
+    const currentQtyInBill = existingInBill ? existingInBill.quantity : 0;
+    const totalRequested = currentQtyInBill + qty;
+
+    if (stockItem.quantity <= 0) {
+      setError(`Cannot add "${stockItem.name}": Out of stock (0 available).`);
+      return;
+    }
+    if (totalRequested > stockItem.quantity) {
+      setError(
+        `Cannot add "${stockItem.name}": Total requested quantity (${totalRequested}) exceeds available stock (${stockItem.quantity}).`
+      );
+      return;
+    }
+
+    setError(""); // Clear error on valid addition
+    if (existingInBill) {
+      updateItem(existingInBill.key, { quantity: totalRequested });
+    } else {
+      setItems((prev) => [
+        ...prev,
+        {
+          key: newKey(),
+          stockItemId: stockItem.id,
+          name: stockItem.name,
+          price: Number(stockItem.price) || 0,
+          quantity: qty,
+        },
+      ]);
+    }
     setPickerStockId("");
     setPickerQty("1");
   }
@@ -265,7 +323,21 @@ export function InvoiceEditor({
 
   function updateItem(key: string, patch: Partial<InvoiceLineItem>) {
     setItems((prev) =>
-      prev.map((i) => (i.key === key ? { ...i, ...patch } : i)),
+      prev.map((i) => {
+        if (i.key !== key) return i;
+        const updated = { ...i, ...patch };
+        if (updated.stockItemId && patch.quantity !== undefined) {
+          const s = stock.find((st) => st.id === updated.stockItemId);
+          if (s && updated.quantity > s.quantity) {
+            setError(
+              `Notice: Quantity for "${updated.name}" (${updated.quantity}) exceeds available stock (${s.quantity}).`
+            );
+          } else if (s && updated.quantity <= s.quantity) {
+            setError("");
+          }
+        }
+        return updated;
+      }),
     );
   }
 
@@ -304,6 +376,7 @@ export function InvoiceEditor({
     setError("");
     try {
       const payload = {
+        invoiceNumber: invoiceNumber?.trim() || undefined,
         customerName: customerName.trim(),
         customerDetails: customerDetails.trim(),
         notes: notes.trim(),
@@ -416,12 +489,6 @@ export function InvoiceEditor({
         </div>
       )}
 
-      {error && (
-        <p className="mb-4 rounded-md bg-rust-tint px-3 py-2 text-sm text-rust print:hidden">
-          {error}
-        </p>
-      )}
-
       {/* Mobile horizontal scroll helper indicator */}
       <div className="sm:hidden mb-2 text-center text-[11px] font-medium text-ink-soft print:hidden">
         Scroll horizontally to view complete bill sheet
@@ -529,9 +596,19 @@ export function InvoiceEditor({
         <div className="mt-3 flex items-baseline justify-between text-xs sm:text-sm font-semibold text-[#1b365d]">
           <div className="flex items-baseline gap-1.5 flex-1 max-w-[45%]">
             <span className="font-bold">No.</span>
-            <span className="flex-1 font-mono font-bold tracking-wider border-b border-dotted border-[#1b365d] px-2 text-xs sm:text-sm text-[#1b365d]">
-              {invoiceNumber ?? "—"}
-            </span>
+            {status === "final" ? (
+              <span className="flex-1 font-mono font-bold tracking-wider border-b border-dotted border-[#1b365d] px-2 text-xs sm:text-sm text-[#1b365d]">
+                {invoiceNumber ?? "—"}
+              </span>
+            ) : (
+              <input
+                value={invoiceNumber || ""}
+                onChange={(e) => setInvoiceNumber(e.target.value)}
+                placeholder={suggestedInvoiceNumber || "Invoice No."}
+                className="flex-1 font-mono font-bold tracking-wider border-b border-dotted border-[#1b365d] bg-transparent px-2 text-xs sm:text-sm text-[#1b365d] outline-none placeholder:text-[#1b365d]/40 focus:bg-blue-50/50"
+                title="Invoice number (editable)"
+              />
+            )}
           </div>
           <div className="flex items-baseline gap-1.5 flex-1 max-w-[45%] justify-end">
             <span className="font-bold">Date.</span>
@@ -811,6 +888,20 @@ export function InvoiceEditor({
       </div>
     </div>
   </div>
+
+      {/* Warning or error appears just below the invoice instead of upside */}
+      {error && (
+        <div className="mt-4 mb-2 flex items-center justify-between rounded-md border border-rust/40 bg-rust-tint px-3.5 py-2.5 text-sm font-medium text-rust shadow-xs print:hidden">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setError("")}
+            className="ml-3 text-xs underline text-rust hover:opacity-80 cursor-pointer shrink-0"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* ============================================================ */}
       {/* EDITING TOOLBAR: Add from stock / custom line item (screen)  */}

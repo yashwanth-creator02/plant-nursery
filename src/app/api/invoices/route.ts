@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { invoiceItems, invoices, stockItems, businessSettings } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { handleApiError } from "@/lib/api-utils";
-import { generateInvoiceNumber } from "@/lib/invoice-number";
+import { generateInvoiceNumber, advanceInvoiceSequence } from "@/lib/invoice-number";
 
 const lineItemSchema = z.object({
   stockItemId: z.string().uuid().nullable().optional(),
@@ -15,6 +15,7 @@ const lineItemSchema = z.object({
 });
 
 const createSchema = z.object({
+  invoiceNumber: z.string().trim().optional(),
   customerName: z.string().trim().optional().default(""),
   customerDetails: z.string().trim().optional().default(""),
   notes: z.string().trim().optional().default(""),
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const { customerName, customerDetails, notes, status, items } = parsed.data;
+    const { invoiceNumber: customNumber, customerName, customerDetails, notes, status, items } = parsed.data;
 
     const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
@@ -83,7 +84,23 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const invoiceNumber = await generateInvoiceNumber();
+      let invoiceNumber = customNumber?.trim();
+      if (invoiceNumber) {
+        const [conflict] = await tx
+          .select({ id: invoices.id })
+          .from(invoices)
+          .where(eq(invoices.invoiceNumber, invoiceNumber))
+          .limit(1);
+
+        if (conflict) {
+          throw new InvoiceNumberConflictError(invoiceNumber);
+        }
+      } else {
+        invoiceNumber = await generateInvoiceNumber();
+      }
+
+      // Advance sequence so future invoices continue from this series
+      await advanceInvoiceSequence(invoiceNumber);
 
       const activeSettings = await tx
         .select()
@@ -152,7 +169,23 @@ export async function POST(req: NextRequest) {
         { status: 409 }
       );
     }
+    if (err instanceof InvoiceNumberConflictError) {
+      return NextResponse.json(
+        {
+          error: `Invoice number "${err.number}" already exists. Please pick a different number.`,
+        },
+        { status: 409 }
+      );
+    }
     return handleApiError(err);
+  }
+}
+
+class InvoiceNumberConflictError extends Error {
+  number: string;
+  constructor(number: string) {
+    super("Invoice number conflict");
+    this.number = number;
   }
 }
 

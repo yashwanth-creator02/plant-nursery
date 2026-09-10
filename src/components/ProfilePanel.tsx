@@ -3,10 +3,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, LogOut, UserPlus, Trash2, Sun, Moon, PenTool, Building2 } from "lucide-react";
+import { X, LogOut, UserPlus, Trash2, Sun, Moon, PenTool, Building2, Hash } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { SignatureModal } from "./SignatureModal";
 import { AdminInvoiceSettingsModal } from "./AdminInvoiceSettingsModal";
+import { CustomInvoiceNumberModal } from "./CustomInvoiceNumberModal";
 
 type ManagedUser = {
   id: string;
@@ -35,15 +36,27 @@ export function ProfilePanel({
 
   const [signatureModalOpen, setSignatureModalOpen] = useState(false);
   const [adminSettingsModalOpen, setAdminSettingsModalOpen] = useState(false);
+  const [customNumberModalOpen, setCustomNumberModalOpen] = useState(false);
   const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
+  const [nextInvoiceNumber, setNextInvoiceNumber] = useState<string>("");
 
   const isAdmin = user?.role === "admin";
+
+  function loadInvoiceSequence() {
+    fetch("/api/settings/invoice-sequence")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.nextInvoiceNumber) setNextInvoiceNumber(d.nextInvoiceNumber);
+      })
+      .catch(() => {});
+  }
 
   useEffect(() => {
     if (open) {
       setIsDark(document.documentElement.classList.contains("dark"));
       const savedSig = localStorage.getItem("svl_digital_signature");
       setSignaturePreview(savedSig);
+      loadInvoiceSequence();
       if (isAdmin) {
         loadUsers();
       }
@@ -277,6 +290,30 @@ export function ProfilePanel({
           )}
         </div>
 
+        {/* Custom Invoice Number Series Section (Available to ALL users) */}
+        <div className="border-b border-line px-5 py-3.5">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+              Invoice Number Series
+            </span>
+            {nextInvoiceNumber && (
+              <span className="text-[10px] font-mono font-bold bg-blue-50 text-[#1b365d] border border-blue-200 px-1.5 py-0.5 rounded">
+                Next: {nextInvoiceNumber}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-ink-soft mb-2.5">
+            Set a custom starting invoice number. Subsequent invoices will automatically continue from this series.
+          </p>
+          <button
+            type="button"
+            onClick={() => setCustomNumberModalOpen(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-md border border-line-strong bg-paper px-3 py-2 text-xs font-medium text-ink transition-colors hover:bg-line/50 cursor-pointer"
+          >
+            <Hash size={14} /> Set Custom Invoice Number
+          </button>
+        </div>
+
         {/* Admin Invoice Header Settings (Admin only) */}
         {isAdmin && (
           <div className="border-b border-line px-5 py-3.5">
@@ -454,6 +491,16 @@ export function ProfilePanel({
       <AdminInvoiceSettingsModal
         open={adminSettingsModalOpen}
         onClose={() => setAdminSettingsModalOpen(false)}
+      />
+
+      <CustomInvoiceNumberModal
+        isOpen={customNumberModalOpen}
+        onClose={() => setCustomNumberModalOpen(false)}
+        initialNumber={nextInvoiceNumber}
+        onUpdated={(num) => {
+          setNextInvoiceNumber(num);
+          window.dispatchEvent(new Event("invoiceSequenceUpdated"));
+        }}
       />
     </div>
   );

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { invoiceItems, invoices, stockItems } from "@/db/schema";
 import { requireUser, ForbiddenError } from "@/lib/session";
 import { handleApiError } from "@/lib/api-utils";
+import { advanceInvoiceSequence } from "@/lib/invoice-number";
 
 const lineItemSchema = z.object({
   stockItemId: z.string().uuid().nullable().optional(),
@@ -14,6 +15,7 @@ const lineItemSchema = z.object({
 });
 
 const updateSchema = z.object({
+  invoiceNumber: z.string().trim().optional(),
   customerName: z.string().trim().optional(),
   customerDetails: z.string().trim().optional(),
   notes: z.string().trim().optional(),
@@ -28,6 +30,14 @@ class StockShortageError extends Error {
     super("Stock shortage");
     this.itemName = itemName;
     this.available = available;
+  }
+}
+
+class InvoiceNumberConflictError extends Error {
+  number: string;
+  constructor(number: string) {
+    super("Invoice number conflict");
+    this.number = number;
   }
 }
 
@@ -88,9 +98,25 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    const { customerName, customerDetails, notes, items, action } = parsed.data;
+    const { invoiceNumber: customNumber, customerName, customerDetails, notes, items, action } = parsed.data;
 
     const result = await db.transaction(async (tx) => {
+      let nextInvNum = existing.invoiceNumber;
+      if (customNumber && customNumber.trim() && customNumber.trim() !== existing.invoiceNumber) {
+        const trimmed = customNumber.trim();
+        const [conflict] = await tx
+          .select({ id: invoices.id })
+          .from(invoices)
+          .where(and(ne(invoices.id, id), eq(invoices.invoiceNumber, trimmed)))
+          .limit(1);
+
+        if (conflict) {
+          throw new InvoiceNumberConflictError(trimmed);
+        }
+        nextInvNum = trimmed;
+        await advanceInvoiceSequence(trimmed);
+      }
+
       if (items) {
         const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
@@ -136,6 +162,7 @@ export async function PATCH(
         await tx
           .update(invoices)
           .set({
+            invoiceNumber: nextInvNum,
             customerName: customerName ?? existing.customerName,
             customerDetails: customerDetails ?? existing.customerDetails,
             notes: notes ?? existing.notes,
@@ -149,6 +176,7 @@ export async function PATCH(
         await tx
           .update(invoices)
           .set({
+            invoiceNumber: nextInvNum,
             customerName: customerName ?? existing.customerName,
             customerDetails: customerDetails ?? existing.customerDetails,
             notes: notes ?? existing.notes,
@@ -165,6 +193,14 @@ export async function PATCH(
 
     return NextResponse.json({ invoice: result });
   } catch (err) {
+    if (err instanceof InvoiceNumberConflictError) {
+      return NextResponse.json(
+        {
+          error: `Invoice number "${err.number}" already exists. Please pick a different number.`,
+        },
+        { status: 409 }
+      );
+    }
     if (err instanceof StockShortageError) {
       return NextResponse.json(
         {

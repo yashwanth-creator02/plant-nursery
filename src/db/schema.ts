@@ -42,6 +42,12 @@ export const businessSettings = pgTable("business_settings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const invoiceSequences = pgTable("invoice_sequences", {
+  id: text("id").primaryKey().default("default"),
+  nextInvoiceNumber: text("next_invoice_number").notNull().default("INV-2026-0001"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const invoices = pgTable("invoices", {
   id: uuid("id").defaultRandom().primaryKey(),
   invoiceNumber: text("invoice_number").notNull().unique(),
