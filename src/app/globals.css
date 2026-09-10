@@ -15,6 +15,41 @@
   --pine-tint: #e3ece7;
   --rust: #a4491f;
   --rust-tint: #f3e4da;
+  color-scheme: light;
+}
+
+html.dark {
+  --paper: #121715;
+  --paper-flat: #1a221f;
+  --surface: #222c27;
+  --ink: #e6ede9;
+  --ink-soft: #9cb1a4;
+  --line: #2d3b33;
+  --line-strong: #44584d;
+  --pine: #3f7b64;
+  --pine-deep: #5bb392;
+  --pine-tint: #1c2b23;
+  --rust: #d96d43;
+  --rust-tint: #3b221a;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light) {
+    --paper: #121715;
+    --paper-flat: #1a221f;
+    --surface: #222c27;
+    --ink: #e6ede9;
+    --ink-soft: #9cb1a4;
+    --line: #2d3b33;
+    --line-strong: #44584d;
+    --pine: #3f7b64;
+    --pine-deep: #5bb392;
+    --pine-tint: #1c2b23;
+    --rust: #d96d43;
+    --rust-tint: #3b221a;
+    color-scheme: dark;
+  }
 }
 
 @theme inline {
@@ -39,6 +74,7 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 /* Tabular numerals everywhere money/quantities show up, so columns line
@@ -49,6 +85,26 @@ body {
 }
 
 @media print {
+  :root,
+  html,
+  html.dark,
+  body {
+    --paper: #ffffff !important;
+    --paper-flat: #ffffff !important;
+    --surface: #ffffff !important;
+    --ink: #111111 !important;
+    --ink-soft: #444444 !important;
+    --line: #e2e2e2 !important;
+    --line-strong: #cccccc !important;
+    --pine: #2f5d4c !important;
+    --pine-deep: #21453a !important;
+    --pine-tint: #f0f5f2 !important;
+    --rust: #a4491f !important;
+    --rust-tint: #fbeee8 !important;
+    color-scheme: light !important;
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
   body * {
     visibility: hidden;
   }
@@ -60,6 +116,8 @@ body {
     position: absolute;
     inset: 0;
     width: 100%;
+    background: #ffffff !important;
+    color: #111111 !important;
   }
   @page {
     margin: 14mm;

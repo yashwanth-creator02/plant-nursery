@@ -26,6 +26,7 @@ export function ProfilePanel({
   const [newPassword, setNewPassword] = useState("");
   const [newRole, setNewRole] = useState<"admin" | "staff">("staff");
   const [submitting, setSubmitting] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const isAdmin = user?.role === "admin";
 
@@ -113,6 +114,26 @@ export function ProfilePanel({
       loadUsers();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't remove user");
+    }
+  }
+
+  async function handleClearAllData() {
+    const confirmed = window.confirm(
+      "WARNING: This will permanently delete all invoices, line items, stock items, and other user accounts from the database.\n\nThis action CANNOT be undone.\n\nAre you sure you want to proceed?",
+    );
+    if (!confirmed) return;
+
+    setClearing(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/clear-data", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to clear database");
+      alert("Database has been completely cleared.");
+      window.location.reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't clear database");
+      setClearing(false);
     }
   }
 
@@ -268,6 +289,25 @@ export function ProfilePanel({
                 );
               })}
             </ul>
+
+            <div className="mt-8 border-t border-line pt-5">
+              <h4 className="mb-1 text-xs font-semibold uppercase tracking-wider text-rust">
+                Danger Zone
+              </h4>
+              <p className="mb-3 text-xs text-ink-soft">
+                Permanently delete all invoices, stock items, and reset database
+                records. Your admin account will remain active.
+              </p>
+              <button
+                type="button"
+                onClick={handleClearAllData}
+                disabled={clearing}
+                className="flex w-full items-center justify-center gap-2 rounded-md border border-rust/40 bg-rust-tint/60 px-3 py-2 text-xs font-semibold text-rust transition-colors hover:bg-rust hover:text-surface disabled:opacity-50"
+              >
+                <Trash2 size={14} />
+                {clearing ? "Clearing database…" : "Clear all database data"}
+              </button>
+            </div>
           </div>
         )}
       </div>

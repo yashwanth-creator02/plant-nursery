@@ -214,6 +214,15 @@ export function InvoiceEditor({
             </span>
           )}
         </div>
+        <button
+          onClick={() => {
+            resetForm();
+            router.push("/invoice");
+          }}
+          className="flex items-center gap-1.5 rounded-md border border-line-strong px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:bg-line/50"
+        >
+          <FilePlus2 size={15} /> New invoice
+        </button>
       </div>
 
       {error && (
@@ -512,47 +521,35 @@ export function InvoiceEditor({
       )}
 
       {/* Action buttons at bottom of invoice */}
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <button
-          onClick={() => {
-            resetForm();
-            router.push("/invoice");
-          }}
-          className="flex items-center gap-1.5 rounded-md border border-line-strong px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:bg-line/50"
-        >
-          <FilePlus2 size={15} /> New invoice
-        </button>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {!isFinal && (
-            <>
-              <button
-                onClick={() => persist("draft")}
-                disabled={saving !== null}
-                className="flex items-center gap-1.5 rounded-md border border-line-strong px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:bg-line/50 disabled:opacity-50"
-              >
-                <Save size={15} />
-                {saving === "draft" ? "Saving…" : "Save as draft"}
-              </button>
-              <button
-                onClick={() => persist("final")}
-                disabled={saving !== null}
-                className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-2 text-sm font-medium text-surface shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
-                <Lock size={15} />
-                {saving === "final" ? "Finalizing…" : "Finalize & print"}
-              </button>
-            </>
-          )}
-          {isFinal && (
+      <div className="mt-6 flex flex-wrap items-center justify-end gap-2 print:hidden">
+        {!isFinal && (
+          <>
             <button
-              onClick={() => window.print()}
-              className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-2 text-sm font-medium text-surface shadow-sm transition-opacity hover:opacity-90"
+              onClick={() => persist("draft")}
+              disabled={saving !== null}
+              className="flex items-center gap-1.5 rounded-md border border-line-strong px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:bg-line/50 disabled:opacity-50"
             >
-              <Printer size={15} /> Print invoice
+              <Save size={15} />
+              {saving === "draft" ? "Saving…" : "Save as draft"}
             </button>
-          )}
-        </div>
+            <button
+              onClick={() => persist("final")}
+              disabled={saving !== null}
+              className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-2 text-sm font-medium text-surface shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              <Lock size={15} />
+              {saving === "final" ? "Finalizing…" : "Finalize & print"}
+            </button>
+          </>
+        )}
+        {isFinal && (
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-2 text-sm font-medium text-surface shadow-sm transition-opacity hover:opacity-90"
+          >
+            <Printer size={15} /> Print invoice
+          </button>
+        )}
       </div>
     </div>
   );
