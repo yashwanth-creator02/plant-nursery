@@ -1,53 +1,54 @@
 @import "tailwindcss";
 
-:root {
-  /* Ledger palette — warm paper with deep pine ink, not the usual
-     cream/terracotta or violet SaaS defaults. */
-  --paper: #edeae1;
-  --paper-flat: #e4e0d4;
-  --surface: #fdfcf9;
-  --ink: #1f281f;
-  --ink-soft: #4a5248;
-  --line: #d7d1c0;
-  --line-strong: #b7ae97;
-  --pine: #2f5d4c;
-  --pine-deep: #21453a;
-  --pine-tint: #e3ece7;
-  --rust: #a4491f;
-  --rust-tint: #f3e4da;
+:root,
+html.light {
+  /* Light mode palette — warm parchment with deep pine ink */
+  --paper: #f4f1ea;
+  --paper-flat: #eae5d8;
+  --surface: #ffffff;
+  --ink: #1c2621;
+  --ink-soft: #4c5750;
+  --line: #d8d2c3;
+  --line-strong: #b5ac96;
+  --pine: #295746;
+  --pine-deep: #1b3d31;
+  --pine-tint: #e2ede7;
+  --rust: #a6471e;
+  --rust-tint: #f5e4db;
   color-scheme: light;
 }
 
 html.dark {
-  --paper: #121715;
-  --paper-flat: #1a221f;
-  --surface: #222c27;
-  --ink: #e6ede9;
-  --ink-soft: #9cb1a4;
-  --line: #2d3b33;
-  --line-strong: #44584d;
-  --pine: #3f7b64;
-  --pine-deep: #5bb392;
-  --pine-tint: #1c2b23;
-  --rust: #d96d43;
-  --rust-tint: #3b221a;
+  /* Dark mode palette — deep midnight charcoal with luminous crisp ink */
+  --paper: #0f1412;
+  --paper-flat: #171e1a;
+  --surface: #1e2722;
+  --ink: #f2f7f4;
+  --ink-soft: #9bb2a4;
+  --line: #293830;
+  --line-strong: #41574a;
+  --pine: #3c8a6c;
+  --pine-deep: #5ec49b;
+  --pine-tint: #162c21;
+  --rust: #e27448;
+  --rust-tint: #3b1f16;
   color-scheme: dark;
 }
 
 @media (prefers-color-scheme: dark) {
   html:not(.light) {
-    --paper: #121715;
-    --paper-flat: #1a221f;
-    --surface: #222c27;
-    --ink: #e6ede9;
-    --ink-soft: #9cb1a4;
-    --line: #2d3b33;
-    --line-strong: #44584d;
-    --pine: #3f7b64;
-    --pine-deep: #5bb392;
-    --pine-tint: #1c2b23;
-    --rust: #d96d43;
-    --rust-tint: #3b221a;
+    --paper: #0f1412;
+    --paper-flat: #171e1a;
+    --surface: #1e2722;
+    --ink: #f2f7f4;
+    --ink-soft: #9bb2a4;
+    --line: #293830;
+    --line-strong: #41574a;
+    --pine: #3c8a6c;
+    --pine-deep: #5ec49b;
+    --pine-tint: #162c21;
+    --rust: #e27448;
+    --rust-tint: #3b1f16;
     color-scheme: dark;
   }
 }
@@ -75,6 +76,12 @@ body {
   color: var(--ink);
   font-family: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
   transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+input,
+select,
+textarea {
+  color: var(--ink);
 }
 
 /* Tabular numerals everywhere money/quantities show up, so columns line

@@ -21,14 +21,15 @@ export function Sidebar({ onProfileClick }: { onProfileClick: () => void }) {
     setIsDark(document.documentElement.classList.contains("dark"));
   }, []);
 
-  function toggleTheme() {
-    const next = !isDark;
-    setIsDark(next);
-    if (next) {
+  function setThemeMode(dark: boolean) {
+    setIsDark(dark);
+    if (dark) {
       document.documentElement.classList.add("dark");
+      document.documentElement.classList.remove("light");
       localStorage.setItem("theme", "dark");
     } else {
       document.documentElement.classList.remove("dark");
+      document.documentElement.classList.add("light");
       localStorage.setItem("theme", "light");
     }
   }
@@ -65,19 +66,32 @@ export function Sidebar({ onProfileClick }: { onProfileClick: () => void }) {
       </div>
 
       <div className="flex flex-col gap-2 border-t border-line pt-3">
-        <button
-          onClick={toggleTheme}
-          className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs text-ink-soft transition-colors hover:bg-line/60 hover:text-ink"
-          aria-label="Toggle dark mode"
-        >
-          <span className="flex items-center gap-2">
-            {isDark ? <Sun size={15} /> : <Moon size={15} />}
-            <span>{isDark ? "Light mode" : "Dark mode"}</span>
-          </span>
-          <span className="rounded bg-line px-1.5 py-0.5 text-[10px] font-mono uppercase">
-            {isDark ? "Dark" : "Light"}
-          </span>
-        </button>
+        <div className="flex items-center rounded-md border border-line bg-paper p-0.5 text-xs">
+          <button
+            type="button"
+            onClick={() => setThemeMode(false)}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded py-1 font-medium transition-all ${
+              !isDark
+                ? "bg-surface text-pine-deep shadow-sm"
+                : "text-ink-soft hover:text-ink"
+            }`}
+          >
+            <Sun size={13} />
+            <span>Light</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setThemeMode(true)}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded py-1 font-medium transition-all ${
+              isDark
+                ? "bg-surface text-pine-deep shadow-sm"
+                : "text-ink-soft hover:text-ink"
+            }`}
+          >
+            <Moon size={13} />
+            <span>Dark</span>
+          </button>
+        </div>
 
         <button
           onClick={onProfileClick}

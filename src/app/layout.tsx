@@ -47,8 +47,10 @@ export default function RootLayout({
                   var supportDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                   if (t === 'dark' || (!t && supportDark)) {
                     document.documentElement.classList.add('dark');
+                    document.documentElement.classList.remove('light');
                   } else {
                     document.documentElement.classList.remove('dark');
+                    document.documentElement.classList.add('light');
                   }
                 } catch(e) {}
               })();

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, LogOut, UserPlus, Trash2 } from "lucide-react";
+import { X, LogOut, UserPlus, Trash2, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 type ManagedUser = {
@@ -27,15 +27,32 @@ export function ProfilePanel({
   const [newRole, setNewRole] = useState<"admin" | "staff">("staff");
   const [submitting, setSubmitting] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [isDark, setIsDark] = useState(false);
 
   const isAdmin = user?.role === "admin";
 
   useEffect(() => {
-    if (open && isAdmin) {
-      loadUsers();
+    if (open) {
+      setIsDark(document.documentElement.classList.contains("dark"));
+      if (isAdmin) {
+        loadUsers();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, isAdmin]);
+
+  function setThemeMode(dark: boolean) {
+    setIsDark(dark);
+    if (dark) {
+      document.documentElement.classList.add("dark");
+      document.documentElement.classList.remove("light");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      document.documentElement.classList.add("light");
+      localStorage.setItem("theme", "light");
+    }
+  }
 
   async function loadUsers() {
     setLoadingUsers(true);
@@ -169,6 +186,36 @@ export function ProfilePanel({
               {user?.username}
             </div>
             <div className="text-xs capitalize text-ink-soft">{user?.role}</div>
+          </div>
+        </div>
+
+        <div className="border-b border-line px-5 py-3">
+          <div className="mb-1.5 text-xs font-medium text-ink-soft">Theme</div>
+          <div className="flex items-center rounded-md border border-line bg-paper p-0.5 text-xs">
+            <button
+              type="button"
+              onClick={() => setThemeMode(false)}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded py-1 font-medium transition-all ${
+                !isDark
+                  ? "bg-surface text-pine-deep shadow-sm"
+                  : "text-ink-soft hover:text-ink"
+              }`}
+            >
+              <Sun size={13} />
+              <span>Light</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setThemeMode(true)}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded py-1 font-medium transition-all ${
+                isDark
+                  ? "bg-surface text-pine-deep shadow-sm"
+                  : "text-ink-soft hover:text-ink"
+              }`}
+            >
+              <Moon size={13} />
+              <span>Dark</span>
+            </button>
           </div>
         </div>
 
