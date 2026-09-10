@@ -56,8 +56,8 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           <Menu size={19} />
         </button>
 
-        <span className="font-serif text-lg font-semibold tracking-tight text-pine-deep">
-          Ledger
+        <span className="font-serif text-sm sm:text-base font-semibold tracking-tight text-pine-deep truncate max-w-[200px]">
+          Sri Vijaya Lakshmi Nursery
         </span>
 
         <button

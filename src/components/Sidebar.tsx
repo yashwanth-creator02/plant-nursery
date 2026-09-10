@@ -136,8 +136,11 @@ export function Sidebar({
               <path d="M 128 134 C 162 126, 188 102, 182 72 C 152 80, 130 102, 128 134 Z" fill="#86efac" />
               <path d="M 128 88 C 117 68, 120 48, 128 34 C 136 48, 139 68, 128 88 Z" fill="#bbf7d0" />
             </svg>
-            <span className="font-serif text-lg font-semibold tracking-tight text-pine-deep">
-              Ledger
+            <span className="font-serif text-base font-semibold leading-tight tracking-tight text-pine-deep">
+              Sri Vijaya Lakshmi
+              <span className="block text-xs font-sans font-normal text-ink-soft">
+                Nursery & Farm
+              </span>
             </span>
           </div>
           {renderNavLinks(false)}
@@ -166,8 +169,11 @@ export function Sidebar({
                     <path d="M 128 134 C 162 126, 188 102, 182 72 C 152 80, 130 102, 128 134 Z" fill="#86efac" />
                     <path d="M 128 88 C 117 68, 120 48, 128 34 C 136 48, 139 68, 128 88 Z" fill="#bbf7d0" />
                   </svg>
-                  <span className="font-serif text-lg font-semibold tracking-tight text-pine-deep">
-                    Ledger
+                  <span className="font-serif text-sm font-semibold leading-tight tracking-tight text-pine-deep">
+                    Sri Vijaya Lakshmi
+                    <span className="block text-[11px] font-sans font-normal text-ink-soft">
+                      Nursery & Farm
+                    </span>
                   </span>
                 </div>
                 <button

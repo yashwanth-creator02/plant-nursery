@@ -22,8 +22,8 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "Ledger — Invoices & Stock",
-  description: "Invoice generation and stock tracking",
+  title: "Sri Vijaya Lakshmi Nursery — Invoices & Stock",
+  description: "Sri Vijaya Lakshmi Nursery, Harige B. H. Road, Shimoga — Invoicing & Stock Management",
   icons: {
     icon: "/icon.svg",
   },

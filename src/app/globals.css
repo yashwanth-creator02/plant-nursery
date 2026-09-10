@@ -99,18 +99,11 @@ textarea {
     --paper: #ffffff !important;
     --paper-flat: #ffffff !important;
     --surface: #ffffff !important;
-    --ink: #111111 !important;
-    --ink-soft: #444444 !important;
-    --line: #e2e2e2 !important;
-    --line-strong: #cccccc !important;
-    --pine: #2f5d4c !important;
-    --pine-deep: #21453a !important;
-    --pine-tint: #f0f5f2 !important;
-    --rust: #a4491f !important;
-    --rust-tint: #fbeee8 !important;
     color-scheme: light !important;
     background: #ffffff !important;
     color: #111111 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   body * {
     visibility: hidden;
@@ -121,12 +114,15 @@ textarea {
   }
   #invoice-print {
     position: absolute;
-    inset: 0;
+    left: 0;
+    top: 0;
     width: 100%;
+    margin: 0;
+    padding: 10mm;
     background: #ffffff !important;
-    color: #111111 !important;
   }
   @page {
-    margin: 14mm;
+    margin: 0;
+    size: A4 portrait;
   }
 }

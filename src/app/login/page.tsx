@@ -46,11 +46,14 @@ export default function LoginPage() {
             <path d="M 128 134 C 162 126, 188 102, 182 72 C 152 80, 130 102, 128 134 Z" fill="#86efac" />
             <path d="M 128 88 C 117 68, 120 48, 128 34 C 136 48, 139 68, 128 88 Z" fill="#bbf7d0" />
           </svg>
-          <div className="font-serif text-2xl font-semibold tracking-tight text-pine-deep">
-            Ledger
+          <div className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-pine-deep">
+            Sri Vijaya Lakshmi Nursery
           </div>
-          <p className="mt-1 text-sm text-ink-soft">
-            Invoices &amp; stock, kept in order.
+          <p className="mt-1 text-xs text-ink-soft">
+            Harige B. H. Road, Shimoga - 577203
+          </p>
+          <p className="text-xs text-ink-soft/80">
+            Bill of Suppliers &amp; Stock Management
           </p>
         </div>
 
