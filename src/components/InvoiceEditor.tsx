@@ -4,7 +4,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Printer, Save, FilePlus2, Trash2, Lock, PenTool, X, AlertTriangle } from "lucide-react";
+import { Plus, Printer, Save, FilePlus2, Trash2, Lock, PenTool, X, AlertTriangle, Banknote, QrCode, Check, Loader2 } from "lucide-react";
 import {
   formatMoney,
   numberToIndianWords,
@@ -51,8 +51,16 @@ export function InvoiceEditor({
   );
   const [notes, setNotes] = useState(initialInvoice?.notes ?? "");
   const [paymentMode, setPaymentMode] = useState<"CASH" | "CREDIT">("CASH");
+  const [paymentTag, setPaymentTag] = useState<"cash" | "online">(
+    initialInvoice?.paymentMode ?? "cash",
+  );
   const [isSigned, setIsSigned] = useState(true);
   const [customSignature, setCustomSignature] = useState<string | null>(null);
+
+  // QR Payment Modal State
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState<string | null>(null);
+  const [loadingQr, setLoadingQr] = useState(false);
 
   // Invoice version & header snapshot
   let parsedInitialHeader = DEFAULT_HEADER;
@@ -98,6 +106,30 @@ export function InvoiceEditor({
   } | null>(null);
   const [restoredDraft, setRestoredDraft] = useState(false);
   const [suggestedInvoiceNumber, setSuggestedInvoiceNumber] = useState<string>("");
+
+  async function loadQrCode() {
+    setLoadingQr(true);
+    try {
+      const res = await fetch("/api/settings/qr-code", { cache: "no-store" });
+      const data = await res.json();
+      if (res.ok && data.qrCodeData) {
+        setQrCodeData(data.qrCodeData);
+      } else {
+        setQrCodeData(null);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingQr(false);
+    }
+  }
+
+  useEffect(() => {
+    loadQrCode();
+    const handleQrUpdate = () => loadQrCode();
+    window.addEventListener("qrCodeUpdated", handleQrUpdate);
+    return () => window.removeEventListener("qrCodeUpdated", handleQrUpdate);
+  }, []);
 
   // Fetch current sequence number and sync on updates
   useEffect(() => {
@@ -151,6 +183,7 @@ export function InvoiceEditor({
             if (parsed.customerDetails !== undefined) setCustomerDetails(parsed.customerDetails);
             if (parsed.notes !== undefined) setNotes(parsed.notes);
             if (parsed.paymentMode) setPaymentMode(parsed.paymentMode);
+            if (parsed.paymentTag) setPaymentTag(parsed.paymentTag);
             if (parsed.isSigned !== undefined) setIsSigned(parsed.isSigned);
             if (Array.isArray(parsed.items) && parsed.items.length > 0) {
               setItems(parsed.items);
@@ -189,6 +222,7 @@ export function InvoiceEditor({
             customerDetails,
             notes,
             paymentMode,
+            paymentTag,
             isSigned,
             items,
             customName,
@@ -392,9 +426,10 @@ export function InvoiceEditor({
     } catch {}
   }
 
-  async function persist(action: "draft" | "final") {
+  async function persist(action: "draft" | "final", selectedPaymentMode?: "cash" | "online") {
     setSaving(action);
     setError("");
+    const modeToSave = selectedPaymentMode ?? paymentTag ?? "cash";
     try {
       const hasShortage = items.some((i) => {
         if (!i.stockItemId) return false;
@@ -408,6 +443,7 @@ export function InvoiceEditor({
         customerDetails: customerDetails.trim(),
         notes: notes.trim(),
         force: hasShortage,
+        paymentMode: modeToSave,
         items: items.map((i) => ({
           stockItemId: i.stockItemId,
           name: i.name.trim() || "Item",
@@ -443,6 +479,11 @@ export function InvoiceEditor({
       setInvoiceId(saved.id);
       setInvoiceNumber(saved.invoiceNumber);
       setStatus(saved.status);
+      if (saved.paymentMode) {
+        setPaymentTag(saved.paymentMode);
+      } else if (selectedPaymentMode) {
+        setPaymentTag(selectedPaymentMode);
+      }
       if (saved.version) setInvoiceVersion(saved.version);
       if (saved.headerSnapshot) {
         try {
@@ -841,32 +882,47 @@ export function InvoiceEditor({
         </div>
 
         {/* ============================================================ */}
-        {/* SIGNATURE BLOCK: On-document toggle directly above Proprietor */}
+        {/* BOTTOM SECTION: Payment Mode Tag on Left, Signature on Right */}
         {/* ============================================================ */}
-        <div className="mt-4 text-right text-[#1b365d] pr-2 sm:pr-4">
-          <div className="flex items-center justify-between mb-1 print:hidden">
-            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100/70 text-[#1b365d] border border-blue-200">
-              Version {invoiceVersion}
-            </span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-medium text-ink-soft">Digital Signature:</span>
-              <button
-                type="button"
-                onClick={() => setIsSigned(!isSigned)}
-                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
-                  isSigned
-                    ? "bg-[#1b365d] text-white"
-                    : "border border-line-strong text-ink-soft hover:bg-line/40"
-                }`}
-              >
-                {isSigned ? "Included" : "None"}
-              </button>
+        <div className="mt-4 flex items-end justify-between text-[#1b365d] px-2 sm:px-4">
+          {/* Bottom Left: Payment Mode Tag */}
+          <div className="flex flex-col items-start gap-1 pb-1">
+            <div className="inline-flex items-center gap-1.5 rounded border border-[#1b365d]/50 bg-blue-50/50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[#1b365d]">
+              <span className="text-[10px] font-medium text-[#1b365d]/75">Payment:</span>
+              <span className="font-extrabold">{paymentTag.toUpperCase()}</span>
             </div>
+            {status === "draft" && (
+              <span className="text-[10px] text-ink-soft print:hidden">
+                (Click &apos;Pay with Cash&apos; or &apos;Pay Online&apos; to finalize)
+              </span>
+            )}
           </div>
 
-          <p className="font-bold text-xs sm:text-sm tracking-tight">
-            For {headerDetails.businessName.includes("NURSERY") ? headerDetails.businessName : "Sri VijayaLakshmi Nursery & Farm"}
-          </p>
+          {/* Bottom Right: Version & Signature Block */}
+          <div className="text-right">
+            <div className="flex items-center justify-end gap-2.5 mb-1 print:hidden">
+              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100/70 text-[#1b365d] border border-blue-200">
+                Version {invoiceVersion}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-medium text-ink-soft">Digital Signature:</span>
+                <button
+                  type="button"
+                  onClick={() => setIsSigned(!isSigned)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
+                    isSigned
+                      ? "bg-[#1b365d] text-white"
+                      : "border border-line-strong text-ink-soft hover:bg-line/40"
+                  }`}
+                >
+                  {isSigned ? "Included" : "None"}
+                </button>
+              </div>
+            </div>
+
+            <p className="font-bold text-xs sm:text-sm tracking-tight">
+              For {headerDetails.businessName.includes("NURSERY") ? headerDetails.businessName : "Sri VijayaLakshmi Nursery & Farm"}
+            </p>
 
           <div className="min-h-[56px] sm:min-h-[64px] flex items-center justify-end py-1">
             {isSigned ? (
@@ -928,6 +984,7 @@ export function InvoiceEditor({
       </div>
     </div>
   </div>
+</div>
 
       {/* Warning or error appears just below the invoice instead of upside */}
       {error && (
@@ -1111,9 +1168,10 @@ export function InvoiceEditor({
       )}
 
       {/* Bottom Actions Toolbar (screen only) */}
-      <div className="mt-6 flex flex-wrap items-center justify-end gap-2.5 print:hidden">
-        {status !== "final" && (
-          <>
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
+        {/* Left Side: Save as draft */}
+        <div>
+          {status !== "final" && (
             <button
               onClick={() => persist("draft")}
               disabled={saving !== null}
@@ -1122,27 +1180,141 @@ export function InvoiceEditor({
               <Save size={15} />
               {saving === "draft" ? "Saving…" : "Save as draft"}
             </button>
+          )}
+        </div>
 
+        {/* Right Side: Payment & Finalize Action Buttons */}
+        <div className="flex items-center gap-2.5">
+          {status !== "final" ? (
+            <>
+              <button
+                type="button"
+                onClick={() => persist("final", "cash")}
+                disabled={saving !== null}
+                className="flex items-center gap-1.5 rounded-md border border-pine bg-surface px-4 py-2 text-sm font-semibold text-pine-deep shadow-xs transition-colors hover:bg-pine-tint/40 disabled:opacity-50 cursor-pointer"
+              >
+                <Banknote size={16} />
+                {saving === "final" && paymentTag === "cash" ? "Finalizing…" : "Pay with Cash"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  loadQrCode();
+                  setQrModalOpen(true);
+                }}
+                disabled={saving !== null}
+                className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-2 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer"
+              >
+                <QrCode size={16} />
+                {saving === "final" && paymentTag === "online" ? "Finalizing…" : "Pay with Online"}
+              </button>
+            </>
+          ) : (
             <button
-              onClick={() => persist("final")}
-              disabled={saving !== null}
-              className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-2 text-sm font-medium text-surface shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer"
+              onClick={() => window.print()}
+              className="flex items-center gap-1.5 rounded-md bg-pine px-5 py-2 text-sm font-medium text-surface shadow-sm transition-opacity hover:opacity-90 cursor-pointer"
             >
-              <Lock size={15} />
-              {saving === "final" ? "Finalizing…" : "Finalize & print bill"}
+              <Printer size={15} /> Print Bill
             </button>
-          </>
-        )}
-
-        {status === "final" && (
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 rounded-md bg-pine px-5 py-2 text-sm font-medium text-surface shadow-sm transition-opacity hover:opacity-90 cursor-pointer"
-          >
-            <Printer size={15} /> Print Bill
-          </button>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* Online Payment QR Code Popup Modal */}
+      {qrModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-xs print:hidden">
+          <div className="relative w-full max-w-sm rounded-xl border border-line bg-surface p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-line pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-pine-tint text-pine-deep">
+                  <QrCode size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-ink">Scan &amp; Pay Online</h3>
+                  <p className="text-[11px] text-ink-soft">Sri Vijaya Lakshmi Nursery</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQrModalOpen(false)}
+                className="rounded p-1 text-ink-soft hover:bg-line/60 hover:text-ink cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Total Amount Box */}
+            <div className="rounded-lg bg-blue-50/70 border border-blue-200/80 p-3 text-center mb-4">
+              <div className="text-xs font-semibold text-[#1b365d]/80 uppercase tracking-wide">
+                Amount to Pay
+              </div>
+              <div className="text-2xl font-mono font-extrabold text-[#1b365d] mt-0.5">
+                ₹ {formatMoney(total)}
+              </div>
+              {customerName && (
+                <div className="text-xs text-[#1b365d]/75 mt-1 truncate">
+                  Customer: <span className="font-semibold text-[#1b365d]">{customerName}</span>
+                </div>
+              )}
+            </div>
+
+            {/* QR Card Container */}
+            <div className="flex flex-col items-center justify-center min-h-[220px] rounded-lg border border-line bg-paper-flat/60 p-4">
+              {loadingQr ? (
+                <div className="flex flex-col items-center gap-2 py-8 text-xs text-ink-soft">
+                  <Loader2 size={24} className="animate-spin text-pine" />
+                  <span>Loading payment QR…</span>
+                </div>
+              ) : qrCodeData ? (
+                <div className="flex flex-col items-center gap-2">
+                  <div className="rounded-lg bg-white p-2.5 shadow-sm border border-line">
+                    <img
+                      src={qrCodeData}
+                      alt="UPI Payment QR Code"
+                      className="max-h-56 max-w-full object-contain rounded"
+                    />
+                  </div>
+                  <span className="text-[11px] font-medium text-ink-soft text-center">
+                    Scan with PhonePe, GPay, Paytm or any UPI app
+                  </span>
+                </div>
+              ) : (
+                <div className="text-center py-6 px-3">
+                  <QrCode size={36} className="mx-auto text-ink-soft/40 mb-2" />
+                  <p className="text-xs font-semibold text-ink">No Payment QR Configured</p>
+                  <p className="text-[11px] text-ink-soft mt-1 max-w-[220px]">
+                    Admin has not uploaded a payment QR code yet in Admin Settings. You can still confirm payment below.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Action Buttons: Cancel and Done */}
+            <div className="mt-5 flex items-center justify-end gap-2.5 pt-3 border-t border-line">
+              <button
+                type="button"
+                onClick={() => setQrModalOpen(false)}
+                className="rounded-md border border-line-strong px-4 py-2 text-xs font-medium text-ink hover:bg-line/50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setQrModalOpen(false);
+                  persist("final", "online");
+                }}
+                disabled={saving !== null}
+                className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-2 text-xs font-semibold text-surface shadow-sm hover:opacity-90 cursor-pointer disabled:opacity-50"
+              >
+                <Check size={14} />
+                Done (Received &amp; Print)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

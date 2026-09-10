@@ -21,6 +21,7 @@ const updateSchema = z.object({
   notes: z.string().trim().optional(),
   items: z.array(lineItemSchema).optional(),
   action: z.enum(["save", "finalize"]).default("save"),
+  paymentMode: z.enum(["cash", "online"]).optional(),
   force: z.boolean().optional().default(false),
 });
 
@@ -99,7 +100,7 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    const { invoiceNumber: customNumber, customerName, customerDetails, notes, items, action, force } = parsed.data;
+    const { invoiceNumber: customNumber, customerName, customerDetails, notes, items, action, paymentMode, force } = parsed.data;
 
     const result = await db.transaction(async (tx) => {
       let nextInvNum = existing.invoiceNumber;
@@ -171,6 +172,7 @@ export async function PATCH(
             notes: notes ?? existing.notes,
             total: total.toFixed(2),
             status: action === "finalize" ? "final" : "draft",
+            paymentMode: paymentMode ?? existing.paymentMode ?? "cash",
             finalizedAt: action === "finalize" ? new Date() : null,
             updatedAt: new Date(),
           })

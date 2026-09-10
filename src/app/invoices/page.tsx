@@ -204,15 +204,22 @@ export default function InvoicesPage() {
                     </td>
                   )}
                   <td className="px-4 py-2.5">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
-                        inv.status === "final"
-                          ? "bg-pine-tint text-pine-deep"
-                          : "bg-rust-tint text-rust"
-                      }`}
-                    >
-                      {inv.status}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
+                          inv.status === "final"
+                            ? "bg-pine-tint text-pine-deep"
+                            : "bg-rust-tint text-rust"
+                        }`}
+                      >
+                        {inv.status}
+                      </span>
+                      {inv.paymentMode && (
+                        <span className="rounded bg-blue-50 border border-blue-200/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#1b365d]">
+                          {inv.paymentMode}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-2.5 text-right font-mono tabular text-ink">
                     {formatMoney(Number(inv.total))}

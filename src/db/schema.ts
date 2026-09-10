@@ -39,6 +39,7 @@ export const businessSettings = pgTable("business_settings", {
   address: text("address").notNull().default("Harige B. H. Road, Shimoga - 577203"),
   mobiles: text("mobiles").notNull().default("7353025302, 9448140483, 9606602194"),
   gstin: text("gstin").notNull().default("29ADXPV1295N2Z6"),
+  qrCodeData: text("qr_code_data"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
@@ -57,6 +58,7 @@ export const invoices = pgTable("invoices", {
   version: integer("version").notNull().default(1),
   headerSnapshot: text("header_snapshot"),
   total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"),
+  paymentMode: text("payment_mode").notNull().default("cash"),
   notes: text("notes").notNull().default(""),
   createdBy: uuid("created_by")
     .notNull()

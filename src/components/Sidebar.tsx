@@ -75,36 +75,10 @@ export function Sidebar({
 
   const renderFooter = () => (
     <div className="flex flex-col gap-2 border-t border-line pt-3">
-      <div className="flex items-center rounded-md border border-line bg-paper p-0.5 text-xs">
-        <button
-          type="button"
-          onClick={() => setThemeMode(false)}
-          className={`flex flex-1 items-center justify-center gap-1.5 rounded py-1 font-medium transition-all ${
-            !isDark
-              ? "bg-surface text-pine-deep shadow-sm"
-              : "text-ink-soft hover:text-ink"
-          }`}
-        >
-          <Sun size={13} />
-          <span>Light</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setThemeMode(true)}
-          className={`flex flex-1 items-center justify-center gap-1.5 rounded py-1 font-medium transition-all ${
-            isDark
-              ? "bg-surface text-pine-deep shadow-sm"
-              : "text-ink-soft hover:text-ink"
-          }`}
-        >
-          <Moon size={13} />
-          <span>Dark</span>
-        </button>
-      </div>
-
       <button
         onClick={onProfileClick}
-        className="flex items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-line/60"
+        className="flex items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-line/60 cursor-pointer"
+        title="Open profile & settings"
       >
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-pine text-sm font-semibold text-surface">
           {user?.username?.slice(0, 1).toUpperCase()}
@@ -118,6 +92,33 @@ export function Sidebar({
           </span>
         </span>
       </button>
+
+      <div className="flex items-center rounded-md border border-line bg-paper p-0.5 text-xs">
+        <button
+          type="button"
+          onClick={() => setThemeMode(false)}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded py-1 font-medium transition-all cursor-pointer ${
+            !isDark
+              ? "bg-surface text-pine-deep shadow-sm"
+              : "text-ink-soft hover:text-ink"
+          }`}
+        >
+          <Sun size={13} />
+          <span>Light</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setThemeMode(true)}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded py-1 font-medium transition-all cursor-pointer ${
+            isDark
+              ? "bg-surface text-pine-deep shadow-sm"
+              : "text-ink-soft hover:text-ink"
+          }`}
+        >
+          <Moon size={13} />
+          <span>Dark</span>
+        </button>
+      </div>
     </div>
   );
 

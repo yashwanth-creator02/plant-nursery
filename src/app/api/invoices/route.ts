@@ -20,6 +20,7 @@ const createSchema = z.object({
   customerDetails: z.string().trim().optional().default(""),
   notes: z.string().trim().optional().default(""),
   status: z.enum(["draft", "final"]).default("draft"),
+  paymentMode: z.enum(["cash", "online"]).optional().default("cash"),
   force: z.boolean().optional().default(false),
   items: z.array(lineItemSchema).optional().default([]),
 });
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const { invoiceNumber: customNumber, customerName, customerDetails, notes, status, force, items } = parsed.data;
+    const { invoiceNumber: customNumber, customerName, customerDetails, notes, status, paymentMode, force, items } = parsed.data;
 
     const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
@@ -138,6 +139,7 @@ export async function POST(req: NextRequest) {
           customerDetails,
           notes,
           status,
+          paymentMode,
           version,
           headerSnapshot,
           total: total.toFixed(2),

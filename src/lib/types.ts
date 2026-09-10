@@ -36,6 +36,7 @@ export type InvoiceRecord = {
   version: number;
   headerSnapshot?: string | null;
   total: string;
+  paymentMode?: "cash" | "online";
   createdBy: string;
   createdByUser?: { username: string };
   finalizedAt: string | null;

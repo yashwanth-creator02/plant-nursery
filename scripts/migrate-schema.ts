@@ -49,6 +49,16 @@ async function main() {
     ON CONFLICT (id) DO NOTHING;
   `;
 
+  await sql`
+    ALTER TABLE invoices
+    ADD COLUMN IF NOT EXISTS payment_mode TEXT NOT NULL DEFAULT 'cash';
+  `;
+
+  await sql`
+    ALTER TABLE business_settings
+    ADD COLUMN IF NOT EXISTS qr_code_data TEXT;
+  `;
+
   console.log("Database migrations applied successfully.");
   await sql.end();
   process.exit(0);
