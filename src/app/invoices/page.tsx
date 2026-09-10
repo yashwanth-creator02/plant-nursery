@@ -33,7 +33,7 @@ export default function InvoicesPage() {
   );
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8">
+    <div className="mx-auto max-w-4xl px-3 sm:px-6 py-4 sm:py-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-serif text-xl font-semibold text-ink">
@@ -88,8 +88,8 @@ export default function InvoicesPage() {
           )}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-line bg-surface">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-lg border border-line bg-surface">
+          <table className="w-full min-w-[560px] text-sm">
             <thead>
               <tr className="border-b border-line bg-paper-flat text-left text-xs uppercase tracking-wide text-ink-soft">
                 <th className="px-4 py-2.5 font-medium">Invoice</th>

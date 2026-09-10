@@ -157,13 +157,13 @@ export function ProfilePanel({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end">
+    <div className="fixed inset-0 z-50 flex justify-end">
       <div
         className="absolute inset-0 bg-ink/20"
         onClick={onClose}
         aria-hidden
       />
-      <div className="relative flex h-full w-full max-w-sm flex-col overflow-y-auto border-l border-line bg-surface shadow-xl">
+      <div className="relative flex h-full w-full max-w-[85vw] sm:max-w-sm flex-col overflow-y-auto border-l border-line bg-surface shadow-xl">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <h2 className="font-serif text-base font-semibold text-ink">
             Account

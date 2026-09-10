@@ -114,7 +114,7 @@ export default function StockPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8">
+    <div className="mx-auto max-w-4xl px-3 sm:px-6 py-4 sm:py-8">
       <div className="mb-6">
         <h1 className="font-serif text-xl font-semibold text-ink">Stock</h1>
         <p className="text-sm text-ink-soft">
@@ -130,9 +130,9 @@ export default function StockPage() {
 
       <form
         onSubmit={addItem}
-        className="mb-6 flex flex-wrap items-end gap-2 rounded-lg border border-line bg-surface p-4"
+        className="mb-6 flex flex-wrap items-end gap-2.5 rounded-lg border border-line bg-surface p-3 sm:p-4"
       >
-        <label className="flex min-w-[160px] flex-1 flex-col gap-1">
+        <label className="flex w-full sm:min-w-[160px] sm:flex-1 flex-col gap-1">
           <span className="text-xs text-ink-soft">Item name</span>
           <input
             value={name}
@@ -141,45 +141,47 @@ export default function StockPage() {
             className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
           />
         </label>
-        <label className="flex w-24 flex-col gap-1">
-          <span className="text-xs text-ink-soft">Unit</span>
-          <input
-            value={unit}
-            onChange={(e) => setUnit(e.target.value)}
-            placeholder="pcs"
-            className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
-          />
-        </label>
-        <label className="flex w-28 flex-col gap-1">
-          <span className="text-xs text-ink-soft">Price</span>
-          <input
-            type="number"
-            min={0}
-            step="0.01"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            required
-            className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
-          />
-        </label>
-        <label className="flex w-24 flex-col gap-1">
-          <span className="text-xs text-ink-soft">Quantity</span>
-          <input
-            type="number"
-            min={0}
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            required
-            className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={adding}
-          className="flex items-center gap-1.5 rounded-md bg-pine px-3 py-1.5 text-sm font-medium text-surface hover:opacity-90 disabled:opacity-50"
-        >
-          <Plus size={15} /> Add item
-        </button>
+        <div className="flex w-full sm:w-auto flex-wrap sm:flex-nowrap items-end gap-2">
+          <label className="flex w-20 flex-col gap-1">
+            <span className="text-xs text-ink-soft">Unit</span>
+            <input
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+              placeholder="pcs"
+              className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
+            />
+          </label>
+          <label className="flex w-24 flex-col gap-1">
+            <span className="text-xs text-ink-soft">Price</span>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              required
+              className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
+            />
+          </label>
+          <label className="flex w-20 flex-col gap-1">
+            <span className="text-xs text-ink-soft">Quantity</span>
+            <input
+              type="number"
+              min={0}
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              required
+              className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={adding}
+            className="flex items-center gap-1.5 rounded-md bg-pine px-3 py-1.5 text-sm font-medium text-surface hover:opacity-90 disabled:opacity-50"
+          >
+            <Plus size={15} /> Add item
+          </button>
+        </div>
       </form>
 
       {loading ? (
@@ -192,8 +194,8 @@ export default function StockPage() {
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-line bg-surface">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-lg border border-line bg-surface">
+          <table className="w-full min-w-[500px] text-sm">
             <thead>
               <tr className="border-b border-line bg-paper-flat text-left text-xs uppercase tracking-wide text-ink-soft">
                 <th className="px-4 py-2.5 font-medium">Item</th>

@@ -202,8 +202,8 @@ export function InvoiceEditor({
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
-      <div className="mb-5 flex items-center justify-between gap-3 print:hidden">
+    <div className="mx-auto max-w-3xl px-3 sm:px-6 py-4 sm:py-8">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div>
           <h1 className="font-serif text-xl font-semibold text-ink">
             {isFinal ? "Invoice" : invoiceId ? "Edit draft" : "New invoice"}
@@ -234,9 +234,9 @@ export function InvoiceEditor({
       {/* The paper invoice itself */}
       <div
         id="invoice-print"
-        className="rounded-lg border border-line bg-surface px-8 py-8 shadow-sm print:rounded-none print:border-none print:shadow-none"
+        className="rounded-lg border border-line bg-surface px-4 sm:px-8 py-5 sm:py-8 shadow-sm print:rounded-none print:border-none print:shadow-none"
       >
-        <div className="mb-8 flex items-start justify-between border-b border-line pb-6">
+        <div className="mb-6 sm:mb-8 flex items-start justify-between border-b border-line pb-4 sm:pb-6">
           <div>
             <div className="font-serif text-2xl font-semibold text-pine-deep">
               Ledger
@@ -255,7 +255,7 @@ export function InvoiceEditor({
           </div>
         </div>
 
-        <div className="mb-8 grid grid-cols-2 gap-6">
+        <div className="mb-6 sm:mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <div>
             <div className="mb-1 text-xs uppercase tracking-wide text-ink-soft">
               Billed to
@@ -289,7 +289,7 @@ export function InvoiceEditor({
               </div>
             )}
           </div>
-          <div className="text-right">
+          <div className="text-left sm:text-right">
             <div className="mb-1 text-xs uppercase tracking-wide text-ink-soft">
               Status
             </div>
@@ -300,92 +300,94 @@ export function InvoiceEditor({
         </div>
 
         {/* Line items */}
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-line-strong text-left text-xs uppercase tracking-wide text-ink-soft">
-              <th className="py-2 pr-2 font-medium">Item</th>
-              <th className="w-20 py-2 px-2 text-right font-medium">Qty</th>
-              <th className="w-28 py-2 px-2 text-right font-medium">Price</th>
-              <th className="w-32 py-2 pl-2 text-right font-medium">Amount</th>
-              {!isFinal && <th className="w-8"></th>}
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 && (
-              <tr>
-                <td
-                  colSpan={5}
-                  className="py-6 text-center text-sm text-ink-soft"
-                >
-                  No items yet. Add one below.
-                </td>
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <table className="w-full min-w-[460px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-line-strong text-left text-xs uppercase tracking-wide text-ink-soft">
+                <th className="py-2 pr-2 font-medium">Item</th>
+                <th className="w-20 py-2 px-2 text-right font-medium">Qty</th>
+                <th className="w-28 py-2 px-2 text-right font-medium">Price</th>
+                <th className="w-32 py-2 pl-2 text-right font-medium">Amount</th>
+                {!isFinal && <th className="w-8"></th>}
               </tr>
-            )}
-            {items.map((item) => (
-              <tr key={item.key} className="border-b border-line">
-                <td className="py-2 pr-2 text-ink">{item.name}</td>
-                <td className="py-2 px-2 text-right">
-                  {isFinal ? (
-                    <span className="font-mono tabular">{item.quantity}</span>
-                  ) : (
-                    <input
-                      type="number"
-                      min={1}
-                      value={item.quantity}
-                      onChange={(e) =>
-                        updateItem(item.key, {
-                          quantity: Math.max(1, Number(e.target.value) || 1),
-                        })
-                      }
-                      className="w-16 rounded-md border border-line-strong bg-surface px-2 py-1 text-right font-mono tabular outline-none focus:border-pine"
-                    />
-                  )}
-                </td>
-                <td className="py-2 px-2 text-right">
-                  {isFinal ? (
-                    <span className="font-mono tabular">
-                      {formatMoney(item.price)}
-                    </span>
-                  ) : (
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={item.price}
-                      onChange={(e) =>
-                        updateItem(item.key, {
-                          price: Math.max(0, Number(e.target.value) || 0),
-                        })
-                      }
-                      className="w-24 rounded-md border border-line-strong bg-surface px-2 py-1 text-right font-mono tabular outline-none focus:border-pine"
-                    />
-                  )}
-                </td>
-                <td className="py-2 pl-2 text-right font-mono tabular text-ink">
-                  {formatMoney(item.price * item.quantity)}
-                </td>
-                {!isFinal && (
-                  <td className="py-2 pl-1 text-right">
-                    <button
-                      onClick={() => removeItem(item.key)}
-                      className="rounded p-1 text-ink-soft hover:bg-rust-tint hover:text-rust"
-                      aria-label="Remove item"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+            </thead>
+            <tbody>
+              {items.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="py-6 text-center text-sm text-ink-soft"
+                  >
+                    No items yet. Add one below.
                   </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </tr>
+              )}
+              {items.map((item) => (
+                <tr key={item.key} className="border-b border-line">
+                  <td className="py-2 pr-2 text-ink">{item.name}</td>
+                  <td className="py-2 px-2 text-right">
+                    {isFinal ? (
+                      <span className="font-mono tabular">{item.quantity}</span>
+                    ) : (
+                      <input
+                        type="number"
+                        min={1}
+                        value={item.quantity}
+                        onChange={(e) =>
+                          updateItem(item.key, {
+                            quantity: Math.max(1, Number(e.target.value) || 1),
+                          })
+                        }
+                        className="w-16 rounded-md border border-line-strong bg-surface px-2 py-1 text-right font-mono tabular outline-none focus:border-pine"
+                      />
+                    )}
+                  </td>
+                  <td className="py-2 px-2 text-right">
+                    {isFinal ? (
+                      <span className="font-mono tabular">
+                        {formatMoney(item.price)}
+                      </span>
+                    ) : (
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={item.price}
+                        onChange={(e) =>
+                          updateItem(item.key, {
+                            price: Math.max(0, Number(e.target.value) || 0),
+                          })
+                        }
+                        className="w-24 rounded-md border border-line-strong bg-surface px-2 py-1 text-right font-mono tabular outline-none focus:border-pine"
+                      />
+                    )}
+                  </td>
+                  <td className="py-2 pl-2 text-right font-mono tabular text-ink">
+                    {formatMoney(item.price * item.quantity)}
+                  </td>
+                  {!isFinal && (
+                    <td className="py-2 pl-1 text-right">
+                      <button
+                        onClick={() => removeItem(item.key)}
+                        className="rounded p-1 text-ink-soft hover:bg-rust-tint hover:text-rust"
+                        aria-label="Remove item"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {/* Add item row */}
         {!isFinal && (
           <div className="mt-4 flex flex-wrap items-end gap-2 border-t border-dashed border-line pt-4 print:hidden">
             {!customMode ? (
               <>
-                <label className="flex flex-1 min-w-[180px] flex-col gap-1">
+                <label className="flex w-full min-w-[180px] sm:w-auto sm:flex-1 flex-col gap-1">
                   <span className="text-xs text-ink-soft">Add from stock</span>
                   <select
                     value={pickerStockId}
@@ -401,39 +403,41 @@ export function InvoiceEditor({
                     ))}
                   </select>
                 </label>
-                <label className="flex w-20 flex-col gap-1">
-                  <span className="text-xs text-ink-soft">Qty</span>
-                  <input
-                    type="number"
-                    min={1}
-                    value={pickerQty}
-                    onChange={(e) => setPickerQty(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addStockItem();
-                      }
-                    }}
-                    className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm outline-none focus:border-pine"
-                  />
-                </label>
-                <button
-                  onClick={addStockItem}
-                  disabled={!pickerStockId}
-                  className="flex items-center gap-1.5 rounded-md bg-pine px-3 py-1.5 text-sm font-medium text-surface hover:opacity-90 disabled:opacity-50"
-                >
-                  <Plus size={15} /> Add
-                </button>
-                <button
-                  onClick={() => setCustomMode(true)}
-                  className="rounded-md px-3 py-1.5 text-sm font-medium text-pine-deep hover:underline"
-                >
-                  + Custom line item
-                </button>
+                <div className="flex w-full sm:w-auto items-end gap-2">
+                  <label className="flex w-20 flex-col gap-1">
+                    <span className="text-xs text-ink-soft">Qty</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={pickerQty}
+                      onChange={(e) => setPickerQty(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addStockItem();
+                        }
+                      }}
+                      className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm outline-none focus:border-pine"
+                    />
+                  </label>
+                  <button
+                    onClick={addStockItem}
+                    disabled={!pickerStockId}
+                    className="flex items-center gap-1.5 rounded-md bg-pine px-3 py-1.5 text-sm font-medium text-surface hover:opacity-90 disabled:opacity-50"
+                  >
+                    <Plus size={15} /> Add
+                  </button>
+                  <button
+                    onClick={() => setCustomMode(true)}
+                    className="rounded-md px-2 py-1.5 text-sm font-medium text-pine-deep hover:underline"
+                  >
+                    + Custom line item
+                  </button>
+                </div>
               </>
             ) : (
               <>
-                <label className="flex flex-1 min-w-[140px] flex-col gap-1">
+                <label className="flex w-full min-w-[140px] sm:w-auto sm:flex-1 flex-col gap-1">
                   <span className="text-xs text-ink-soft">Description</span>
                   <input
                     value={customName}
@@ -441,39 +445,41 @@ export function InvoiceEditor({
                     className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
                   />
                 </label>
-                <label className="flex w-20 flex-col gap-1">
-                  <span className="text-xs text-ink-soft">Qty</span>
-                  <input
-                    type="number"
-                    min={1}
-                    value={customQty}
-                    onChange={(e) => setCustomQty(e.target.value)}
-                    className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm outline-none focus:border-pine"
-                  />
-                </label>
-                <label className="flex w-24 flex-col gap-1">
-                  <span className="text-xs text-ink-soft">Price</span>
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={customPrice}
-                    onChange={(e) => setCustomPrice(e.target.value)}
-                    className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm outline-none focus:border-pine"
-                  />
-                </label>
-                <button
-                  onClick={addCustomItem}
-                  className="flex items-center gap-1.5 rounded-md bg-pine px-3 py-1.5 text-sm font-medium text-surface hover:opacity-90"
-                >
-                  <Plus size={15} /> Add
-                </button>
-                <button
-                  onClick={() => setCustomMode(false)}
-                  className="rounded-md px-3 py-1.5 text-sm text-ink-soft hover:underline"
-                >
-                  Cancel
-                </button>
+                <div className="flex w-full sm:w-auto items-end gap-2">
+                  <label className="flex w-16 sm:w-20 flex-col gap-1">
+                    <span className="text-xs text-ink-soft">Qty</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={customQty}
+                      onChange={(e) => setCustomQty(e.target.value)}
+                      className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm outline-none focus:border-pine"
+                    />
+                  </label>
+                  <label className="flex w-20 sm:w-24 flex-col gap-1">
+                    <span className="text-xs text-ink-soft">Price</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={customPrice}
+                      onChange={(e) => setCustomPrice(e.target.value)}
+                      className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm outline-none focus:border-pine"
+                    />
+                  </label>
+                  <button
+                    onClick={addCustomItem}
+                    className="flex items-center gap-1.5 rounded-md bg-pine px-3 py-1.5 text-sm font-medium text-surface hover:opacity-90"
+                  >
+                    <Plus size={15} /> Add
+                  </button>
+                  <button
+                    onClick={() => setCustomMode(false)}
+                    className="rounded-md px-2 py-1.5 text-sm text-ink-soft hover:underline"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </>
             )}
           </div>
@@ -481,7 +487,7 @@ export function InvoiceEditor({
 
         {/* Totals */}
         <div className="mt-6 flex justify-end border-t border-line-strong pt-4">
-          <div className="w-56">
+          <div className="w-full sm:w-56">
             <div className="flex justify-between text-sm">
               <span className="text-ink-soft">Total</span>
               <span className="font-mono text-base font-semibold tabular text-ink">
