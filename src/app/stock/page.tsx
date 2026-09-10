@@ -66,7 +66,7 @@ export default function StockPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name,
+          name: name.trim() || "Plant / Item",
           unit: unit || "pcs",
           price: Number(price) || 0,
           quantity: Number(quantity) || 0,
@@ -153,11 +153,11 @@ export default function StockPage() {
         className="mb-6 flex flex-wrap items-end gap-2.5 rounded-lg border border-line bg-surface p-3 sm:p-4"
       >
         <label className="flex w-full sm:min-w-[160px] sm:flex-1 flex-col gap-1">
-          <span className="text-xs text-ink-soft">Item name</span>
+          <span className="text-xs text-ink-soft">Item name (optional)</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            required
+            placeholder="e.g. Red Rose Plant"
             className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
           />
         </label>
@@ -172,25 +172,25 @@ export default function StockPage() {
             />
           </label>
           <label className="flex w-24 flex-col gap-1">
-            <span className="text-xs text-ink-soft">Price</span>
+            <span className="text-xs text-ink-soft">Price (optional)</span>
             <input
               type="number"
               min={0}
               step="0.01"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              required
+              placeholder="0.00"
               className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
             />
           </label>
           <label className="flex w-20 flex-col gap-1">
-            <span className="text-xs text-ink-soft">Quantity</span>
+            <span className="text-xs text-ink-soft">Quantity (optional)</span>
             <input
               type="number"
               min={0}
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              required
+              placeholder="0"
               className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
             />
           </label>

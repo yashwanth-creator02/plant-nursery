@@ -8,16 +8,16 @@ import { handleApiError } from "@/lib/api-utils";
 
 const lineItemSchema = z.object({
   stockItemId: z.string().uuid().nullable().optional(),
-  name: z.string().trim().min(1),
-  price: z.number().nonnegative(),
-  quantity: z.number().int().positive(),
+  name: z.string().trim().optional().default("Item"),
+  price: z.coerce.number().min(0).optional().default(0),
+  quantity: z.coerce.number().int().min(0).optional().default(1),
 });
 
 const updateSchema = z.object({
   customerName: z.string().trim().optional(),
   customerDetails: z.string().trim().optional(),
   notes: z.string().trim().optional(),
-  items: z.array(lineItemSchema).min(1).optional(),
+  items: z.array(lineItemSchema).optional(),
   action: z.enum(["save", "finalize"]).default("save"),
 });
 
@@ -120,16 +120,18 @@ export async function PATCH(
         }
 
         await tx.delete(invoiceItems).where(eq(invoiceItems.invoiceId, id));
-        await tx.insert(invoiceItems).values(
-          items.map((li) => ({
-            invoiceId: id,
-            stockItemId: li.stockItemId || null,
-            name: li.name,
-            price: li.price.toFixed(2),
-            quantity: li.quantity,
-            lineTotal: (li.price * li.quantity).toFixed(2),
-          }))
-        );
+        if (items.length > 0) {
+          await tx.insert(invoiceItems).values(
+            items.map((li) => ({
+              invoiceId: id,
+              stockItemId: li.stockItemId || null,
+              name: li.name || "Item",
+              price: (li.price ?? 0).toFixed(2),
+              quantity: li.quantity ?? 1,
+              lineTotal: ((li.price ?? 0) * (li.quantity ?? 1)).toFixed(2),
+            }))
+          );
+        }
 
         await tx
           .update(invoices)

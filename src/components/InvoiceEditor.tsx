@@ -90,6 +90,90 @@ export function InvoiceEditor({
 
   const [saving, setSaving] = useState<"draft" | "final" | null>(null);
   const [error, setError] = useState("");
+  const [restoredDraft, setRestoredDraft] = useState(false);
+
+  // Restore unsaved draft on initial load for new invoice
+  useEffect(() => {
+    if (!initialInvoice && !invoiceId) {
+      try {
+        const savedDraft = localStorage.getItem("svl_invoice_draft_v1");
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
+          const hasContent =
+            Boolean(parsed.customerName?.trim()) ||
+            Boolean(parsed.customerDetails?.trim()) ||
+            Boolean(parsed.notes?.trim()) ||
+            (Array.isArray(parsed.items) && parsed.items.length > 0) ||
+            Boolean(parsed.customName?.trim()) ||
+            Boolean(parsed.customPrice?.trim());
+
+          if (hasContent) {
+            if (parsed.customerName !== undefined) setCustomerName(parsed.customerName);
+            if (parsed.customerDetails !== undefined) setCustomerDetails(parsed.customerDetails);
+            if (parsed.notes !== undefined) setNotes(parsed.notes);
+            if (parsed.paymentMode) setPaymentMode(parsed.paymentMode);
+            if (parsed.isSigned !== undefined) setIsSigned(parsed.isSigned);
+            if (Array.isArray(parsed.items) && parsed.items.length > 0) {
+              setItems(parsed.items);
+            }
+            if (parsed.customName !== undefined) setCustomName(parsed.customName);
+            if (parsed.customPrice !== undefined) setCustomPrice(parsed.customPrice);
+            if (parsed.customQty !== undefined) setCustomQty(parsed.customQty);
+            if (parsed.customMode !== undefined) setCustomMode(parsed.customMode);
+            setRestoredDraft(true);
+          }
+        }
+      } catch {}
+    }
+  }, [initialInvoice, invoiceId]);
+
+  // Persist draft to localStorage on changes (only for unpersisted invoices)
+  useEffect(() => {
+    if (initialInvoice || invoiceId || isFinal) return;
+
+    const hasContent =
+      Boolean(customerName.trim()) ||
+      Boolean(customerDetails.trim()) ||
+      Boolean(notes.trim()) ||
+      items.length > 0 ||
+      Boolean(customName.trim()) ||
+      Boolean(customPrice.trim());
+
+    if (hasContent) {
+      try {
+        localStorage.setItem(
+          "svl_invoice_draft_v1",
+          JSON.stringify({
+            customerName,
+            customerDetails,
+            notes,
+            paymentMode,
+            isSigned,
+            items,
+            customName,
+            customPrice,
+            customQty,
+            customMode,
+            savedAt: Date.now(),
+          }),
+        );
+      } catch {}
+    }
+  }, [
+    initialInvoice,
+    invoiceId,
+    isFinal,
+    customerName,
+    customerDetails,
+    notes,
+    paymentMode,
+    isSigned,
+    items,
+    customName,
+    customPrice,
+    customQty,
+    customMode,
+  ]);
 
   useEffect(() => {
     // Load custom signature from profile localStorage
@@ -129,7 +213,7 @@ export function InvoiceEditor({
   }, [isFinal, initialInvoice]);
 
   const total = useMemo(
-    () => items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+    () => items.reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0),
     [items],
   );
 
@@ -144,14 +228,14 @@ export function InvoiceEditor({
   function addStockItem() {
     const stockItem = stock.find((s) => s.id === pickerStockId);
     if (!stockItem) return;
-    const qty = Math.max(1, parseInt(pickerQty, 10) || 1);
+    const qty = pickerQty === "" ? 1 : Math.max(0, parseInt(pickerQty, 10) || 1);
     setItems((prev) => [
       ...prev,
       {
         key: newKey(),
         stockItemId: stockItem.id,
         name: stockItem.name,
-        price: Number(stockItem.price),
+        price: Number(stockItem.price) || 0,
         quantity: qty,
       },
     ]);
@@ -160,15 +244,17 @@ export function InvoiceEditor({
   }
 
   function addCustomItem() {
-    if (!customName.trim()) return;
+    const name = customName.trim() || "Item";
+    const price = customPrice === "" ? 0 : Math.max(0, Number(customPrice) || 0);
+    const quantity = customQty === "" ? 1 : Math.max(0, Number(customQty) || 1);
     setItems((prev) => [
       ...prev,
       {
         key: newKey(),
         stockItemId: null,
-        name: customName.trim(),
-        price: Number(customPrice) || 0,
-        quantity: Number(customQty) || 1,
+        name,
+        price,
+        quantity,
       },
     ]);
     setCustomName("");
@@ -187,6 +273,13 @@ export function InvoiceEditor({
     setItems((prev) => prev.filter((i) => i.key !== key));
   }
 
+  function clearDraft() {
+    try {
+      localStorage.removeItem("svl_invoice_draft_v1");
+    } catch {}
+    resetForm();
+  }
+
   function resetForm() {
     setInvoiceId(null);
     setInvoiceNumber(null);
@@ -195,26 +288,30 @@ export function InvoiceEditor({
     setCustomerDetails("");
     setNotes("");
     setItems([]);
+    setCustomName("");
+    setCustomPrice("");
+    setCustomQty("1");
+    setCustomMode(false);
     setError("");
+    setRestoredDraft(false);
+    try {
+      localStorage.removeItem("svl_invoice_draft_v1");
+    } catch {}
   }
 
   async function persist(action: "draft" | "final") {
-    if (items.length === 0) {
-      setError("Add at least one item before saving.");
-      return;
-    }
     setSaving(action);
     setError("");
     try {
       const payload = {
-        customerName,
-        customerDetails,
-        notes,
+        customerName: customerName.trim(),
+        customerDetails: customerDetails.trim(),
+        notes: notes.trim(),
         items: items.map((i) => ({
           stockItemId: i.stockItemId,
-          name: i.name,
-          price: i.price,
-          quantity: i.quantity,
+          name: i.name.trim() || "Item",
+          price: Number(i.price) || 0,
+          quantity: Number(i.quantity) || 0,
         })),
       };
 
@@ -251,6 +348,12 @@ export function InvoiceEditor({
           setHeaderDetails(JSON.parse(saved.headerSnapshot));
         } catch {}
       }
+
+      // Clear local storage draft upon saving
+      try {
+        localStorage.removeItem("svl_invoice_draft_v1");
+      } catch {}
+      setRestoredDraft(false);
 
       // Update URL without unmounting the component
       window.history.replaceState(null, "", `/invoices/${saved.id}`);
@@ -300,20 +403,40 @@ export function InvoiceEditor({
         </button>
       </div>
 
+      {restoredDraft && (
+        <div className="mb-4 flex items-center justify-between rounded-md border border-amber-300 bg-amber-50 px-3.5 py-2 text-xs font-medium text-amber-900 print:hidden">
+          <span>Restored half-filled invoice draft from your browser storage.</span>
+          <button
+            type="button"
+            onClick={clearDraft}
+            className="ml-3 rounded border border-amber-300 bg-white px-2 py-0.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition-colors cursor-pointer"
+          >
+            Discard Draft
+          </button>
+        </div>
+      )}
+
       {error && (
         <p className="mb-4 rounded-md bg-rust-tint px-3 py-2 text-sm text-rust print:hidden">
           {error}
         </p>
       )}
 
+      {/* Mobile horizontal scroll helper indicator */}
+      <div className="sm:hidden mb-2 text-center text-[11px] font-medium text-ink-soft print:hidden">
+        Scroll horizontally to view complete bill sheet
+      </div>
+
       {/* ============================================================ */}
-      {/* THE PHYSICAL BILL BOOK INVOICE SHEET                         */}
+      {/* SCROLLABLE SCAFFOLDING FOR MOBILE & TABLET                   */}
       {/* ============================================================ */}
-      <div
-        id="invoice-print"
-        style={{ colorScheme: "light" }}
-        className="mx-auto w-full max-w-[680px] rounded-lg border border-slate-300 bg-white p-4 sm:p-7 text-[#1b365d] shadow-md print:max-w-none print:rounded-none print:border-none print:p-0 print:shadow-none"
-      >
+      <div className="w-full overflow-x-auto pb-4 pt-1 print:overflow-visible print:p-0">
+        <div className="min-w-[720px] mx-auto flex justify-center print:min-w-0 print:block">
+          <div
+            id="invoice-print"
+            style={{ colorScheme: "light" }}
+            className="w-[720px] shrink-0 rounded-lg border border-slate-300 bg-white p-6 sm:p-7 text-[#1b365d] shadow-md print:w-full print:max-w-none print:rounded-none print:border-none print:p-0 print:shadow-none print:shrink"
+          >
         {/* Top GSTIN & Mobiles Row */}
         <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold tracking-tight text-[#1b365d]">
           <span>GSTIN: {headerDetails.gstin}</span>
@@ -519,13 +642,14 @@ export function InvoiceEditor({
                     ) : (
                       <input
                         type="number"
-                        min={1}
-                        value={item.quantity}
+                        min={0}
+                        value={item.quantity === 0 ? "0" : item.quantity || ""}
                         onChange={(e) =>
                           updateItem(item.key, {
-                            quantity: Math.max(1, Number(e.target.value) || 1),
+                            quantity: e.target.value === "" ? 0 : Math.max(0, Number(e.target.value)),
                           })
                         }
+                        placeholder="0"
                         className="w-full text-center bg-transparent outline-none focus:bg-blue-50/70 font-mono font-medium"
                       />
                     )}
@@ -540,12 +664,13 @@ export function InvoiceEditor({
                         type="number"
                         min={0}
                         step="0.01"
-                        value={item.price}
+                        value={item.price === 0 ? "0" : item.price || ""}
                         onChange={(e) =>
                           updateItem(item.key, {
-                            price: Math.max(0, Number(e.target.value) || 0),
+                            price: e.target.value === "" ? 0 : Math.max(0, Number(e.target.value)),
                           })
                         }
+                        placeholder="0.00"
                         className="w-full text-right bg-transparent outline-none focus:bg-blue-50/70 font-mono"
                       />
                     )}
@@ -684,6 +809,8 @@ export function InvoiceEditor({
           </p>
         </div>
       </div>
+    </div>
+  </div>
 
       {/* ============================================================ */}
       {/* EDITING TOOLBAR: Add from stock / custom line item (screen)  */}
@@ -715,12 +842,13 @@ export function InvoiceEditor({
 
               <div className="flex w-full sm:w-auto items-end gap-2">
                 <label className="flex w-20 flex-col gap-1">
-                  <span className="text-xs text-ink-soft">Qty</span>
+                  <span className="text-xs text-ink-soft">Qty (optional)</span>
                   <input
                     type="number"
-                    min={1}
+                    min={0}
                     value={pickerQty}
                     onChange={(e) => setPickerQty(e.target.value)}
+                    placeholder="1"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -752,35 +880,37 @@ export function InvoiceEditor({
           ) : (
             <div className="flex flex-wrap items-end gap-2.5">
               <label className="flex w-full min-w-[160px] sm:w-auto sm:flex-1 flex-col gap-1">
-                <span className="text-xs text-ink-soft">Description</span>
+                <span className="text-xs text-ink-soft">Description (optional)</span>
                 <input
                   value={customName}
                   onChange={(e) => setCustomName(e.target.value)}
-                  placeholder="e.g. Grafted Mango Plant"
+                  placeholder="Item name (optional, defaults to Item)"
                   className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
                 />
               </label>
 
               <div className="flex w-full sm:w-auto items-end gap-2">
                 <label className="flex w-16 sm:w-20 flex-col gap-1">
-                  <span className="text-xs text-ink-soft">Qty</span>
+                  <span className="text-xs text-ink-soft">Qty (optional)</span>
                   <input
                     type="number"
-                    min={1}
+                    min={0}
                     value={customQty}
                     onChange={(e) => setCustomQty(e.target.value)}
+                    placeholder="1"
                     className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm outline-none focus:border-pine"
                   />
                 </label>
 
                 <label className="flex w-24 flex-col gap-1">
-                  <span className="text-xs text-ink-soft">Price (Rs)</span>
+                  <span className="text-xs text-ink-soft">Price Rs (optional)</span>
                   <input
                     type="number"
                     min={0}
                     step="0.01"
                     value={customPrice}
                     onChange={(e) => setCustomPrice(e.target.value)}
+                    placeholder="0.00"
                     className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm outline-none focus:border-pine"
                   />
                 </label>

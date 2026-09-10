@@ -7,10 +7,10 @@ import { requireUser } from "@/lib/session";
 import { handleApiError } from "@/lib/api-utils";
 
 const createSchema = z.object({
-  name: z.string().trim().min(1, "Name is required"),
+  name: z.string().trim().optional().default("Plant / Item"),
   unit: z.string().trim().default("pcs"),
-  price: z.number().nonnegative(),
-  quantity: z.number().int().nonnegative(),
+  price: z.coerce.number().min(0).optional().default(0),
+  quantity: z.coerce.number().int().min(0).optional().default(0),
 });
 
 export async function GET() {

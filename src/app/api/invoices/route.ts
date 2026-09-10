@@ -9,9 +9,9 @@ import { generateInvoiceNumber } from "@/lib/invoice-number";
 
 const lineItemSchema = z.object({
   stockItemId: z.string().uuid().nullable().optional(),
-  name: z.string().trim().min(1),
-  price: z.number().nonnegative(),
-  quantity: z.number().int().positive(),
+  name: z.string().trim().optional().default("Item"),
+  price: z.coerce.number().min(0).optional().default(0),
+  quantity: z.coerce.number().int().min(0).optional().default(1),
 });
 
 const createSchema = z.object({
@@ -19,7 +19,7 @@ const createSchema = z.object({
   customerDetails: z.string().trim().optional().default(""),
   notes: z.string().trim().optional().default(""),
   status: z.enum(["draft", "final"]).default("draft"),
-  items: z.array(lineItemSchema).min(1, "Add at least one item"),
+  items: z.array(lineItemSchema).optional().default([]),
 });
 
 export async function GET() {
@@ -126,16 +126,18 @@ export async function POST(req: NextRequest) {
         })
         .returning();
 
-      await tx.insert(invoiceItems).values(
-        items.map((li) => ({
-          invoiceId: invoice.id,
-          stockItemId: li.stockItemId || null,
-          name: li.name,
-          price: li.price.toFixed(2),
-          quantity: li.quantity,
-          lineTotal: (li.price * li.quantity).toFixed(2),
-        }))
-      );
+      if (items.length > 0) {
+        await tx.insert(invoiceItems).values(
+          items.map((li) => ({
+            invoiceId: invoice.id,
+            stockItemId: li.stockItemId || null,
+            name: li.name || "Item",
+            price: (li.price ?? 0).toFixed(2),
+            quantity: li.quantity ?? 1,
+            lineTotal: ((li.price ?? 0) * (li.quantity ?? 1)).toFixed(2),
+          }))
+        );
+      }
 
       return invoice;
     });
