@@ -1,4 +1,4 @@
-# 🌿 Plant Nursery — Ledger, Invoices & Inventory
+# Plant Nursery — Ledger, Invoices & Inventory
 
 A modern, full-stack internal management application for plant nurseries and retail stores. Manage inventory stock in real time, build paper-style invoices, handle atomic stock deductions upon finalization, and manage staff access with role-based permissions.
 
@@ -10,33 +10,33 @@ A modern, full-stack internal management application for plant nurseries and ret
 
 ---
 
-## ✨ Features
+## Features
 
-- **🔒 Role-Based Authentication & Gatekeeper**
+- **Role-Based Authentication & Gatekeeper**
   - Secured with `iron-session` signed, HTTP-only encrypted cookies (7-day duration).
   - Admin & Staff user roles.
   - Admin management panel to add, edit, or revoke user credentials directly inside the app.
 
-- **📑 Interactive Invoice Builder**
+- **Interactive Invoice Builder**
   - Paper-style live invoice interface.
   - Quick-add items from active inventory or create ad-hoc custom line items.
   - Real-time subtotal, quantity, and total calculation.
   - Save as **Draft** for later edits or **Finalize** to lock the record.
 
-- **📦 Real-Time Inventory & Stock Management**
+- **Real-Time Inventory & Stock Management**
   - Comprehensive stock tracking (units, prices, quantities).
   - **Atomic Stock Deduction**: Finalizing an invoice deducts stock in a single database transaction. If inventory is insufficient, the entire operation safely rolls back.
 
-- **📊 Comprehensive Invoice History**
+- **Comprehensive Invoice History**
   - Filter by status (**Draft** vs **Final**).
   - Staff view personal invoices; Admins view organization-wide invoices with creator attribution.
 
-- **🖨️ Native Print & PDF Export**
+- **Native Print & PDF Export**
   - Optimized `@media print` CSS formats invoices cleanly for physical printers or browser "Save as PDF" without bloated third-party PDF dependencies.
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 | :--- | :--- |
@@ -49,7 +49,7 @@ A modern, full-stack internal management application for plant nurseries and ret
 
 ---
 
-## 📐 Data Model & Architecture Decisions
+## Data Model & Architecture Decisions
 
 ```
            ┌──────────┐ 1      * ┌──────────┐
@@ -69,7 +69,7 @@ A modern, full-stack internal management application for plant nurseries and ret
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -147,7 +147,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser and sign in.
 
 ---
 
-## 📜 Available NPM Scripts
+## Available NPM Scripts
 
 | Command | Action |
 | :--- | :--- |
@@ -162,7 +162,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser and sign in.
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 plant-nursery/
@@ -195,7 +195,7 @@ plant-nursery/
 
 ---
 
-## ☁️ Deployment Guide (Vercel)
+## Deployment Guide (Vercel)
 
 1. Push your repository to GitHub.
 2. Import the project into [Vercel](https://vercel.com/new).
@@ -206,6 +206,7 @@ plant-nursery/
 
 ---
 
-## 📄 License
+## License
 
 Private repository — All rights reserved.
+

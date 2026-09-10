@@ -30,12 +30,26 @@ export const stockItems = pgTable("stock_items", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const businessSettings = pgTable("business_settings", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  version: integer("version").notNull().default(1),
+  businessName: text("business_name").notNull().default("SRI VIJAYA LAKSHMI NURSERY"),
+  subheading1: text("subheading_1").notNull().default("(Approved by Department of Horticulture)"),
+  subheading2: text("subheading_2").notNull().default("(All Kinds of Plants Production and Suppliers)"),
+  address: text("address").notNull().default("Harige B. H. Road, Shimoga - 577203"),
+  mobiles: text("mobiles").notNull().default("7353025302, 9448140483, 9606602194"),
+  gstin: text("gstin").notNull().default("29ADXPV1295N2Z6"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const invoices = pgTable("invoices", {
   id: uuid("id").defaultRandom().primaryKey(),
   invoiceNumber: text("invoice_number").notNull().unique(),
   customerName: text("customer_name").notNull().default(""),
   customerDetails: text("customer_details").notNull().default(""),
   status: invoiceStatusEnum("status").notNull().default("draft"),
+  version: integer("version").notNull().default(1),
+  headerSnapshot: text("header_snapshot"),
   total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"),
   notes: text("notes").notNull().default(""),
   createdBy: uuid("created_by")

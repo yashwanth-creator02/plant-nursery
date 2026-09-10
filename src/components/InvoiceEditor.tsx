@@ -4,7 +4,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Printer, Save, FilePlus2, Trash2, Lock } from "lucide-react";
+import { Plus, Printer, Save, FilePlus2, Trash2, Lock, PenTool, X } from "lucide-react";
 import {
   formatMoney,
   numberToIndianWords,
@@ -12,6 +12,15 @@ import {
   InvoiceRecord,
   StockItem,
 } from "@/lib/types";
+
+const DEFAULT_HEADER = {
+  businessName: "SRI VIJAYA LAKSHMI NURSERY",
+  subheading1: "(Approved by Department of Horticulture)",
+  subheading2: "(All Kinds of Plants Production and Suppliers)",
+  address: "Harige B. H. Road, Shimoga - 577203",
+  mobiles: "7353025302, 9448140483, 9606602194",
+  gstin: "29ADXPV1295N2Z6",
+};
 
 let keyCounter = 0;
 function newKey() {
@@ -43,6 +52,24 @@ export function InvoiceEditor({
   const [notes, setNotes] = useState(initialInvoice?.notes ?? "");
   const [paymentMode, setPaymentMode] = useState<"CASH" | "CREDIT">("CASH");
   const [isSigned, setIsSigned] = useState(true);
+  const [customSignature, setCustomSignature] = useState<string | null>(null);
+
+  // Invoice version & header snapshot
+  let parsedInitialHeader = DEFAULT_HEADER;
+  if (initialInvoice?.headerSnapshot) {
+    try {
+      parsedInitialHeader = {
+        ...DEFAULT_HEADER,
+        ...JSON.parse(initialInvoice.headerSnapshot),
+      };
+    } catch {}
+  }
+
+  const [invoiceVersion, setInvoiceVersion] = useState<number>(
+    initialInvoice?.version ?? 1,
+  );
+  const [headerDetails, setHeaderDetails] = useState(parsedInitialHeader);
+
   const [items, setItems] = useState<InvoiceLineItem[]>(
     initialInvoice?.items.map((i) => ({
       key: newKey(),
@@ -65,13 +92,41 @@ export function InvoiceEditor({
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // Load custom signature from profile localStorage
+    const savedSig = localStorage.getItem("svl_digital_signature");
+    setCustomSignature(savedSig);
+
+    const handleSigUpdate = () => {
+      setCustomSignature(localStorage.getItem("svl_digital_signature"));
+    };
+    window.addEventListener("signatureUpdated", handleSigUpdate);
+
+    // If new unsaved invoice, fetch active business settings
+    if (!initialInvoice?.headerSnapshot) {
+      fetch("/api/settings/invoice-details")
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.settings) {
+            setHeaderDetails(d.settings);
+            if (!initialInvoice) {
+              setInvoiceVersion(d.settings.version || 1);
+            }
+          }
+        })
+        .catch(() => {});
+    }
+
     if (!isFinal) {
       fetch("/api/stock", { cache: "no-store" })
         .then((r) => r.json())
         .then((d) => setStock(d.items ?? []))
         .catch(() => {});
     }
-  }, [isFinal]);
+
+    return () => {
+      window.removeEventListener("signatureUpdated", handleSigUpdate);
+    };
+  }, [isFinal, initialInvoice]);
 
   const total = useMemo(
     () => items.reduce((sum, i) => sum + i.price * i.quantity, 0),
@@ -190,12 +245,23 @@ export function InvoiceEditor({
       setInvoiceId(saved.id);
       setInvoiceNumber(saved.invoiceNumber);
       setStatus(saved.status);
+      if (saved.version) setInvoiceVersion(saved.version);
+      if (saved.headerSnapshot) {
+        try {
+          setHeaderDetails(JSON.parse(saved.headerSnapshot));
+        } catch {}
+      }
+
+      // Update URL without unmounting the component
+      window.history.replaceState(null, "", `/invoices/${saved.id}`);
 
       if (action === "final") {
-        router.push(`/invoices/${saved.id}`);
-        setTimeout(() => window.print(), 300);
-      } else if (!initialInvoice) {
-        router.replace(`/invoices/${saved.id}`);
+        // Direct print from rendered DOM to eliminate blank print bug
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            window.print();
+          }, 150);
+        });
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't save invoice");
@@ -209,9 +275,14 @@ export function InvoiceEditor({
       {/* Top Toolbar (screen only) */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div>
-          <h1 className="font-serif text-xl font-semibold text-ink">
-            {isFinal ? "Bill of Suppliers" : invoiceId ? "Edit Draft Bill" : "New Bill of Suppliers"}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="font-serif text-xl font-semibold text-ink">
+              {status === "final" ? "Bill of Suppliers" : invoiceId ? "Edit Draft Bill" : "New Bill of Suppliers"}
+            </h1>
+            <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-blue-50 text-[#1b365d] border border-blue-200">
+              Version {invoiceVersion}
+            </span>
+          </div>
           {status === "draft" && (
             <span className="mt-0.5 inline-block rounded-full bg-rust-tint px-2 py-0.5 text-xs font-medium text-rust">
               Draft — not yet finalized
@@ -245,13 +316,18 @@ export function InvoiceEditor({
       >
         {/* Top GSTIN & Mobiles Row */}
         <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold tracking-tight text-[#1b365d]">
-          <span>GSTIN: 29ADXPV1295N2Z6</span>
-          <span>Mob: 7353025302, 9448140483, 9606602194</span>
+          <span>GSTIN: {headerDetails.gstin}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100/80 text-[#1b365d] border border-blue-200">
+              Version {invoiceVersion}
+            </span>
+            <span>Mob: {headerDetails.mobiles}</span>
+          </div>
         </div>
 
         {/* Nursery Main Title */}
         <h1 className="mt-2 text-center font-serif text-xl sm:text-2xl md:text-[26px] font-extrabold uppercase tracking-wide text-[#1b365d]">
-          SRI VIJAYA LAKSHMI NURSERY
+          {headerDetails.businessName}
         </h1>
 
         {/* Subtitle row with Logo Placeholder */}
@@ -264,7 +340,7 @@ export function InvoiceEditor({
             className="sm:absolute left-0 top-1/2 sm:-translate-y-1/2 flex items-center justify-center shrink-0 mb-1 sm:mb-0"
             title="Logo Placeholder — Swap with your original SVG"
           >
-            {/* <!-- START: NURSERY LOGO SVG PLACEHOLDER --> */}
+            {/* START: NURSERY LOGO SVG PLACEHOLDER */}
             <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded border border-dashed border-[#1b365d]/50 bg-blue-50/60 text-[#1b365d]">
               <svg
                 className="h-8 w-8 opacity-80"
@@ -281,14 +357,14 @@ export function InvoiceEditor({
                 <path d="M12 11c2.5 0 4-2 4-4-2 0-4 1.5-4 4z" fill="currentColor" fillOpacity="0.25" />
               </svg>
             </div>
-            {/* <!-- END: NURSERY LOGO SVG PLACEHOLDER --> */}
+            {/* END: NURSERY LOGO SVG PLACEHOLDER */}
           </div>
 
           {/* Centered Government Approval & Address Details */}
           <div className="text-center text-[11px] sm:text-xs font-semibold text-[#1b365d] leading-tight px-14 sm:px-16">
-            <p>(Approved by Department of Horticulture)</p>
-            <p>(All Kinds of Plants Production and Suppliers)</p>
-            <p className="font-bold">Harige B. H. Road, Shimoga - 577203</p>
+            <p>{headerDetails.subheading1}</p>
+            <p>{headerDetails.subheading2}</p>
+            <p className="font-bold">{headerDetails.address}</p>
           </div>
         </div>
 
@@ -298,7 +374,7 @@ export function InvoiceEditor({
             BILL OF SUPPLIERS
           </span>
           <div className="mt-0.5 text-[11px] sm:text-xs font-bold tracking-wide">
-            {isFinal ? (
+            {status === "final" ? (
               paymentMode === "CASH" ? "CASH" : "CREDIT"
             ) : (
               <span className="inline-flex items-center gap-2">
@@ -346,7 +422,7 @@ export function InvoiceEditor({
         <div className="mt-2 text-xs sm:text-sm text-[#1b365d]">
           <div className="flex items-baseline gap-1.5">
             <span className="font-bold shrink-0">To,</span>
-            {isFinal ? (
+            {status === "final" ? (
               <span className="flex-1 border-b border-dotted border-[#1b365d] px-2 font-medium">
                 {customerName || "—"}
               </span>
@@ -360,7 +436,7 @@ export function InvoiceEditor({
             )}
           </div>
           <div className="mt-1 flex items-baseline">
-            {isFinal ? (
+            {status === "final" ? (
               <span className="w-full border-b border-dotted border-[#1b365d] px-2 text-xs font-normal min-h-[22px] block">
                 {customerDetails || ""}
               </span>
@@ -424,7 +500,7 @@ export function InvoiceEditor({
                   {/* Particulars */}
                   <div className="py-1.5 px-2 font-medium flex items-center justify-between">
                     <span className="truncate pr-1">{item.name}</span>
-                    {!isFinal && (
+                    {status !== "final" && (
                       <button
                         type="button"
                         onClick={() => removeItem(item.key)}
@@ -438,7 +514,7 @@ export function InvoiceEditor({
 
                   {/* Qty. */}
                   <div className="py-1.5 px-1 text-center font-mono">
-                    {isFinal ? (
+                    {status === "final" ? (
                       item.quantity
                     ) : (
                       <input
@@ -457,7 +533,7 @@ export function InvoiceEditor({
 
                   {/* Rate */}
                   <div className="py-1.5 px-1 text-right font-mono pr-2">
-                    {isFinal ? (
+                    {status === "final" ? (
                       formatMoney(item.price)
                     ) : (
                       <input
@@ -522,41 +598,73 @@ export function InvoiceEditor({
           </div>
         </div>
 
-        {/* Bottom Signature / Footer */}
+        {/* ============================================================ */}
+        {/* SIGNATURE BLOCK: On-document toggle directly above Proprietor */}
+        {/* ============================================================ */}
         <div className="mt-4 text-right text-[#1b365d] pr-2 sm:pr-4">
+          <div className="flex items-center justify-between mb-1 print:hidden">
+            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100/70 text-[#1b365d] border border-blue-200">
+              Version {invoiceVersion}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-medium text-ink-soft">Digital Signature:</span>
+              <button
+                type="button"
+                onClick={() => setIsSigned(!isSigned)}
+                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
+                  isSigned
+                    ? "bg-[#1b365d] text-white"
+                    : "border border-line-strong text-ink-soft hover:bg-line/40"
+                }`}
+              >
+                {isSigned ? "Included" : "None"}
+              </button>
+            </div>
+          </div>
+
           <p className="font-bold text-xs sm:text-sm tracking-tight">
-            For Sri VijayaLakshmi Nursery &amp; Farm
+            For {headerDetails.businessName.includes("NURSERY") ? headerDetails.businessName : "Sri VijayaLakshmi Nursery & Farm"}
           </p>
 
           <div className="min-h-[56px] sm:min-h-[64px] flex items-center justify-end py-1">
             {isSigned ? (
               <div className="relative group inline-flex flex-col items-center justify-center">
-                {/* Stylized Digital Signature */}
-                <svg
-                  className="h-11 sm:h-12 w-36 sm:w-40 text-[#1b365d]"
-                  viewBox="0 0 160 55"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 36 C 22 14, 28 8, 36 24 C 44 40, 52 32, 60 18 C 66 8, 70 26, 76 34 C 82 42, 92 20, 100 16 C 108 12, 114 26, 122 30 C 130 34, 142 16, 150 24" />
-                  <path d="M 8 40 Q 50 48, 105 42 T 154 38" strokeWidth="1.6" />
-                  <path d="M 28 20 L 22 32" strokeWidth="1.8" />
-                  <path d="M 68 16 C 72 12, 78 14, 76 22" strokeWidth="1.5" />
-                </svg>
+                {customSignature && customSignature.startsWith("data:image") ? (
+                  <img
+                    src={customSignature}
+                    alt="Digital signature"
+                    className="h-11 sm:h-12 max-w-[150px] sm:max-w-[170px] object-contain"
+                  />
+                ) : customSignature && customSignature.startsWith("text:") ? (
+                  <div className="font-serif italic font-bold text-xl sm:text-2xl text-[#1b365d] py-1">
+                    {customSignature.replace("text:", "")}
+                  </div>
+                ) : (
+                  <svg
+                    className="h-11 sm:h-12 w-36 sm:w-40 text-[#1b365d]"
+                    viewBox="0 0 160 55"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 36 C 22 14, 28 8, 36 24 C 44 40, 52 32, 60 18 C 66 8, 70 26, 76 34 C 82 42, 92 20, 100 16 C 108 12, 114 26, 122 30 C 130 34, 142 16, 150 24" />
+                    <path d="M 8 40 Q 50 48, 105 42 T 154 38" strokeWidth="1.6" />
+                    <path d="M 28 20 L 22 32" strokeWidth="1.8" />
+                    <path d="M 68 16 C 72 12, 78 14, 76 22" strokeWidth="1.5" />
+                  </svg>
+                )}
                 <span className="text-[9px] font-sans font-semibold tracking-wider text-[#1b365d]/75 uppercase -mt-0.5">
                   Digitally Signed
                 </span>
-                {/* On-screen button to unsign */}
                 <button
                   type="button"
                   onClick={() => setIsSigned(false)}
-                  className="absolute -top-1 -right-7 opacity-0 group-hover:opacity-100 transition-opacity bg-white border border-[#1b365d]/30 text-ink-soft hover:text-rust rounded-full p-1 text-[10px] print:hidden shadow-xs cursor-pointer"
+                  className="absolute -top-1 -right-6 opacity-0 group-hover:opacity-100 transition-opacity bg-white border border-[#1b365d]/30 text-ink-soft hover:text-rust rounded-full p-0.5 text-[10px] print:hidden shadow-xs cursor-pointer"
                   title="Remove digital signature"
                 >
-                  ✕
+                  <X size={12} />
                 </button>
               </div>
             ) : (
@@ -566,7 +674,7 @@ export function InvoiceEditor({
                 className="rounded border border-dashed border-[#1b365d]/40 bg-blue-50/40 px-3 py-1.5 text-xs font-semibold text-[#1b365d] hover:bg-blue-100/60 print:hidden transition-colors cursor-pointer flex items-center gap-1.5"
                 title="Click to add digital signature"
               >
-                <span>✍️</span> Add Digital Signature
+                <PenTool size={12} /> Add Digital Signature
               </button>
             )}
           </div>
@@ -580,7 +688,7 @@ export function InvoiceEditor({
       {/* ============================================================ */}
       {/* EDITING TOOLBAR: Add from stock / custom line item (screen)  */}
       {/* ============================================================ */}
-      {!isFinal && (
+      {status !== "final" && (
         <div className="mt-5 rounded-lg border border-line bg-surface p-4 shadow-sm print:hidden">
           <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">
             Add Line Items to Bill
@@ -598,7 +706,7 @@ export function InvoiceEditor({
                   <option value="">Choose a plant / item…</option>
                   {stock.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.name} — ₹{formatMoney(Number(s.price))} ({s.quantity}{" "}
+                      {s.name} — Rs {formatMoney(Number(s.price))} ({s.quantity}{" "}
                       {s.unit || "pcs"} in stock)
                     </option>
                   ))}
@@ -627,7 +735,7 @@ export function InvoiceEditor({
                   type="button"
                   onClick={addStockItem}
                   disabled={!pickerStockId}
-                  className="flex items-center gap-1.5 rounded-md bg-pine px-3.5 py-1.5 text-sm font-medium text-surface hover:opacity-90 disabled:opacity-50 shadow-sm"
+                  className="flex items-center gap-1.5 rounded-md bg-pine px-3.5 py-1.5 text-sm font-medium text-surface hover:opacity-90 disabled:opacity-50 shadow-sm cursor-pointer"
                 >
                   <Plus size={15} /> Add to bill
                 </button>
@@ -635,7 +743,7 @@ export function InvoiceEditor({
                 <button
                   type="button"
                   onClick={() => setCustomMode(true)}
-                  className="rounded-md px-2 py-1.5 text-sm font-medium text-pine-deep hover:underline"
+                  className="rounded-md px-2 py-1.5 text-sm font-medium text-pine-deep hover:underline cursor-pointer"
                 >
                   + Custom item
                 </button>
@@ -666,7 +774,7 @@ export function InvoiceEditor({
                 </label>
 
                 <label className="flex w-24 flex-col gap-1">
-                  <span className="text-xs text-ink-soft">Price (₹)</span>
+                  <span className="text-xs text-ink-soft">Price (Rs)</span>
                   <input
                     type="number"
                     min={0}
@@ -680,7 +788,7 @@ export function InvoiceEditor({
                 <button
                   type="button"
                   onClick={addCustomItem}
-                  className="flex items-center gap-1.5 rounded-md bg-pine px-3.5 py-1.5 text-sm font-medium text-surface hover:opacity-90 shadow-sm"
+                  className="flex items-center gap-1.5 rounded-md bg-pine px-3.5 py-1.5 text-sm font-medium text-surface hover:opacity-90 shadow-sm cursor-pointer"
                 >
                   <Plus size={15} /> Add
                 </button>
@@ -688,7 +796,7 @@ export function InvoiceEditor({
                 <button
                   type="button"
                   onClick={() => setCustomMode(false)}
-                  className="rounded-md px-2 py-1.5 text-sm text-ink-soft hover:underline"
+                  className="rounded-md px-2 py-1.5 text-sm text-ink-soft hover:underline cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -713,29 +821,13 @@ export function InvoiceEditor({
       )}
 
       {/* Bottom Actions Toolbar (screen only) */}
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-2.5 print:hidden">
-        {/* Toggle Digital Signature Button */}
-        <button
-          type="button"
-          onClick={() => setIsSigned(!isSigned)}
-          className={`flex items-center gap-1.5 rounded-md px-3.5 py-2 text-sm font-medium transition-all cursor-pointer ${
-            isSigned
-              ? "bg-blue-50 text-[#1b365d] border border-blue-300 font-semibold shadow-xs"
-              : "border border-line-strong text-ink-soft hover:bg-line/40"
-          }`}
-          title={isSigned ? "Digital signature is active — click to turn off" : "Digital signature is off — click to sign"}
-        >
-          <span>✍️</span>
-          {isSigned ? "Digital Signature: ON" : "Digital Signature: OFF"}
-        </button>
-
-        <div className="flex flex-wrap items-center gap-2.5">
-        {!isFinal && (
+      <div className="mt-6 flex flex-wrap items-center justify-end gap-2.5 print:hidden">
+        {status !== "final" && (
           <>
             <button
               onClick={() => persist("draft")}
               disabled={saving !== null}
-              className="flex items-center gap-1.5 rounded-md border border-line-strong px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-line/50 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-md border border-line-strong px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-line/50 disabled:opacity-50 cursor-pointer"
             >
               <Save size={15} />
               {saving === "draft" ? "Saving…" : "Save as draft"}
@@ -744,7 +836,7 @@ export function InvoiceEditor({
             <button
               onClick={() => persist("final")}
               disabled={saving !== null}
-              className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-2 text-sm font-medium text-surface shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-2 text-sm font-medium text-surface shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer"
             >
               <Lock size={15} />
               {saving === "final" ? "Finalizing…" : "Finalize & print bill"}
@@ -752,15 +844,14 @@ export function InvoiceEditor({
           </>
         )}
 
-        {isFinal && (
+        {status === "final" && (
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-1.5 rounded-md bg-pine px-5 py-2 text-sm font-medium text-surface shadow-sm transition-opacity hover:opacity-90"
+            className="flex items-center gap-1.5 rounded-md bg-pine px-5 py-2 text-sm font-medium text-surface shadow-sm transition-opacity hover:opacity-90 cursor-pointer"
           >
             <Printer size={15} /> Print Bill
           </button>
         )}
-        </div>
       </div>
     </div>
   );

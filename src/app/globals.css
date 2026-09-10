@@ -104,25 +104,48 @@ textarea {
     color: #111111 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    overflow: visible !important;
+    height: auto !important;
   }
-  body * {
-    visibility: hidden;
+
+  /* Hide navigation, headers, sidebars, buttons, toolbars */
+  header,
+  aside,
+  nav,
+  button,
+  .print\:hidden {
+    display: none !important;
   }
-  #invoice-print,
-  #invoice-print * {
-    visibility: visible;
+
+  /* Unconstrain containers so print dialog renders full document */
+  div,
+  main {
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
   }
+
+  /* Paper invoice sheet */
   #invoice-print {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 10mm;
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 6mm !important;
     background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
   }
+
+  #invoice-print * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   @page {
-    margin: 0;
+    margin: 6mm;
     size: A4 portrait;
   }
 }

@@ -47,6 +47,7 @@ export default function InvoicesPage() {
         })
         .toLowerCase();
       const totalStr = inv.total?.toString() || "";
+      const versionStr = `v${inv.version || 1} version ${inv.version || 1}`;
 
       return (
         num.includes(q) ||
@@ -54,7 +55,8 @@ export default function InvoicesPage() {
         details.includes(q) ||
         creator.includes(q) ||
         dateStr.includes(q) ||
-        totalStr.includes(q)
+        totalStr.includes(q) ||
+        versionStr.includes(q)
       );
     });
   }, [invoices, filter, searchQuery]);
@@ -155,6 +157,7 @@ export default function InvoicesPage() {
             <thead>
               <tr className="border-b border-line bg-paper-flat text-left text-xs uppercase tracking-wide text-ink-soft">
                 <th className="px-4 py-2.5 font-medium">Invoice</th>
+                <th className="px-4 py-2.5 font-medium">Version</th>
                 <th className="px-4 py-2.5 font-medium">Customer</th>
                 <th className="px-4 py-2.5 font-medium">Date</th>
                 {user?.role === "admin" && (
@@ -177,6 +180,11 @@ export default function InvoicesPage() {
                     >
                       {inv.invoiceNumber}
                     </Link>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <span className="inline-flex items-center rounded border border-line-strong/60 bg-paper-flat px-2 py-0.5 font-mono text-xs font-medium text-ink-soft">
+                      Version {inv.version || 1}
+                    </span>
                   </td>
                   <td className="px-4 py-2.5 text-ink">
                     {inv.customerName || (

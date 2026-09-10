@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { invoiceItems, invoices, stockItems } from "@/db/schema";
+import { invoiceItems, invoices, stockItems, businessSettings } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { handleApiError } from "@/lib/api-utils";
 import { generateInvoiceNumber } from "@/lib/invoice-number";
@@ -85,6 +85,31 @@ export async function POST(req: NextRequest) {
 
       const invoiceNumber = await generateInvoiceNumber();
 
+      const activeSettings = await tx
+        .select()
+        .from(businessSettings)
+        .orderBy(desc(businessSettings.version))
+        .limit(1);
+
+      const version = activeSettings.length > 0 ? activeSettings[0].version : 1;
+      const headerSnapshot = activeSettings.length > 0
+        ? JSON.stringify({
+            businessName: activeSettings[0].businessName,
+            subheading1: activeSettings[0].subheading1,
+            subheading2: activeSettings[0].subheading2,
+            address: activeSettings[0].address,
+            mobiles: activeSettings[0].mobiles,
+            gstin: activeSettings[0].gstin,
+          })
+        : JSON.stringify({
+            businessName: "SRI VIJAYA LAKSHMI NURSERY",
+            subheading1: "(Approved by Department of Horticulture)",
+            subheading2: "(All Kinds of Plants Production and Suppliers)",
+            address: "Harige B. H. Road, Shimoga - 577203",
+            mobiles: "7353025302, 9448140483, 9606602194",
+            gstin: "29ADXPV1295N2Z6",
+          });
+
       const [invoice] = await tx
         .insert(invoices)
         .values({
@@ -93,6 +118,8 @@ export async function POST(req: NextRequest) {
           customerDetails,
           notes,
           status,
+          version,
+          headerSnapshot,
           total: total.toFixed(2),
           createdBy: user.id,
           finalizedAt: status === "final" ? new Date() : null,

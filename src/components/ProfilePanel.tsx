@@ -3,8 +3,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, LogOut, UserPlus, Trash2, Sun, Moon } from "lucide-react";
+import { X, LogOut, UserPlus, Trash2, Sun, Moon, PenTool, Building2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { SignatureModal } from "./SignatureModal";
+import { AdminInvoiceSettingsModal } from "./AdminInvoiceSettingsModal";
 
 type ManagedUser = {
   id: string;
@@ -31,11 +33,17 @@ export function ProfilePanel({
   const [clearing, setClearing] = useState(false);
   const [isDark, setIsDark] = useState(false);
 
+  const [signatureModalOpen, setSignatureModalOpen] = useState(false);
+  const [adminSettingsModalOpen, setAdminSettingsModalOpen] = useState(false);
+  const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
+
   const isAdmin = user?.role === "admin";
 
   useEffect(() => {
     if (open) {
       setIsDark(document.documentElement.classList.contains("dark"));
+      const savedSig = localStorage.getItem("svl_digital_signature");
+      setSignaturePreview(savedSig);
       if (isAdmin) {
         loadUsers();
       }
@@ -221,6 +229,78 @@ export function ProfilePanel({
           </div>
         </div>
 
+        {/* Digital Signature Section */}
+        <div className="border-b border-line px-5 py-3.5">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+              Digital Signature
+            </span>
+            <button
+              type="button"
+              onClick={() => setSignatureModalOpen(true)}
+              className="flex items-center gap-1 text-xs font-medium text-pine-deep hover:underline cursor-pointer"
+            >
+              <PenTool size={12} />
+              <span>{signaturePreview ? "Edit Signature" : "Create Signature"}</span>
+            </button>
+          </div>
+
+          {signaturePreview ? (
+            <div className="rounded-lg border border-[#1b365d]/30 bg-blue-50/40 p-2.5 flex items-center justify-between">
+              {signaturePreview.startsWith("data:image") ? (
+                <img
+                  src={signaturePreview}
+                  alt="Saved signature"
+                  className="h-8 max-w-[140px] object-contain"
+                />
+              ) : (
+                <span className="font-serif italic font-bold text-sm text-[#1b365d]">
+                  {signaturePreview.replace("text:", "")}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.removeItem("svl_digital_signature");
+                  setSignaturePreview(null);
+                  window.dispatchEvent(new Event("signatureUpdated"));
+                }}
+                className="text-[11px] text-rust hover:underline cursor-pointer"
+              >
+                Reset
+              </button>
+            </div>
+          ) : (
+            <p className="text-xs text-ink-soft/80">
+              Default cursive signature active. Click above to draw or type a custom signature.
+            </p>
+          )}
+        </div>
+
+        {/* Admin Invoice Header Settings (Admin only) */}
+        {isAdmin && (
+          <div className="border-b border-line px-5 py-3.5">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+                Invoice Details
+              </span>
+              <span className="text-[10px] font-mono font-bold bg-pine-tint text-pine-deep px-1.5 py-0.5 rounded">
+                Admin Only
+              </span>
+            </div>
+            <p className="text-xs text-ink-soft mb-2.5">
+              Manage nursery name, address, GSTIN, and mobile numbers across versions.
+            </p>
+            <button
+              type="button"
+              onClick={() => setAdminSettingsModalOpen(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-md border border-line-strong bg-paper px-3 py-2 text-xs font-medium text-ink transition-colors hover:bg-line/50 cursor-pointer"
+            >
+              <Building2 size={14} /> Edit Invoice Header &amp; Details
+            </button>
+          </div>
+        )}
+
         <div className="px-5 py-4">
           <button
             onClick={logout}
@@ -357,9 +437,24 @@ export function ProfilePanel({
                 {clearing ? "Clearing database…" : "Clear all database data"}
               </button>
             </div>
-          </div>
+        </div>
         )}
       </div>
+
+      <SignatureModal
+        open={signatureModalOpen}
+        onClose={() => setSignatureModalOpen(false)}
+        onSave={(sig) => {
+          localStorage.setItem("svl_digital_signature", sig);
+          setSignaturePreview(sig);
+          window.dispatchEvent(new Event("signatureUpdated"));
+        }}
+      />
+
+      <AdminInvoiceSettingsModal
+        open={adminSettingsModalOpen}
+        onClose={() => setAdminSettingsModalOpen(false)}
+      />
     </div>
   );
 }

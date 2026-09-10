@@ -14,6 +14,18 @@ export type InvoiceLineItem = {
   quantity: number;
 };
 
+export type BusinessSettings = {
+  id?: string;
+  version: number;
+  businessName: string;
+  subheading1: string;
+  subheading2: string;
+  address: string;
+  mobiles: string;
+  gstin: string;
+  updatedAt?: string;
+};
+
 export type InvoiceRecord = {
   id: string;
   invoiceNumber: string;
@@ -21,6 +33,8 @@ export type InvoiceRecord = {
   customerDetails: string;
   notes: string;
   status: "draft" | "final";
+  version: number;
+  headerSnapshot?: string | null;
   total: string;
   createdBy: string;
   createdByUser?: { username: string };

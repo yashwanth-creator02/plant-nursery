@@ -38,7 +38,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`✅ Admin user "${user.username}" created.`);
+  console.log(`[OK] Admin user "${user.username}" created.`);
   process.exit(0);
 }
 
