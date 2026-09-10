@@ -4,7 +4,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { FileText } from "lucide-react";
+import { FileText, Search, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { formatMoney, InvoiceRecord } from "@/lib/types";
 
@@ -16,6 +16,7 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetch("/api/invoices", { cache: "no-store" })
@@ -28,15 +29,39 @@ export default function InvoicesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = useMemo(
-    () =>
-      filter === "all" ? invoices : invoices.filter((i) => i.status === filter),
-    [invoices, filter],
-  );
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return invoices.filter((inv) => {
+      if (filter !== "all" && inv.status !== filter) return false;
+      if (!q) return true;
+
+      const num = inv.invoiceNumber?.toLowerCase() || "";
+      const cust = inv.customerName?.toLowerCase() || "";
+      const details = inv.customerDetails?.toLowerCase() || "";
+      const creator = inv.createdByUser?.username?.toLowerCase() || "";
+      const dateStr = new Date(inv.createdAt)
+        .toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })
+        .toLowerCase();
+      const totalStr = inv.total?.toString() || "";
+
+      return (
+        num.includes(q) ||
+        cust.includes(q) ||
+        details.includes(q) ||
+        creator.includes(q) ||
+        dateStr.includes(q) ||
+        totalStr.includes(q)
+      );
+    });
+  }, [invoices, filter, searchQuery]);
 
   return (
     <div className="mx-auto max-w-4xl px-3 sm:px-6 py-4 sm:py-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-serif text-xl font-semibold text-ink">
             Invoices
@@ -47,20 +72,45 @@ export default function InvoicesPage() {
               : "Invoices you've created."}
           </p>
         </div>
-        <div className="flex gap-1 rounded-md border border-line-strong bg-surface p-1 text-sm">
-          {(["all", "draft", "final"] as Filter[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`rounded px-3 py-1 capitalize transition-colors ${
-                filter === f
-                  ? "bg-pine text-surface"
-                  : "text-ink-soft hover:bg-line/50"
-              }`}
-            >
-              {f}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="relative flex-1 sm:w-64 sm:flex-none">
+            <Search
+              size={15}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search invoices..."
+              className="w-full rounded-md border border-line-strong bg-surface py-1.5 pl-9 pr-8 text-sm outline-none placeholder:text-ink-soft/70 focus:border-pine"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-ink-soft hover:text-ink"
+                aria-label="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <div className="flex gap-1 rounded-md border border-line-strong bg-surface p-1 text-sm">
+            {(["all", "draft", "final"] as Filter[]).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`rounded px-3 py-1 capitalize transition-colors ${
+                  filter === f
+                    ? "bg-pine text-surface"
+                    : "text-ink-soft hover:bg-line/50"
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -78,8 +128,18 @@ export default function InvoicesPage() {
           <p className="text-sm text-ink-soft">
             {invoices.length === 0
               ? "No invoices yet — create your first one."
+              : searchQuery
+              ? `No invoices match "${searchQuery}".`
               : "No invoices match this filter."}
           </p>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="mt-3 inline-block text-xs font-medium text-pine-deep underline hover:opacity-80"
+            >
+              Clear search
+            </button>
+          )}
           {invoices.length === 0 && (
             <Link
               href="/invoice"

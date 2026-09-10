@@ -2,14 +2,15 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
-import { Plus, Trash2, Boxes, Pencil, Check, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Plus, Trash2, Boxes, Pencil, Check, X, Search } from "lucide-react";
 import { formatMoney, StockItem } from "@/lib/types";
 
 export default function StockPage() {
   const [items, setItems] = useState<StockItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("pcs");
@@ -24,6 +25,23 @@ export default function StockPage() {
     price: string;
     quantity: string;
   } | null>(null);
+
+  const filteredItems = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((item) => {
+      const name = item.name.toLowerCase();
+      const unit = (item.unit || "").toLowerCase();
+      const price = item.price.toString();
+      const quantity = item.quantity.toString();
+      return (
+        name.includes(q) ||
+        unit.includes(q) ||
+        price.includes(q) ||
+        quantity.includes(q)
+      );
+    });
+  }, [items, searchQuery]);
 
   function load() {
     setLoading(true);
@@ -186,6 +204,47 @@ export default function StockPage() {
         </div>
       </form>
 
+      {items.length > 0 && (
+        <div className="mb-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-xs text-ink-soft">
+            {searchQuery ? (
+              <span>
+                Showing <strong className="text-ink">{filteredItems.length}</strong> of{" "}
+                {items.length} {items.length === 1 ? "item" : "items"}
+              </span>
+            ) : (
+              <span>
+                Total inventory: <strong className="text-ink">{items.length}</strong>{" "}
+                {items.length === 1 ? "item" : "items"}
+              </span>
+            )}
+          </div>
+          <div className="relative flex-1 sm:max-w-xs">
+            <Search
+              size={15}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search stock items..."
+              className="w-full rounded-md border border-line-strong bg-surface py-1.5 pl-9 pr-8 text-sm outline-none placeholder:text-ink-soft/70 focus:border-pine"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-ink-soft hover:text-ink"
+                aria-label="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <p className="text-sm text-ink-soft">Loading…</p>
       ) : items.length === 0 ? (
@@ -194,6 +253,20 @@ export default function StockPage() {
           <p className="text-sm text-ink-soft">
             No stock items yet — add your first one above.
           </p>
+        </div>
+      ) : filteredItems.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-line-strong bg-surface px-6 py-12 text-center">
+          <Boxes className="mx-auto mb-2 text-ink-soft" size={22} />
+          <p className="text-sm text-ink-soft">
+            No stock items match "{searchQuery}".
+          </p>
+          <button
+            type="button"
+            onClick={() => setSearchQuery("")}
+            className="mt-3 inline-block text-xs font-medium text-pine-deep underline hover:opacity-80"
+          >
+            Clear search
+          </button>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line bg-surface">
@@ -208,7 +281,7 @@ export default function StockPage() {
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => {
+              {filteredItems.map((item) => {
                 const editing = editingId === item.id;
                 const low = item.quantity <= 5;
                 return (
