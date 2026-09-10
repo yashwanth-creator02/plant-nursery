@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Sans, IBM_Plex_Mono, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
+import { Analytics } from "@vercel/analytics/next";
 
 const plexSans = IBM_Plex_Sans({
   variable: "--font-plex-sans",
@@ -63,6 +64,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full bg-paper text-ink">
         <AppShell>{children}</AppShell>
+        <Analytics />
       </body>
     </html>
   );
