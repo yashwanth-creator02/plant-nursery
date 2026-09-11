@@ -11,7 +11,7 @@ const updateSchema = z.object({
   unit: z.string().trim().optional(),
   price: z.number().nonnegative().optional(),
   quantity: z.number().int().nonnegative().optional(),
-  category: z.enum(["plants", "non-plants"]).optional(),
+  category: z.string().trim().min(1).optional(),
   subcategory: z.string().trim().optional(),
   description: z.string().trim().optional().nullable(),
 });

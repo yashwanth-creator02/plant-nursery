@@ -23,9 +23,16 @@ export type GalleryStockItem = StockItem & {
   images: StockItemImage[];
 };
 
+export type StockCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt?: string;
+};
+
 export type StockSubcategory = {
   id: string;
-  category: "plants" | "non-plants";
+  category: string;
   name: string;
   slug: string;
   createdAt?: string;

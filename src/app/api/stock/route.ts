@@ -11,7 +11,7 @@ const createSchema = z.object({
   unit: z.string().trim().default("pcs"),
   price: z.coerce.number().min(0).optional().default(0),
   quantity: z.coerce.number().int().min(0).optional().default(0),
-  category: z.enum(["plants", "non-plants"]).optional().default("plants"),
+  category: z.string().trim().min(1).optional().default("plants"),
   subcategory: z.string().trim().optional().default("other"),
   description: z.string().trim().optional().nullable(),
 });

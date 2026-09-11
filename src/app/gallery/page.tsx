@@ -9,7 +9,7 @@ import {
   Images,
   Plus,
 } from "lucide-react";
-import { GalleryStockItem } from "@/lib/types";
+import { GalleryStockItem, StockCategory } from "@/lib/types";
 import { StockItemDetailModal } from "@/components/StockItemDetailModal";
 import { StockPhotoUploadModal } from "@/components/StockPhotoUploadModal";
 
@@ -17,7 +17,11 @@ export default function GalleryPage() {
   const [items, setItems] = useState<GalleryStockItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<"all" | "plants" | "non-plants">("all");
+  const [categories, setCategories] = useState<StockCategory[]>([
+    { id: "plants", name: "Plants", slug: "plants" },
+    { id: "non-plants", name: "Non-Plants", slug: "non-plants" },
+  ]);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [photoFilter, setPhotoFilter] = useState<"all" | "with-photos" | "needs-photos">("all");
 
   // Detail Modal State
@@ -44,13 +48,24 @@ export default function GalleryPage() {
 
   useEffect(() => {
     loadGallery();
+    fetch("/api/stock/categories", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.categories) && data.categories.length > 0) {
+          setCategories(data.categories);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Filtered items based on search and category
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       // Category filter
-      if (categoryFilter !== "all" && item.category !== categoryFilter) {
+      if (
+        categoryFilter !== "all" &&
+        (item.category || "plants").toLowerCase() !== categoryFilter.toLowerCase()
+      ) {
         return false;
       }
 
@@ -182,7 +197,7 @@ export default function GalleryPage() {
           {/* Filter Pills */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Category Filter */}
-            <div className="flex rounded-lg border border-line bg-paper p-0.5 text-xs font-medium shrink-0">
+            <div className="flex flex-wrap rounded-lg border border-line bg-paper p-0.5 text-xs font-medium shrink-0">
               <button
                 onClick={() => setCategoryFilter("all")}
                 className={`rounded px-2.5 py-1 transition-colors cursor-pointer ${
@@ -193,26 +208,19 @@ export default function GalleryPage() {
               >
                 All Categories
               </button>
-              <button
-                onClick={() => setCategoryFilter("plants")}
-                className={`rounded px-2.5 py-1 transition-colors cursor-pointer ${
-                  categoryFilter === "plants"
-                    ? "bg-surface text-pine-deep font-semibold shadow-xs"
-                    : "text-ink-soft hover:text-ink"
-                }`}
-              >
-                Plants
-              </button>
-              <button
-                onClick={() => setCategoryFilter("non-plants")}
-                className={`rounded px-2.5 py-1 transition-colors cursor-pointer ${
-                  categoryFilter === "non-plants"
-                    ? "bg-surface text-pine-deep font-semibold shadow-xs"
-                    : "text-ink-soft hover:text-ink"
-                }`}
-              >
-                Non-Plants
-              </button>
+              {categories.map((c) => (
+                <button
+                  key={c.slug}
+                  onClick={() => setCategoryFilter(c.slug)}
+                  className={`rounded px-2.5 py-1 transition-colors cursor-pointer ${
+                    categoryFilter.toLowerCase() === c.slug.toLowerCase()
+                      ? "bg-surface text-pine-deep font-semibold shadow-xs"
+                      : "text-ink-soft hover:text-ink"
+                  }`}
+                >
+                  {c.name}
+                </button>
+              ))}
             </div>
 
             {/* Photo presence filter */}
