@@ -3,7 +3,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Check, Building2, AlertTriangle } from "lucide-react";
+import { X, Check, Building2, AlertTriangle, History, ChevronRight, Copy } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { BusinessSettings } from "@/lib/types";
 
 interface AdminInvoiceSettingsModalProps {
@@ -17,10 +18,13 @@ export function AdminInvoiceSettingsModal({
   onClose,
   onSuccess,
 }: AdminInvoiceSettingsModalProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [currentVersion, setCurrentVersion] = useState(1);
+  const [activeTab, setActiveTab] = useState<"edit" | "history">("edit");
+  const [pastVersions, setPastVersions] = useState<any[]>([]);
 
   const [businessName, setBusinessName] = useState("");
   const [subheading1, setSubheading1] = useState("");
@@ -36,6 +40,7 @@ export function AdminInvoiceSettingsModal({
       setLoading(true);
       setError("");
       setShowConfirm(false);
+      setActiveTab("edit");
       fetch("/api/settings/invoice-details")
         .then(async (res) => {
           const data = await res.json();
@@ -48,6 +53,9 @@ export function AdminInvoiceSettingsModal({
           setAddress(s.address || "");
           setMobiles(s.mobiles || "");
           setGstin(s.gstin || "");
+          if (data.versions && Array.isArray(data.versions)) {
+            setPastVersions(data.versions);
+          }
         })
         .catch((e) => setError(e instanceof Error ? e.message : "Error"))
         .finally(() => setLoading(false));
@@ -106,6 +114,39 @@ export function AdminInvoiceSettingsModal({
           </button>
         </div>
 
+        {/* Tab switcher: Edit vs History */}
+        <div className="flex border-b border-line mt-3">
+          <button
+            type="button"
+            onClick={() => setActiveTab("edit")}
+            className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === "edit"
+                ? "border-pine text-pine-deep font-bold"
+                : "border-transparent text-ink-soft hover:text-ink"
+            }`}
+          >
+            <Building2 size={13} />
+            <span>Edit Header Details</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("history")}
+            className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === "history"
+                ? "border-pine text-pine-deep font-bold"
+                : "border-transparent text-ink-soft hover:text-ink"
+            }`}
+          >
+            <History size={13} />
+            <span>Version History</span>
+            {pastVersions.length > 0 && (
+              <span className="rounded-full bg-paper-flat px-1.5 py-0.2 font-mono text-[10px] text-ink-soft border border-line">
+                {pastVersions.length}
+              </span>
+            )}
+          </button>
+        </div>
+
         {error && (
           <div className="mt-3 rounded-md bg-rust-tint px-3 py-2 text-xs text-rust">
             {error}
@@ -116,7 +157,7 @@ export function AdminInvoiceSettingsModal({
           <div className="py-8 text-center text-sm text-ink-soft">
             Loading invoice settings...
           </div>
-        ) : (
+        ) : activeTab === "edit" ? (
           <div className="mt-4 space-y-3.5">
             <div className="flex items-center justify-between bg-paper px-3 py-2 rounded-md border border-line">
               <span className="text-xs font-medium text-ink-soft">
@@ -199,6 +240,121 @@ export function AdminInvoiceSettingsModal({
                 className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-1.5 text-xs font-medium text-surface shadow-xs hover:opacity-90 disabled:opacity-50"
               >
                 <Check size={14} /> Save Details
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 space-y-3 max-h-[420px] overflow-y-auto pr-1">
+            {pastVersions.length === 0 ? (
+              <p className="py-8 text-center text-xs text-ink-soft">
+                No past versions recorded.
+              </p>
+            ) : (
+              pastVersions.map((v) => (
+                <div
+                  key={v.version}
+                  className={`rounded-xl border p-3.5 text-xs transition-all ${
+                    v.isCurrent
+                      ? "border-pine/50 bg-pine-tint/20 dark:bg-pine-tint/10 shadow-xs"
+                      : "border-line bg-paper-flat/50"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-xs text-ink">
+                        Version {v.version}
+                      </span>
+                      {v.isCurrent ? (
+                        <span className="rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 px-1.5 py-0.2 text-[10px] font-bold uppercase tracking-wider">
+                          Current Active
+                        </span>
+                      ) : (
+                        <span className="rounded bg-paper border border-line text-ink-soft px-1.5 py-0.2 text-[10px] font-medium">
+                          Past Version
+                        </span>
+                      )}
+                    </div>
+                    {v.updatedAt && (
+                      <span className="text-[10px] text-ink-soft/70 font-mono">
+                        {new Date(v.updatedAt).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-1 mb-3 text-[11px] text-ink-soft">
+                    <div className="font-semibold text-ink text-sm">{v.businessName}</div>
+                    {v.subheading1 && (
+                      <div className="italic text-[10px] text-ink-soft/80">{v.subheading1}</div>
+                    )}
+                    {v.subheading2 && (
+                      <div className="italic text-[10px] text-ink-soft/80">{v.subheading2}</div>
+                    )}
+                    <div className="text-ink-soft/90">{v.address}</div>
+                    <div className="flex items-center gap-4 text-[10px] text-ink-soft/80 font-mono mt-1 flex-wrap">
+                      {v.gstin && <span>GSTIN: {v.gstin}</span>}
+                      {v.mobiles && <span>Mobiles: {v.mobiles}</span>}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-line/60 pt-2.5 text-[11px]">
+                    <div className="flex items-center gap-2 text-ink-soft">
+                      <span>
+                        <strong className="font-semibold text-ink">{v.invoiceCount ?? 0}</strong> bill(s)
+                      </span>
+                      <span>•</span>
+                      <span className="font-mono font-semibold text-pine-deep">
+                        ₹{Number(v.totalRevenue ?? 0).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBusinessName(v.businessName || "");
+                          setSubheading1(v.subheading1 || "");
+                          setSubheading2(v.subheading2 || "");
+                          setAddress(v.address || "");
+                          setMobiles(v.mobiles || "");
+                          setGstin(v.gstin || "");
+                          setActiveTab("edit");
+                        }}
+                        className="inline-flex items-center gap-1 rounded border border-line bg-surface px-2 py-1 text-[11px] font-medium text-ink hover:bg-line/40 cursor-pointer shadow-xs"
+                        title="Copy details into editor form"
+                      >
+                        <Copy size={11} />
+                        <span>Copy to Form</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          router.push(`/invoices?version=${v.version}`);
+                        }}
+                        className="inline-flex items-center gap-1 rounded bg-pine-tint px-2 py-1 text-[11px] font-semibold text-pine-deep hover:bg-pine/20 cursor-pointer"
+                        title={`Filter invoices created under Version ${v.version}`}
+                      >
+                        <span>View Bills</span>
+                        <ChevronRight size={12} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+
+            <div className="mt-4 flex justify-end border-t border-line pt-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-md border border-line px-4 py-1.5 text-xs font-medium text-ink-soft hover:bg-line/40 cursor-pointer"
+              >
+                Close
               </button>
             </div>
           </div>

@@ -2,21 +2,28 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { FileText, Search, X, Banknote, QrCode } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { formatMoney, InvoiceRecord } from "@/lib/types";
 
 type Filter = "all" | "draft" | "final" | "cash" | "online";
 
-export default function InvoicesPage() {
+function InvoicesContent() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const [invoices, setInvoices] = useState<InvoiceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [versionFilter, setVersionFilter] = useState<string>(
+    searchParams.get("version") || "all"
+  );
+  const [searchQuery, setSearchQuery] = useState(
+    searchParams.get("search") || ""
+  );
 
   useEffect(() => {
     fetch("/api/invoices", { cache: "no-store" })
@@ -29,6 +36,12 @@ export default function InvoicesPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const availableVersions = useMemo(() => {
+    const s = new Set<number>();
+    invoices.forEach((i) => s.add(i.version || 1));
+    return Array.from(s).sort((a, b) => b - a);
+  }, [invoices]);
+
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return invoices.filter((inv) => {
@@ -36,19 +49,25 @@ export default function InvoicesPage() {
       if (filter === "final" && inv.status !== "final") return false;
       if (filter === "cash" && inv.paymentMode !== "cash") return false;
       if (filter === "online" && inv.paymentMode !== "online") return false;
+      if (versionFilter !== "all" && String(inv.version || 1) !== versionFilter) {
+        return false;
+      }
       if (!q) return true;
 
       const num = inv.invoiceNumber?.toLowerCase() || "";
       const cust = inv.customerName?.toLowerCase() || "";
       const details = inv.customerDetails?.toLowerCase() || "";
       const creator = inv.createdByUser?.username?.toLowerCase() || "";
-      const dateStr = new Date(inv.createdAt)
-        .toLocaleDateString(undefined, {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })
-        .toLowerCase();
+      const d = new Date(inv.createdAt);
+      const dateStr = `${d.toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })} ${d.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })}`.toLowerCase();
       const totalStr = inv.total?.toString() || "";
       const versionStr = `v${inv.version || 1} version ${inv.version || 1}`;
 
@@ -62,7 +81,7 @@ export default function InvoicesPage() {
         versionStr.includes(q)
       );
     });
-  }, [invoices, filter, searchQuery]);
+  }, [invoices, filter, versionFilter, searchQuery]);
 
   return (
     <div className="mx-auto max-w-4xl px-3 sm:px-6 py-4 sm:py-8">
@@ -159,6 +178,25 @@ export default function InvoicesPage() {
               <QrCode size={13} />
               <span>Online</span>
             </button>
+
+            {availableVersions.length > 1 && (
+              <>
+                <span className="mx-0.5 h-3.5 w-px bg-line-strong" aria-hidden="true" />
+                <select
+                  value={versionFilter}
+                  onChange={(e) => setVersionFilter(e.target.value)}
+                  className="rounded px-2 py-0.5 text-xs font-medium text-ink bg-transparent outline-none cursor-pointer"
+                  title="Filter by invoice header version"
+                >
+                  <option value="all">All Versions</option>
+                  {availableVersions.map((v) => (
+                    <option key={v} value={String(v)}>
+                      Version {v}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -177,16 +215,19 @@ export default function InvoicesPage() {
           <p className="text-sm text-ink-soft">
             {invoices.length === 0
               ? "No invoices yet — create your first one."
-              : searchQuery
-              ? `No invoices match "${searchQuery}".`
+              : searchQuery || versionFilter !== "all"
+              ? `No invoices match this search/version.`
               : "No invoices match this filter."}
           </p>
-          {searchQuery && (
+          {(searchQuery || versionFilter !== "all") && (
             <button
-              onClick={() => setSearchQuery("")}
+              onClick={() => {
+                setSearchQuery("");
+                setVersionFilter("all");
+              }}
               className="mt-3 inline-block text-xs font-medium text-pine-deep underline hover:opacity-80"
             >
-              Clear search
+              Reset filters
             </button>
           )}
           {invoices.length === 0 && (
@@ -206,7 +247,7 @@ export default function InvoicesPage() {
                 <th className="px-4 py-2.5 font-medium">Invoice</th>
                 <th className="px-4 py-2.5 font-medium">Version</th>
                 <th className="px-4 py-2.5 font-medium">Customer</th>
-                <th className="px-4 py-2.5 font-medium">Date</th>
+                <th className="px-4 py-2.5 font-medium">Date &amp; Time</th>
                 {user?.role === "admin" && (
                   <th className="px-4 py-2.5 font-medium">Created by</th>
                 )}
@@ -238,12 +279,21 @@ export default function InvoicesPage() {
                       <span className="text-ink-soft">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-ink-soft">
-                    {new Date(inv.createdAt).toLocaleDateString(undefined, {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
+                  <td className="px-4 py-2.5 text-ink-soft whitespace-nowrap">
+                    <div className="font-medium text-ink">
+                      {new Date(inv.createdAt).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </div>
+                    <div className="text-[11px] text-ink-soft/80 font-mono">
+                      {new Date(inv.createdAt).toLocaleTimeString("en-IN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    </div>
                   </td>
                   {user?.role === "admin" && (
                     <td className="px-4 py-2.5 text-ink-soft">
@@ -278,5 +328,13 @@ export default function InvoicesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function InvoicesPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-sm text-ink-soft">Loading invoices…</div>}>
+      <InvoicesContent />
+    </Suspense>
   );
 }

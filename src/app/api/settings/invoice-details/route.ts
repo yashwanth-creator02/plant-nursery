@@ -1,9 +1,9 @@
 // src/app/api/settings/invoice-details/route.ts
 
 import { NextResponse } from "next/server";
-import { desc } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { businessSettings } from "@/db/schema";
+import { businessSettings, invoices } from "@/db/schema";
 import { getSession } from "@/lib/session";
 
 const DEFAULT_SETTINGS = {
@@ -26,18 +26,55 @@ export async function GET() {
     const records = await db
       .select()
       .from(businessSettings)
-      .orderBy(desc(businessSettings.version))
-      .limit(1);
+      .orderBy(desc(businessSettings.version));
 
     if (records.length === 0) {
-      return NextResponse.json({ settings: DEFAULT_SETTINGS });
+      return NextResponse.json({
+        settings: DEFAULT_SETTINGS,
+        versions: [{ ...DEFAULT_SETTINGS, isCurrent: true, invoiceCount: 0, totalRevenue: 0 }],
+      });
     }
 
-    return NextResponse.json({ settings: records[0] });
+    // Invoice count and revenue grouped by invoice version
+    let versionsWithStats = records.map((r, idx) => ({
+      ...r,
+      isCurrent: idx === 0,
+      invoiceCount: 0,
+      totalRevenue: 0,
+    }));
+
+    try {
+      const invoiceCountsByVersion = await db
+        .select({
+          version: sql<number>`coalesce(${invoices.version}, 1)::int`,
+          count: sql<number>`count(*)::int`,
+          total: sql<string>`coalesce(sum(${invoices.total}), 0)`,
+        })
+        .from(invoices)
+        .groupBy(sql`coalesce(${invoices.version}, 1)`);
+
+      const countsMap = new Map(
+        invoiceCountsByVersion.map((c) => [c.version, { count: c.count, total: Number(c.total || 0) }])
+      );
+
+      versionsWithStats = records.map((r, idx) => ({
+        ...r,
+        isCurrent: idx === 0,
+        invoiceCount: countsMap.get(r.version)?.count || 0,
+        totalRevenue: countsMap.get(r.version)?.total || 0,
+      }));
+    } catch (countErr) {
+      console.warn("Could not calculate version invoice counts:", countErr);
+    }
+
+    return NextResponse.json({
+      settings: records[0],
+      versions: versionsWithStats,
+    });
   } catch (error) {
     console.error("Failed to load invoice settings:", error);
     return NextResponse.json(
-      { settings: DEFAULT_SETTINGS },
+      { settings: DEFAULT_SETTINGS, versions: [{ ...DEFAULT_SETTINGS, isCurrent: true, invoiceCount: 0, totalRevenue: 0 }] },
       { status: 200 },
     );
   }
