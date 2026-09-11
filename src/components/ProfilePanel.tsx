@@ -20,11 +20,15 @@ import {
   Loader2,
   Check,
   RefreshCw,
+  TrendingUp,
+  ChevronRight,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { SignatureModal } from "./SignatureModal";
 import { AdminInvoiceSettingsModal } from "./AdminInvoiceSettingsModal";
 import { CustomInvoiceNumberModal } from "./CustomInvoiceNumberModal";
+import { SalesAnalyticsModal } from "./SalesAnalyticsModal";
 
 type ManagedUser = {
   id: string;
@@ -67,6 +71,36 @@ export function ProfilePanel({
   const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
   const [nextInvoiceNumber, setNextInvoiceNumber] = useState<string>("");
   const [, setSavingSignature] = useState(false);
+  const [salesModalOpen, setSalesModalOpen] = useState(false);
+  const [todaySalesSummary, setTodaySalesSummary] = useState<{
+    total: number;
+    online: number;
+    cash: number;
+    count: number;
+  } | null>(null);
+
+  function loadTodaySales() {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).toISOString();
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString();
+
+    fetch(
+      `/api/sales/analytics?startDate=${encodeURIComponent(start)}&endDate=${encodeURIComponent(end)}`,
+      { cache: "no-store" }
+    )
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.summary) {
+          setTodaySalesSummary({
+            total: d.summary.totalRevenue || 0,
+            online: d.summary.onlineRevenue || 0,
+            cash: d.summary.cashRevenue || 0,
+            count: d.summary.totalInvoices || 0,
+          });
+        }
+      })
+      .catch(() => {});
+  }
 
   const isAdmin = user?.role === "admin";
 
@@ -160,6 +194,7 @@ export function ProfilePanel({
         .catch(() => {});
       loadInvoiceSequence();
       loadQrCode();
+      loadTodaySales();
       if (isAdmin) {
         loadUsers();
       }
@@ -502,6 +537,68 @@ export function ProfilePanel({
               )}
             </div>
 
+            {/* Sales & Revenue Analytics Section (Available to ALL users) */}
+            <div className="border-b border-line px-5 py-3.5">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+                  Sales &amp; Revenue Analytics
+                </span>
+                <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-pine-deep bg-pine-tint px-1.5 py-0.5 rounded">
+                  <Sparkles size={10} /> Live
+                </span>
+              </div>
+              <p className="text-xs text-ink-soft mb-3">
+                {isAdmin
+                  ? "View nursery-wide sales, online UPI & counter cash breakdowns, and staff reports."
+                  : "View your personal sales figures, online UPI payments, and cash collections."}
+              </p>
+
+              {/* Today's Quick Snapshot Card */}
+              <div className="rounded-xl border border-line bg-paper p-3 mb-3">
+                <div className="flex items-center justify-between text-xs text-ink-soft mb-1">
+                  <span>Today's Total Sales</span>
+                  <span className="font-semibold text-ink">
+                    {todaySalesSummary
+                      ? `${todaySalesSummary.count} bill(s)`
+                      : "Loading..."}
+                  </span>
+                </div>
+                <div className="font-serif text-xl font-bold text-pine-deep mb-2">
+                  ₹{Number(todaySalesSummary?.total || 0).toLocaleString("en-IN")}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-line/60 text-xs">
+                  <div className="flex items-center gap-1.5 overflow-hidden">
+                    <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0"></span>
+                    <span className="text-ink-soft truncate">Online:</span>
+                    <span className="font-bold text-blue-700 dark:text-blue-400 font-mono ml-auto">
+                      ₹{Number(todaySalesSummary?.online || 0).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 overflow-hidden">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
+                    <span className="text-ink-soft truncate">Cash:</span>
+                    <span className="font-bold text-emerald-700 dark:text-emerald-400 font-mono ml-auto">
+                      ₹{Number(todaySalesSummary?.cash || 0).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Open full analytics modal */}
+              <button
+                type="button"
+                onClick={() => setSalesModalOpen(true)}
+                className="flex w-full items-center justify-between gap-2 rounded-lg bg-pine px-3.5 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-pine-deep transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <TrendingUp size={15} />
+                  <span>View Full Sales Analytics</span>
+                </div>
+                <ChevronRight size={15} className="opacity-80" />
+              </button>
+            </div>
+
             {/* Custom Invoice Number Series Section (Available to ALL users) */}
             <div className="border-b border-line px-5 py-3.5">
               <div className="flex items-center justify-between mb-1.5">
@@ -543,6 +640,32 @@ export function ProfilePanel({
         {/* ========================================================= */}
         {isAdmin && activeTab === "admin" && (
           <div className="flex flex-col divide-y divide-line">
+            {/* 0. Nursery Sales Analytics & Reports */}
+            <div className="px-5 py-4 bg-paper-flat/30">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+                  Nursery Sales Analytics
+                </span>
+                <span className="rounded bg-pine-tint px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-pine-deep">
+                  Live Reports
+                </span>
+              </div>
+              <p className="text-xs text-ink-soft mb-3">
+                Full analytics with Month, Date, Year, and Custom Length date filters across all staff members.
+              </p>
+              <button
+                type="button"
+                onClick={() => setSalesModalOpen(true)}
+                className="flex w-full items-center justify-between rounded-lg border border-pine/30 bg-pine-tint/40 px-3.5 py-2.5 text-xs font-semibold text-pine-deep hover:bg-pine-tint transition-all cursor-pointer shadow-xs"
+              >
+                <div className="flex items-center gap-2">
+                  <TrendingUp size={15} />
+                  <span>Open Nursery Sales Analytics</span>
+                </div>
+                <ChevronRight size={15} />
+              </button>
+            </div>
+
             {/* 1. Admin Invoice Header & Details */}
             <div className="px-5 py-4">
               <div className="flex items-center justify-between mb-1.5">
@@ -822,6 +945,15 @@ export function ProfilePanel({
           setNextInvoiceNumber(num);
           window.dispatchEvent(new Event("invoiceSequenceUpdated"));
         }}
+      />
+
+      <SalesAnalyticsModal
+        open={salesModalOpen}
+        onClose={() => {
+          setSalesModalOpen(false);
+          loadTodaySales();
+        }}
+        isAdmin={isAdmin}
       />
     </div>
   );
