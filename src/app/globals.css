@@ -84,6 +84,27 @@ textarea {
   color: var(--ink);
 }
 
+/* Printable invoice sheet styling: always maintain light palette and dark blue ink */
+#invoice-print,
+#invoice-print * {
+  color-scheme: light !important;
+}
+
+#invoice-print input,
+#invoice-print select,
+#invoice-print textarea {
+  color: #1b365d !important;
+  -webkit-text-fill-color: #1b365d !important;
+}
+
+#invoice-print input::placeholder,
+#invoice-print select::placeholder,
+#invoice-print textarea::placeholder {
+  color: rgba(27, 54, 93, 0.45) !important;
+  -webkit-text-fill-color: rgba(27, 54, 93, 0.45) !important;
+  opacity: 1 !important;
+}
+
 /* Tabular numerals everywhere money/quantities show up, so columns line
    up like a real ledger. */
 .tabular {

@@ -1285,7 +1285,8 @@ export function InvoiceEditor({
                     value={invoiceNumber || ""}
                     onChange={(e) => setInvoiceNumber(e.target.value)}
                     placeholder={suggestedInvoiceNumber || "Invoice No."}
-                    className="flex-1 font-mono font-bold tracking-wider border-b border-dotted border-[#1b365d] bg-transparent px-2 text-xs sm:text-sm text-[#1b365d] outline-none placeholder:text-[#1b365d]/40 focus:bg-blue-50/50"
+                    style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
+                    className="flex-1 font-mono font-bold tracking-wider border-b border-dotted border-[#1b365d] bg-transparent px-2 text-xs sm:text-sm text-[#1b365d] outline-none placeholder:text-[#1b365d]/50 focus:bg-blue-50/50"
                     title="Invoice number (editable)"
                   />
                 )}
@@ -1311,7 +1312,8 @@ export function InvoiceEditor({
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder="Customer name"
-                    className="flex-1 border-b border-dotted border-[#1b365d] bg-transparent px-2 py-0.5 text-xs sm:text-sm outline-none font-medium placeholder:text-[#1b365d]/40"
+                    style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
+                    className="flex-1 border-b border-dotted border-[#1b365d] bg-transparent px-2 py-0.5 text-xs sm:text-sm outline-none font-medium text-[#1b365d] placeholder:text-[#1b365d]/50"
                   />
                 )}
               </div>
@@ -1325,7 +1327,8 @@ export function InvoiceEditor({
                     value={customerDetails}
                     onChange={(e) => setCustomerDetails(e.target.value)}
                     placeholder="Address / Phone number / Location"
-                    className="w-full border-b border-dotted border-[#1b365d] bg-transparent px-2 py-0.5 text-xs outline-none placeholder:text-[#1b365d]/40"
+                    style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
+                    className="w-full border-b border-dotted border-[#1b365d] bg-transparent px-2 py-0.5 text-xs outline-none text-[#1b365d] placeholder:text-[#1b365d]/50"
                   />
                 )}
               </div>
@@ -1407,7 +1410,8 @@ export function InvoiceEditor({
                               })
                             }
                             placeholder="0"
-                            className="w-full text-center bg-transparent outline-none focus:bg-blue-50/70 font-mono font-medium"
+                            style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
+                            className="w-full text-center bg-transparent outline-none focus:bg-blue-50/70 font-mono font-medium text-[#1b365d]"
                           />
                         )}
                       </div>
@@ -1428,7 +1432,8 @@ export function InvoiceEditor({
                               })
                             }
                             placeholder="0.00"
-                            className="w-full text-right bg-transparent outline-none focus:bg-blue-50/70 font-mono"
+                            style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
+                            className="w-full text-right bg-transparent outline-none focus:bg-blue-50/70 font-mono text-[#1b365d]"
                           />
                         )}
                       </div>
@@ -1491,7 +1496,7 @@ export function InvoiceEditor({
                   <span className="font-extrabold">{paymentTag.toUpperCase()}</span>
                 </div>
                 {status === "draft" && (
-                  <span className="text-[10px] text-ink-soft print:hidden">
+                  <span className="text-[10px] text-[#1b365d]/70 print:hidden">
                     (Click &apos;Pay with Cash&apos; or &apos;Pay Online&apos; below to finalize)
                   </span>
                 )}
@@ -1504,14 +1509,14 @@ export function InvoiceEditor({
                     Version {invoiceVersion}
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-medium text-ink-soft">Digital Signature:</span>
+                    <span className="text-[11px] font-medium text-[#1b365d]/80">Digital Signature:</span>
                     <button
                       type="button"
                       onClick={() => setIsSigned(!isSigned)}
                       className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
                         isSigned
                           ? "bg-[#1b365d] text-white"
-                          : "border border-line-strong text-ink-soft hover:bg-line/40"
+                          : "border border-[#1b365d]/30 text-[#1b365d] hover:bg-blue-50/50"
                       }`}
                     >
                       {isSigned ? "Included" : "None"}
@@ -1558,7 +1563,7 @@ export function InvoiceEditor({
                     <button
                       type="button"
                       onClick={() => setIsSigned(false)}
-                      className="absolute -top-1 -right-6 opacity-0 group-hover:opacity-100 transition-opacity bg-white border border-[#1b365d]/30 text-ink-soft hover:text-rust rounded-full p-0.5 text-[10px] print:hidden shadow-xs cursor-pointer"
+                      className="absolute -top-1 -right-6 opacity-0 group-hover:opacity-100 transition-opacity bg-white border border-[#1b365d]/30 text-[#1b365d]/70 hover:text-rust rounded-full p-0.5 text-[10px] print:hidden shadow-xs cursor-pointer"
                       title="Remove digital signature"
                     >
                       <X size={12} />
