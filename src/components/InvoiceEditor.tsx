@@ -728,8 +728,8 @@ export function InvoiceEditor({
             {/* Stock item selector / Custom item */}
             <div className="rounded-lg border border-line bg-paper-flat/50 p-3 mb-4">
               {!customMode ? (
-                <div className="flex flex-wrap items-end gap-2.5">
-                  <div className="flex w-full min-w-[220px] sm:w-auto sm:flex-1 flex-col gap-1">
+                <div className="flex flex-col gap-2.5">
+                  <div className="w-full flex flex-col gap-1">
                     <span className="text-xs font-medium text-ink">Select item from stock</span>
                     <SmartStockPicker
                       stock={stock}
@@ -744,8 +744,8 @@ export function InvoiceEditor({
                     />
                   </div>
 
-                  <div className="flex w-full sm:w-auto items-end gap-2">
-                    <label className="flex w-20 flex-col gap-1">
+                  <div className="flex items-end gap-2 w-full">
+                    <label className="flex flex-col gap-1 w-20 shrink-0">
                       <span className="text-xs font-medium text-ink">Qty</span>
                       <input
                         ref={qtyInputRef}
@@ -760,7 +760,7 @@ export function InvoiceEditor({
                             addStockItem(hasInsufficientQty);
                           }
                         }}
-                        className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm outline-none focus:border-pine"
+                        className="w-full rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm text-center font-mono font-medium outline-none focus:border-pine h-[38px]"
                       />
                     </label>
 
@@ -768,10 +768,10 @@ export function InvoiceEditor({
                       <button
                         type="button"
                         onClick={() => addStockItem(true)}
-                        className="flex items-center gap-1.5 rounded-md bg-red-600 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-red-700 shadow-sm cursor-pointer transition-colors"
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md bg-red-600 px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-white hover:bg-red-700 shadow-sm cursor-pointer transition-colors whitespace-nowrap h-[38px]"
                         title={`Available in stock: ${selectedStockItem?.quantity ?? 0}. Click to force add.`}
                       >
-                        <AlertTriangle size={15} className="text-white" />
+                        <AlertTriangle size={15} className="text-white shrink-0" />
                         <span>Force Add</span>
                       </button>
                     ) : (
@@ -779,35 +779,47 @@ export function InvoiceEditor({
                         type="button"
                         onClick={() => addStockItem(false)}
                         disabled={!pickerStockId}
-                        className="flex items-center gap-1.5 rounded-md bg-pine px-3.5 py-1.5 text-sm font-medium text-surface hover:opacity-90 disabled:opacity-50 shadow-sm cursor-pointer"
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md bg-pine px-4 py-1.5 text-xs sm:text-sm font-medium text-surface hover:opacity-90 disabled:opacity-50 shadow-sm cursor-pointer whitespace-nowrap h-[38px]"
                       >
-                        <Plus size={15} /> Add to bill
+                        <Plus size={15} className="shrink-0" />
+                        <span>Add to bill</span>
                       </button>
                     )}
 
                     <button
                       type="button"
                       onClick={() => setCustomMode(true)}
-                      className="rounded-md px-2 py-1.5 text-sm font-medium text-pine-deep hover:underline cursor-pointer"
+                      className="hidden sm:inline-flex items-center rounded-md px-2.5 py-1.5 text-xs sm:text-sm font-medium text-pine-deep hover:underline cursor-pointer whitespace-nowrap h-[38px]"
                     >
                       + Custom item
                     </button>
                   </div>
+
+                  {/* Mobile-only subtle toggle link to avoid clutter */}
+                  <div className="sm:hidden pt-0.5 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setCustomMode(true)}
+                      className="text-xs font-semibold text-pine-deep hover:underline cursor-pointer py-0.5"
+                    >
+                      + Or add custom item
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div className="flex flex-wrap items-end gap-2.5">
-                  <label className="flex w-full min-w-[160px] sm:w-auto sm:flex-1 flex-col gap-1">
+                <div className="flex flex-col gap-2.5">
+                  <label className="flex flex-col gap-1 w-full">
                     <span className="text-xs font-medium text-ink">Description</span>
                     <input
                       value={customName}
                       onChange={(e) => setCustomName(e.target.value)}
                       placeholder="Item name (optional, defaults to Item)"
-                      className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
+                      className="w-full rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine h-[38px]"
                     />
                   </label>
 
-                  <div className="flex w-full sm:w-auto items-end gap-2">
-                    <label className="flex w-16 sm:w-20 flex-col gap-1">
+                  <div className="flex flex-wrap sm:flex-nowrap items-end gap-2">
+                    <label className="flex flex-col gap-1 w-20 shrink-0">
                       <span className="text-xs font-medium text-ink">Qty</span>
                       <input
                         type="number"
@@ -815,11 +827,11 @@ export function InvoiceEditor({
                         value={customQty}
                         onChange={(e) => setCustomQty(e.target.value)}
                         placeholder="1"
-                        className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm outline-none focus:border-pine"
+                        className="w-full rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm text-center font-mono outline-none focus:border-pine h-[38px]"
                       />
                     </label>
 
-                    <label className="flex w-24 flex-col gap-1">
+                    <label className="flex flex-col gap-1 w-28 shrink-0">
                       <span className="text-xs font-medium text-ink">Price ₹</span>
                       <input
                         type="number"
@@ -828,25 +840,28 @@ export function InvoiceEditor({
                         value={customPrice}
                         onChange={(e) => setCustomPrice(e.target.value)}
                         placeholder="0.00"
-                        className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm outline-none focus:border-pine"
+                        className="w-full rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm font-mono outline-none focus:border-pine h-[38px]"
                       />
                     </label>
 
-                    <button
-                      type="button"
-                      onClick={addCustomItem}
-                      className="flex items-center gap-1.5 rounded-md bg-pine px-3.5 py-1.5 text-sm font-medium text-surface hover:opacity-90 shadow-sm cursor-pointer"
-                    >
-                      <Plus size={15} /> Add
-                    </button>
+                    <div className="flex items-center gap-2 flex-1 justify-end">
+                      <button
+                        type="button"
+                        onClick={addCustomItem}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md bg-pine px-4 py-1.5 text-xs sm:text-sm font-medium text-surface hover:opacity-90 shadow-sm cursor-pointer whitespace-nowrap h-[38px]"
+                      >
+                        <Plus size={15} className="shrink-0" />
+                        <span>Add</span>
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setCustomMode(false)}
-                      className="rounded-md px-2 py-1.5 text-sm text-ink-soft hover:underline cursor-pointer"
-                    >
-                      Cancel
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setCustomMode(false)}
+                        className="px-2.5 py-1.5 text-xs sm:text-sm text-ink-soft hover:underline cursor-pointer whitespace-nowrap h-[38px]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -855,7 +870,71 @@ export function InvoiceEditor({
             {/* Added Items Table / List */}
             {items.length > 0 ? (
               <div className="overflow-hidden rounded-lg border border-line">
-                <div className="overflow-x-auto">
+                {/* Mobile Card List (sm:hidden) */}
+                <div className="sm:hidden divide-y divide-line/60 bg-surface">
+                  {items.map((item, idx) => (
+                    <div key={item.key} className="p-3 space-y-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2 flex-1 min-w-0">
+                          <span className="font-mono text-xs font-bold text-ink-soft bg-paper-flat px-1.5 py-0.5 rounded shrink-0">
+                            #{idx + 1}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-semibold text-ink break-words leading-tight">
+                              {item.name}
+                            </div>
+                            <div className="text-xs text-ink-soft mt-1">
+                              ₹ {formatMoney(item.price)} × {item.quantity} = <strong className="font-mono font-bold text-pine-deep text-sm">₹ {formatMoney(item.price * item.quantity)}</strong>
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.key)}
+                          className="p-1 rounded text-ink-soft hover:text-rust hover:bg-rust-tint/50 transition-colors shrink-0 cursor-pointer"
+                          title="Remove item"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-line/40">
+                        <label className="flex items-center gap-1.5 text-xs text-ink">
+                          <span className="text-ink-soft shrink-0 font-medium">Qty:</span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={item.quantity === 0 ? "0" : item.quantity || ""}
+                            onChange={(e) =>
+                              updateItem(item.key, {
+                                quantity: e.target.value === "" ? 0 : Math.max(0, Number(e.target.value)),
+                              })
+                            }
+                            className="w-full rounded border border-line-strong bg-paper-flat px-2 py-1 text-center font-mono font-bold text-sm text-ink outline-none focus:border-pine"
+                          />
+                        </label>
+                        <label className="flex items-center gap-1.5 text-xs text-ink">
+                          <span className="text-ink-soft shrink-0 font-medium">Rate ₹:</span>
+                          <input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={item.price === 0 ? "0" : item.price || ""}
+                            onChange={(e) =>
+                              updateItem(item.key, {
+                                price: e.target.value === "" ? 0 : Math.max(0, Number(e.target.value)),
+                              })
+                            }
+                            className="w-full rounded border border-line-strong bg-paper-flat px-2 py-1 text-right font-mono font-bold text-sm text-ink outline-none focus:border-pine"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table (hidden sm:block) */}
+                <div className="hidden sm:block overflow-x-auto">
                   <table className="w-full text-left text-xs sm:text-sm">
                     <thead className="bg-paper-flat border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-soft">
                       <tr>
@@ -1019,12 +1098,12 @@ export function InvoiceEditor({
           )}
 
           {/* Bottom Actions for Step 1 */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
             <button
               type="button"
               onClick={() => persist("draft")}
               disabled={saving !== null}
-              className="flex items-center gap-1.5 rounded-md border border-line-strong px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-line/50 disabled:opacity-50 cursor-pointer"
+              className="flex items-center justify-center gap-1.5 rounded-md border border-line-strong px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-line/50 disabled:opacity-50 cursor-pointer whitespace-nowrap"
             >
               <Save size={15} />
               {saving === "draft" ? "Saving…" : "Save as draft"}
@@ -1033,7 +1112,7 @@ export function InvoiceEditor({
             <button
               type="button"
               onClick={handleProceedToPreview}
-              className="flex items-center gap-2 rounded-md bg-pine px-6 py-2.5 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 cursor-pointer"
+              className="flex items-center justify-center gap-2 rounded-md bg-pine px-6 py-2.5 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 cursor-pointer whitespace-nowrap"
             >
               <span>Proceed to Bill Preview</span>
               <ArrowRight size={16} />
@@ -1046,14 +1125,14 @@ export function InvoiceEditor({
         /* ============================================================ */
         <div>
           {/* Top Bar for Preview Step with Back button */}
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2.5 print:hidden">
             {status !== "final" ? (
               <button
                 type="button"
                 onClick={handleBackToEdit}
-                className="flex items-center gap-2 rounded-md border border-line-strong bg-surface px-3.5 py-1.5 text-sm font-semibold text-ink shadow-xs transition-colors hover:bg-line/50 cursor-pointer"
+                className="flex items-center gap-1.5 rounded-md border border-line-strong bg-surface px-3 py-1.5 text-xs sm:text-sm font-semibold text-ink shadow-xs transition-colors hover:bg-line/50 cursor-pointer whitespace-nowrap"
               >
-                <ArrowLeft size={16} />
+                <ArrowLeft size={15} />
                 <span>Back to Edit Bill</span>
               </button>
             ) : (
@@ -1062,14 +1141,14 @@ export function InvoiceEditor({
               </div>
             )}
 
-            <div className="flex items-center gap-3">
-              <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-ink-soft">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="inline-flex items-center gap-1 text-xs text-ink-soft">
                 <span>Total:</span>
-                <strong className="font-mono text-sm text-pine-deep font-bold">₹ {formatMoney(total)}</strong>
+                <strong className="font-mono text-xs sm:text-sm text-pine-deep font-bold">₹ {formatMoney(total)}</strong>
               </span>
-              <div className="flex items-center gap-1 px-2.5 py-1 rounded bg-blue-50 text-[#1b365d] border border-blue-200 text-xs font-bold">
-                <CheckCircle2 size={13} />
-                <span>Step 2 of 2: Preview</span>
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 text-[#1b365d] border border-blue-200 text-[11px] font-bold whitespace-nowrap">
+                <CheckCircle2 size={12} />
+                <span>Step 2</span>
               </div>
             </div>
           </div>
@@ -1517,7 +1596,7 @@ export function InvoiceEditor({
           )}
 
           {/* Bottom Actions Toolbar in Step 2 */}
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
+          <div className="mt-6 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 print:hidden">
             {/* Left Side: Back button & Save as draft */}
             <div className="flex items-center gap-2">
               {status !== "final" && (
@@ -1525,32 +1604,32 @@ export function InvoiceEditor({
                   <button
                     type="button"
                     onClick={handleBackToEdit}
-                    className="flex items-center gap-1.5 rounded-md border border-line-strong px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-line/50 cursor-pointer"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md border border-line-strong px-3.5 py-2 text-xs sm:text-sm font-medium text-ink transition-colors hover:bg-line/50 cursor-pointer whitespace-nowrap"
                   >
-                    <ArrowLeft size={15} /> Back to Edit
+                    <ArrowLeft size={15} /> Back
                   </button>
                   <button
                     type="button"
                     onClick={() => persist("draft")}
                     disabled={saving !== null}
-                    className="flex items-center gap-1.5 rounded-md border border-line-strong px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-line/50 disabled:opacity-50 cursor-pointer"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md border border-line-strong px-3.5 py-2 text-xs sm:text-sm font-medium text-ink transition-colors hover:bg-line/50 disabled:opacity-50 cursor-pointer whitespace-nowrap"
                   >
                     <Save size={15} />
-                    {saving === "draft" ? "Saving…" : "Save as draft"}
+                    {saving === "draft" ? "Saving…" : "Save draft"}
                   </button>
                 </>
               )}
             </div>
 
             {/* Right Side: Payment & Finalize Action Buttons */}
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               {status !== "final" ? (
                 <>
                   <button
                     type="button"
                     onClick={() => persist("final", "cash")}
                     disabled={saving !== null}
-                    className="flex items-center gap-1.5 rounded-md border border-pine bg-surface px-4 py-2 text-sm font-semibold text-pine-deep shadow-xs transition-colors hover:bg-pine-tint/40 disabled:opacity-50 cursor-pointer"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md border border-pine bg-surface px-4 py-2.5 text-xs sm:text-sm font-semibold text-pine-deep shadow-xs transition-colors hover:bg-pine-tint/40 disabled:opacity-50 cursor-pointer whitespace-nowrap"
                   >
                     <Banknote size={16} />
                     {saving === "final" && paymentTag === "cash" ? "Finalizing…" : "Pay with Cash"}
@@ -1563,7 +1642,7 @@ export function InvoiceEditor({
                       setQrModalOpen(true);
                     }}
                     disabled={saving !== null}
-                    className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-2 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md bg-pine px-4 py-2.5 text-xs sm:text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer whitespace-nowrap"
                   >
                     <QrCode size={16} />
                     {saving === "final" && paymentTag === "online" ? "Finalizing…" : "Pay with Online"}
@@ -1572,7 +1651,7 @@ export function InvoiceEditor({
               ) : (
                 <button
                   onClick={() => window.print()}
-                  className="flex items-center gap-1.5 rounded-md bg-pine px-5 py-2 text-sm font-medium text-surface shadow-sm transition-opacity hover:opacity-90 cursor-pointer"
+                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-md bg-pine px-5 py-2.5 text-sm font-medium text-surface shadow-sm transition-opacity hover:opacity-90 cursor-pointer whitespace-nowrap"
                 >
                   <Printer size={15} /> Print Bill
                 </button>
