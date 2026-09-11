@@ -26,6 +26,8 @@ export const stockItems = pgTable("stock_items", {
   unit: text("unit").default("pcs"),
   price: numeric("price", { precision: 12, scale: 2 }).notNull(),
   quantity: integer("quantity").notNull().default(0),
+  category: text("category").notNull().default("plants"),
+  subcategory: text("subcategory").default("other"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

@@ -11,6 +11,8 @@ const createSchema = z.object({
   unit: z.string().trim().default("pcs"),
   price: z.coerce.number().min(0).optional().default(0),
   quantity: z.coerce.number().int().min(0).optional().default(0),
+  category: z.enum(["plants", "non-plants"]).optional().default("plants"),
+  subcategory: z.string().trim().optional().default("other"),
 });
 
 export async function GET() {
@@ -37,7 +39,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const { name, unit, price, quantity } = parsed.data;
+    const { name, unit, price, quantity, category, subcategory } = parsed.data;
     const [item] = await db
       .insert(stockItems)
       .values({
@@ -45,6 +47,8 @@ export async function POST(req: NextRequest) {
         unit: unit || "pcs",
         price: price.toFixed(2),
         quantity,
+        category,
+        subcategory,
       })
       .returning();
     return NextResponse.json({ item }, { status: 201 });

@@ -59,6 +59,16 @@ async function main() {
     ADD COLUMN IF NOT EXISTS qr_code_data TEXT;
   `;
 
+  await sql`
+    ALTER TABLE stock_items
+    ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT 'plants';
+  `;
+
+  await sql`
+    ALTER TABLE stock_items
+    ADD COLUMN IF NOT EXISTS subcategory TEXT DEFAULT 'other';
+  `;
+
   console.log("Database migrations applied successfully.");
   await sql.end();
   process.exit(0);

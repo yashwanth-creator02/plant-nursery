@@ -11,6 +11,8 @@ const updateSchema = z.object({
   unit: z.string().trim().optional(),
   price: z.number().nonnegative().optional(),
   quantity: z.number().int().nonnegative().optional(),
+  category: z.enum(["plants", "non-plants"]).optional(),
+  subcategory: z.string().trim().optional(),
 });
 
 export async function PATCH(
@@ -36,6 +38,10 @@ export async function PATCH(
       values.price = parsed.data.price.toFixed(2);
     if (parsed.data.quantity !== undefined)
       values.quantity = parsed.data.quantity;
+    if (parsed.data.category !== undefined)
+      values.category = parsed.data.category;
+    if (parsed.data.subcategory !== undefined)
+      values.subcategory = parsed.data.subcategory;
 
     const [item] = await db
       .update(stockItems)

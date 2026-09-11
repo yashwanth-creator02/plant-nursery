@@ -1036,12 +1036,20 @@ export function InvoiceEditor({
                   className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
                 >
                   <option value="">Choose a plant / item…</option>
-                  {stock.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} — Rs {formatMoney(Number(s.price))} ({s.quantity}{" "}
-                      {s.unit || "pcs"} in stock)
-                    </option>
-                  ))}
+                  {stock.map((s) => {
+                    const tag =
+                      s.category === "non-plants"
+                        ? "[Non-Plant]"
+                        : s.subcategory && s.subcategory !== "other"
+                        ? `[${s.subcategory.charAt(0).toUpperCase() + s.subcategory.slice(1)}]`
+                        : "[Plant]";
+                    return (
+                      <option key={s.id} value={s.id}>
+                        {tag} {s.name} — Rs {formatMoney(Number(s.price))} ({s.quantity}{" "}
+                        {s.unit || "pcs"} in stock)
+                      </option>
+                    );
+                  })}
                 </select>
               </label>
 

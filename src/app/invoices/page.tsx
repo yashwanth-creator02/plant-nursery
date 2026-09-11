@@ -4,11 +4,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { FileText, Search, X } from "lucide-react";
+import { FileText, Search, X, Banknote, QrCode } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { formatMoney, InvoiceRecord } from "@/lib/types";
 
-type Filter = "all" | "draft" | "final";
+type Filter = "all" | "draft" | "final" | "cash" | "online";
 
 export default function InvoicesPage() {
   const { user } = useAuth();
@@ -32,7 +32,10 @@ export default function InvoicesPage() {
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return invoices.filter((inv) => {
-      if (filter !== "all" && inv.status !== filter) return false;
+      if (filter === "draft" && inv.status !== "draft") return false;
+      if (filter === "final" && inv.status !== "final") return false;
+      if (filter === "cash" && inv.paymentMode !== "cash") return false;
+      if (filter === "online" && inv.paymentMode !== "online") return false;
       if (!q) return true;
 
       const num = inv.invoiceNumber?.toLowerCase() || "";
@@ -98,20 +101,64 @@ export default function InvoicesPage() {
               </button>
             )}
           </div>
-          <div className="flex gap-1 rounded-md border border-line-strong bg-surface p-1 text-sm">
-            {(["all", "draft", "final"] as Filter[]).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`rounded px-3 py-1 capitalize transition-colors ${
-                  filter === f
-                    ? "bg-pine text-surface"
-                    : "text-ink-soft hover:bg-line/50"
-                }`}
-              >
-                {f}
-              </button>
-            ))}
+          <div className="flex items-center gap-1 rounded-md border border-line-strong bg-surface p-1 text-sm flex-wrap">
+            <button
+              onClick={() => setFilter("all")}
+              className={`rounded px-2.5 py-1 text-xs font-medium capitalize transition-colors cursor-pointer ${
+                filter === "all"
+                  ? "bg-pine text-surface font-semibold shadow-xs"
+                  : "text-ink-soft hover:bg-line/50"
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setFilter("draft")}
+              className={`rounded px-2.5 py-1 text-xs font-medium capitalize transition-colors cursor-pointer ${
+                filter === "draft"
+                  ? "bg-pine text-surface font-semibold shadow-xs"
+                  : "text-ink-soft hover:bg-line/50"
+              }`}
+            >
+              Draft
+            </button>
+            <button
+              onClick={() => setFilter("final")}
+              className={`rounded px-2.5 py-1 text-xs font-medium capitalize transition-colors cursor-pointer ${
+                filter === "final"
+                  ? "bg-pine text-surface font-semibold shadow-xs"
+                  : "text-ink-soft hover:bg-line/50"
+              }`}
+            >
+              Final
+            </button>
+
+            <span className="mx-0.5 h-3.5 w-px bg-line-strong" aria-hidden="true" />
+
+            <button
+              onClick={() => setFilter("cash")}
+              className={`flex items-center gap-1 rounded px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer ${
+                filter === "cash"
+                  ? "bg-pine text-surface font-semibold shadow-xs"
+                  : "text-ink-soft hover:bg-line/50"
+              }`}
+              title="Filter by Cash payment"
+            >
+              <Banknote size={13} />
+              <span>Cash</span>
+            </button>
+            <button
+              onClick={() => setFilter("online")}
+              className={`flex items-center gap-1 rounded px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer ${
+                filter === "online"
+                  ? "bg-pine text-surface font-semibold shadow-xs"
+                  : "text-ink-soft hover:bg-line/50"
+              }`}
+              title="Filter by Online payment"
+            >
+              <QrCode size={13} />
+              <span>Online</span>
+            </button>
           </div>
         </div>
       </div>

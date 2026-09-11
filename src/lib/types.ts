@@ -4,6 +4,8 @@ export type StockItem = {
   unit: string | null;
   price: string;
   quantity: number;
+  category?: "plants" | "non-plants" | string;
+  subcategory?: string | null;
 };
 
 export type InvoiceLineItem = {
