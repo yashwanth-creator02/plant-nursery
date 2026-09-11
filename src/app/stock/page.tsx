@@ -24,8 +24,18 @@ import {
   Wrench,
   Tag,
   Loader2,
+  AlertCircle,
+  Image as ImageIcon,
 } from "lucide-react";
-import { formatMoney, StockItem, StockSubcategory } from "@/lib/types";
+import { formatMoney, StockItem, StockCategory, StockSubcategory, GalleryStockItem } from "@/lib/types";
+import { useAuth } from "@/lib/auth-context";
+import { StockItemDetailModal } from "@/components/StockItemDetailModal";
+import { StockPhotoUploadModal } from "@/components/StockPhotoUploadModal";
+
+const DEFAULT_CATEGORIES: StockCategory[] = [
+  { id: "plants", name: "Plants", slug: "plants" },
+  { id: "non-plants", name: "Non-Plants", slug: "non-plants" },
+];
 
 const DEFAULT_PLANT_SUBS: StockSubcategory[] = [
   { id: "fruit", category: "plants", name: "Fruit Plants", slug: "fruit" },
@@ -43,7 +53,7 @@ const DEFAULT_NON_PLANT_SUBS: StockSubcategory[] = [
   { id: "general", category: "non-plants", name: "General Supplies", slug: "general" },
 ];
 
-function getSubcategoryIcon(slug: string, category: "plants" | "non-plants") {
+function getSubcategoryIcon(slug: string, category: string) {
   const s = slug.toLowerCase();
   switch (s) {
     // Plants
@@ -56,6 +66,7 @@ function getSubcategoryIcon(slug: string, category: "plants" | "non-plants") {
     case "medicinal":
       return ShieldPlus;
     case "other":
+    case "others":
       return Sparkles;
     // Non-plants
     case "pots":
@@ -74,30 +85,62 @@ function getSubcategoryIcon(slug: string, category: "plants" | "non-plants") {
 }
 
 export default function StockPage() {
-  const [items, setItems] = useState<StockItem[]>([]);
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const [items, setItems] = useState<GalleryStockItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Subcategories from Database
+  // Categories & Subcategories from Database
+  const [categories, setCategories] = useState<StockCategory[]>(DEFAULT_CATEGORIES);
   const [subcategories, setSubcategories] = useState<StockSubcategory[]>([]);
+  const [categoryError, setCategoryError] = useState("");
 
   // Category & Subcategory Filtering States
-  const [selectedCategory, setSelectedCategory] = useState<"all" | "plants" | "non-plants">("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
 
-  // In-place Add Subcategory States
-  const [isAddingSub, setIsAddingSub] = useState<"plants" | "non-plants" | null>(null);
+  // Major Category Edit & Add States
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState("");
+  const [savingCategory, setSavingCategory] = useState(false);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [savingNewCategory, setSavingNewCategory] = useState(false);
+
+  // Subcategory Edit & Add States
+  const [editingSubId, setEditingSubId] = useState<string | null>(null);
+  const [editingSubName, setEditingSubName] = useState("");
+  const [savingEditSub, setSavingEditSub] = useState(false);
+  const [isAddingSub, setIsAddingSub] = useState<string | null>(null);
   const [newSubName, setNewSubName] = useState("");
   const [savingSub, setSavingSub] = useState(false);
-  const [subError, setSubError] = useState("");
+
+  // Reassignment Modal State
+  const [reassignModal, setReassignModal] = useState<{
+    type: "category" | "subcategory";
+    id: string;
+    name: string;
+    slug: string;
+    itemCount: number;
+    category?: string;
+  } | null>(null);
+  const [reassignTarget, setReassignTarget] = useState("");
+  const [reassigning, setReassigning] = useState(false);
+
+  // Detail & Upload Modal States
+  const [selectedItem, setSelectedItem] = useState<GalleryStockItem | null>(null);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploadTargetItemId, setUploadTargetItemId] = useState<string>("");
 
   // Add Item Form States
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("pcs");
   const [price, setPrice] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [category, setCategory] = useState<"plants" | "non-plants">("plants");
+  const [category, setCategory] = useState<string>("plants");
   const [subcategory, setSubcategory] = useState("fruit");
   const [adding, setAdding] = useState(false);
 
@@ -108,7 +151,7 @@ export default function StockPage() {
     unit: string;
     price: string;
     quantity: string;
-    category: "plants" | "non-plants";
+    category: string;
     subcategory: string;
   } | null>(null);
 
@@ -124,6 +167,17 @@ export default function StockPage() {
       .finally(() => setLoading(false));
   }
 
+  function loadCategories() {
+    fetch("/api/stock/categories", { cache: "no-store" })
+      .then(async (res) => {
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.categories) && data.categories.length > 0) {
+          setCategories(data.categories);
+        }
+      })
+      .catch((e) => console.error("Could not load categories:", e));
+  }
+
   function loadSubcategories() {
     fetch("/api/stock/subcategories", { cache: "no-store" })
       .then(async (res) => {
@@ -137,36 +191,394 @@ export default function StockPage() {
 
   useEffect(() => {
     load();
+    loadCategories();
     loadSubcategories();
   }, []);
 
-  const plantSubcategories = useMemo(() => {
-    const fromDb = subcategories.filter((s) => s.category === "plants");
-    return fromDb.length > 0 ? fromDb : DEFAULT_PLANT_SUBS;
-  }, [subcategories]);
+  // Modal Handlers
+  const openDetailModal = (item: GalleryStockItem) => {
+    setSelectedItem(item);
+  };
 
-  const nonPlantSubcategories = useMemo(() => {
-    const fromDb = subcategories.filter((s) => s.category === "non-plants");
-    return fromDb.length > 0 ? fromDb : DEFAULT_NON_PLANT_SUBS;
-  }, [subcategories]);
+  const closeDetailModal = () => {
+    setSelectedItem(null);
+  };
 
-  const plantCount = useMemo(
-    () => items.filter((i) => (i.category || "plants") === "plants").length,
-    [items]
-  );
-  const nonPlantCount = useMemo(
-    () => items.filter((i) => i.category === "non-plants").length,
-    [items]
-  );
+  const handleItemUpdated = (updatedItem: GalleryStockItem) => {
+    setSelectedItem(updatedItem);
+    setItems((prev) => prev.map((i) => (i.id === updatedItem.id ? updatedItem : i)));
+  };
+
+  const handleImageDeleted = (itemId: string, imageId: string) => {
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === itemId
+          ? { ...i, images: i.images.filter((img) => img.id !== imageId) }
+          : i
+      )
+    );
+    if (selectedItem?.id === itemId) {
+      setSelectedItem((prev) =>
+        prev
+          ? { ...prev, images: prev.images.filter((img) => img.id !== imageId) }
+          : null
+      );
+    }
+  };
+
+  const openUploadModal = (targetStockItemId?: string) => {
+    setUploadTargetItemId(targetStockItemId || (items[0]?.id ?? ""));
+    setUploadModalOpen(true);
+  };
+
+  const closeUploadModal = () => {
+    setUploadModalOpen(false);
+  };
+
+  const handleUploadSuccess = async (updatedItemId: string) => {
+    await load();
+    try {
+      const res = await fetch("/api/stock", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        const updated = (data.items || []).find((x: GalleryStockItem) => x.id === updatedItemId);
+        if (updated && selectedItem?.id === updatedItemId) {
+          setSelectedItem(updated);
+        }
+      }
+    } catch {}
+  };
+
+  // Counts by major category
+  const categoryCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const item of items) {
+      const cat = (item.category || "plants").toLowerCase();
+      map[cat] = (map[cat] || 0) + 1;
+    }
+    return map;
+  }, [items]);
+
+  // Subcategories for current selection
+  const currentCategorySubs = useMemo(() => {
+    if (selectedCategory === "all") return [];
+    const fromDb = subcategories.filter(
+      (s) => s.category.toLowerCase() === selectedCategory.toLowerCase()
+    );
+    if (fromDb.length > 0) return fromDb;
+    if (selectedCategory === "plants") return DEFAULT_PLANT_SUBS;
+    if (selectedCategory === "non-plants") return DEFAULT_NON_PLANT_SUBS;
+    return [];
+  }, [subcategories, selectedCategory]);
+
+  const currentCatObj = useMemo(() => {
+    return categories.find((c) => c.slug.toLowerCase() === selectedCategory.toLowerCase());
+  }, [categories, selectedCategory]);
+
+  // Major Category Handlers
+  async function handleCreateCategory(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) return;
+
+    setSavingNewCategory(true);
+    setCategoryError("");
+    try {
+      const res = await fetch("/api/stock/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create category");
+
+      setCategories((prev) => [...prev, data.category]);
+      setSelectedCategory(data.category.slug);
+      setSelectedSubcategory("all");
+      setIsAddingCategory(false);
+      setNewCategoryName("");
+    } catch (err) {
+      setCategoryError(err instanceof Error ? err.message : "Failed to create category");
+    } finally {
+      setSavingNewCategory(false);
+    }
+  }
+
+  async function handleSaveCategoryEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingCategoryId) return;
+    const trimmed = editingCategoryName.trim();
+    if (!trimmed) return;
+
+    setSavingCategory(true);
+    setCategoryError("");
+    try {
+      const res = await fetch("/api/stock/categories", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editingCategoryId, name: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to rename category");
+
+      setCategories((prev) =>
+        prev.map((c) => (c.id === editingCategoryId ? { ...c, name: trimmed } : c))
+      );
+      setEditingCategoryId(null);
+      setEditingCategoryName("");
+    } catch (err) {
+      setCategoryError(err instanceof Error ? err.message : "Failed to rename category");
+    } finally {
+      setSavingCategory(false);
+    }
+  }
+
+  async function handleDeleteCategory(e: React.MouseEvent, cat: StockCategory) {
+    e.stopPropagation();
+    setCategoryError("");
+
+    const count = categoryCounts[cat.slug.toLowerCase()] || 0;
+    if (count > 0) {
+      setReassignModal({
+        type: "category",
+        id: cat.id,
+        name: cat.name,
+        slug: cat.slug,
+        itemCount: count,
+      });
+      if (cat.slug.toLowerCase() === "others" || cat.slug.toLowerCase() === "other") {
+        const otherCats = categories.filter(
+          (c) => c.slug.toLowerCase() !== cat.slug.toLowerCase()
+        );
+        setReassignTarget(otherCats[0]?.slug || "plants");
+      } else {
+        setReassignTarget("others");
+      }
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete the "${cat.name}" category?`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/stock/categories?id=${cat.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.requiresReassignment) {
+          setReassignModal({
+            type: "category",
+            id: cat.id,
+            name: cat.name,
+            slug: cat.slug,
+            itemCount: data.itemCount,
+          });
+          if (cat.slug.toLowerCase() === "others" || cat.slug.toLowerCase() === "other") {
+            const otherCats = categories.filter(
+              (c) => c.slug.toLowerCase() !== cat.slug.toLowerCase()
+            );
+            setReassignTarget(otherCats[0]?.slug || "plants");
+          } else {
+            setReassignTarget("others");
+          }
+          return;
+        }
+        throw new Error(data.error || "Failed to delete category");
+      }
+
+      setCategories((prev) => prev.filter((c) => c.id !== cat.id));
+      if (selectedCategory === cat.slug) {
+        setSelectedCategory("all");
+      }
+      load();
+      loadSubcategories();
+    } catch (err) {
+      setCategoryError(err instanceof Error ? err.message : "Failed to delete category");
+    }
+  }
+
+  // Subcategory Handlers
+  async function handleCreateSubcategory(e: React.FormEvent) {
+    e.preventDefault();
+    if (!isAddingSub || !newSubName.trim()) return;
+
+    setSavingSub(true);
+    setCategoryError("");
+    try {
+      const res = await fetch("/api/stock/subcategories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newSubName.trim(),
+          category: isAddingSub,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to add subcategory");
+
+      const created: StockSubcategory = data.subcategory;
+      setSubcategories((prev) => {
+        if (prev.some((s) => s.category === created.category && s.slug === created.slug)) {
+          return prev;
+        }
+        return [...prev, created];
+      });
+
+      setSelectedSubcategory(created.slug);
+      setSubcategory(created.slug);
+      setIsAddingSub(null);
+      setNewSubName("");
+    } catch (err) {
+      setCategoryError(err instanceof Error ? err.message : "Failed to add subcategory");
+    } finally {
+      setSavingSub(false);
+    }
+  }
+
+  async function handleSaveSubcategoryEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingSubId) return;
+    const trimmed = editingSubName.trim();
+    if (!trimmed) return;
+
+    setSavingEditSub(true);
+    setCategoryError("");
+    try {
+      const res = await fetch("/api/stock/subcategories", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editingSubId, name: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to rename subcategory");
+
+      setSubcategories((prev) =>
+        prev.map((s) => (s.id === editingSubId ? { ...s, name: trimmed } : s))
+      );
+      setEditingSubId(null);
+      setEditingSubName("");
+    } catch (err) {
+      setCategoryError(err instanceof Error ? err.message : "Failed to rename subcategory");
+    } finally {
+      setSavingEditSub(false);
+    }
+  }
+
+  async function handleDeleteSubcategory(e: React.MouseEvent, sub: StockSubcategory) {
+    e.stopPropagation();
+    setCategoryError("");
+
+    const count = items.filter(
+      (i) =>
+        (i.category || "plants").toLowerCase() === sub.category.toLowerCase() &&
+        (i.subcategory || "other").toLowerCase() === sub.slug.toLowerCase()
+    ).length;
+
+    if (count > 0) {
+      setReassignModal({
+        type: "subcategory",
+        id: sub.id,
+        name: sub.name,
+        slug: sub.slug,
+        itemCount: count,
+        category: sub.category,
+      });
+      const otherSubs = subcategories.filter(
+        (s) => s.category.toLowerCase() === sub.category.toLowerCase() && s.slug !== sub.slug
+      );
+      const defaultTarget =
+        otherSubs.find((s) => s.slug === "other" || s.slug === "general")?.slug ||
+        otherSubs[0]?.slug ||
+        "other";
+      setReassignTarget(defaultTarget);
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete the "${sub.name}" subcategory?`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/stock/subcategories?id=${sub.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.requiresReassignment) {
+          setReassignModal({
+            type: "subcategory",
+            id: sub.id,
+            name: sub.name,
+            slug: sub.slug,
+            itemCount: data.itemCount,
+            category: sub.category,
+          });
+          setReassignTarget("other");
+          return;
+        }
+        throw new Error(data.error || "Failed to delete subcategory");
+      }
+
+      setSubcategories((prev) => prev.filter((s) => s.id !== sub.id));
+      if (selectedSubcategory === sub.slug) {
+        setSelectedSubcategory("all");
+      }
+      load();
+    } catch (err) {
+      setCategoryError(err instanceof Error ? err.message : "Failed to delete subcategory");
+    }
+  }
+
+  // Confirm Reassign and Delete
+  async function handleConfirmReassignment() {
+    if (!reassignModal) return;
+    setReassigning(true);
+    setCategoryError("");
+
+    try {
+      if (reassignModal.type === "subcategory") {
+        const res = await fetch(
+          `/api/stock/subcategories?id=${reassignModal.id}&reassignTo=${encodeURIComponent(reassignTarget)}`,
+          { method: "DELETE" }
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to reassign and delete subcategory");
+
+        setSubcategories((prev) => prev.filter((s) => s.id !== reassignModal.id));
+        if (selectedSubcategory === reassignModal.slug) {
+          setSelectedSubcategory(reassignTarget);
+        }
+      } else {
+        const res = await fetch(
+          `/api/stock/categories?id=${reassignModal.id}&reassignTo=${encodeURIComponent(reassignTarget)}`,
+          { method: "DELETE" }
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to reassign and delete category");
+
+        setCategories((prev) => prev.filter((c) => c.id !== reassignModal.id));
+        if (selectedCategory === reassignModal.slug) {
+          setSelectedCategory(reassignTarget);
+        }
+        loadSubcategories();
+      }
+      setReassignModal(null);
+      load();
+    } catch (err) {
+      setCategoryError(err instanceof Error ? err.message : "Failed to reassign items");
+    } finally {
+      setReassigning(false);
+    }
+  }
 
   const filteredItems = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return items.filter((item) => {
       const itemCat = (item.category || "plants").toLowerCase();
-      const itemSub = (item.subcategory || (itemCat === "plants" ? "other" : "general")).toLowerCase();
+      const itemSub = (item.subcategory || "other").toLowerCase();
 
       // Filter by top-level category
-      if (selectedCategory !== "all" && itemCat !== selectedCategory) {
+      if (selectedCategory !== "all" && itemCat !== selectedCategory.toLowerCase()) {
         return false;
       }
 
@@ -197,17 +609,16 @@ export default function StockPage() {
     setAdding(true);
     setError("");
     try {
-      const chosenSubcategory =
-        subcategory ||
-        (category === "plants"
-          ? plantSubcategories[0]?.slug || "fruit"
-          : nonPlantSubcategories[0]?.slug || "general");
+      const catSubs = subcategories.filter(
+        (s) => s.category.toLowerCase() === category.toLowerCase()
+      );
+      const chosenSubcategory = subcategory || catSubs[0]?.slug || "other";
 
       const res = await fetch("/api/stock", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: name.trim() || (category === "plants" ? "Plant" : "Supply Item"),
+          name: name.trim() || "Stock Item",
           unit: unit || "pcs",
           price: Number(price) || 0,
           quantity: Number(quantity) || 0,
@@ -243,19 +654,14 @@ export default function StockPage() {
   }
 
   function startEdit(item: StockItem) {
-    const isPlant = (item.category || "plants") === "plants";
     setEditingId(item.id);
     setEditDraft({
       name: item.name,
       unit: item.unit || "pcs",
       price: item.price.toString(),
       quantity: item.quantity.toString(),
-      category: (item.category as "plants" | "non-plants") || "plants",
-      subcategory:
-        item.subcategory ||
-        (isPlant
-          ? plantSubcategories[0]?.slug || "fruit"
-          : nonPlantSubcategories[0]?.slug || "general"),
+      category: item.category || "plants",
+      subcategory: item.subcategory || "other",
     });
   }
 
@@ -285,93 +691,21 @@ export default function StockPage() {
     }
   }
 
-  async function handleCreateSubcategory(e: React.FormEvent) {
-    e.preventDefault();
-    if (!isAddingSub || !newSubName.trim()) return;
-
-    setSavingSub(true);
-    setSubError("");
-    try {
-      const res = await fetch("/api/stock/subcategories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newSubName.trim(),
-          category: isAddingSub,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to add subcategory");
-
-      const created: StockSubcategory = data.subcategory;
-      setSubcategories((prev) => {
-        if (prev.some((s) => s.category === created.category && s.slug === created.slug)) {
-          return prev;
-        }
-        return [...prev, created];
-      });
-
-      // Select the new subcategory in filter and form
-      setSelectedSubcategory(created.slug);
-      setSubcategory(created.slug);
-
-      // Reset inline form
-      setIsAddingSub(null);
-      setNewSubName("");
-    } catch (err) {
-      setSubError(err instanceof Error ? err.message : "Failed to add subcategory");
-    } finally {
-      setSavingSub(false);
-    }
-  }
-
   function renderCategoryBadge(cat?: string, sub?: string | null) {
-    const isPlant = (cat || "plants") === "plants";
-    const currentSub = (sub || (isPlant ? "other" : "general")).toLowerCase();
+    const currentCat = (cat || "plants").toLowerCase();
+    const currentSub = (sub || "other").toLowerCase();
 
-    const currentList = isPlant ? plantSubcategories : nonPlantSubcategories;
-    const foundSub = currentList.find((s) => s.slug.toLowerCase() === currentSub);
+    const foundSub = subcategories.find(
+      (s) => s.category.toLowerCase() === currentCat && s.slug.toLowerCase() === currentSub
+    );
     const label =
       foundSub?.name ||
       (currentSub.charAt(0).toUpperCase() + currentSub.slice(1));
-    const Icon = getSubcategoryIcon(currentSub, isPlant ? "plants" : "non-plants");
-
-    if (!isPlant) {
-      let colorClasses = "bg-slate-100 border-slate-200 text-slate-700";
-      if (currentSub === "pots") {
-        colorClasses = "bg-amber-50/90 border-amber-200 text-amber-800";
-      } else if (currentSub === "fertilizers") {
-        colorClasses = "bg-blue-50 border-blue-200 text-blue-800";
-      } else if (currentSub === "soil") {
-        colorClasses = "bg-stone-100 border-stone-200 text-stone-800";
-      } else if (currentSub === "tools") {
-        colorClasses = "bg-violet-50 border-violet-200 text-violet-800";
-      }
-
-      return (
-        <span
-          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${colorClasses}`}
-        >
-          <Icon size={11} />
-          <span>{label}</span>
-        </span>
-      );
-    }
-
-    let colorClasses = "bg-pine-tint border-pine/20 text-pine-deep";
-    if (currentSub === "fruit") {
-      colorClasses = "bg-amber-50 border-amber-200 text-amber-800";
-    } else if (currentSub === "flower") {
-      colorClasses = "bg-pink-50 border-pink-200 text-pink-700";
-    } else if (currentSub === "ornamental") {
-      colorClasses = "bg-emerald-50 border-emerald-200 text-emerald-800";
-    } else if (currentSub === "medicinal") {
-      colorClasses = "bg-teal-50 border-teal-200 text-teal-800";
-    }
+    const Icon = getSubcategoryIcon(currentSub, currentCat);
 
     return (
       <span
-        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${colorClasses}`}
+        className="inline-flex items-center gap-1 rounded-full border border-line bg-paper px-2 py-0.5 text-[11px] font-medium text-ink-soft shadow-2xs"
       >
         <Icon size={11} />
         <span>{label}</span>
@@ -410,91 +744,78 @@ export default function StockPage() {
           </span>
 
           {/* Category Toggle: Side by Side Buttons */}
-          <div className="flex items-center gap-1 rounded-md border border-line-strong bg-paper p-0.5 text-xs">
-            <button
-              type="button"
-              onClick={() => {
-                setCategory("plants");
-                setSubcategory(plantSubcategories[0]?.slug || "fruit");
-              }}
-              className={`flex items-center gap-1.5 rounded px-2.5 py-1 font-medium transition-all cursor-pointer ${
-                category === "plants"
-                  ? "bg-surface text-pine-deep font-semibold shadow-xs"
-                  : "text-ink-soft hover:text-ink"
-              }`}
-            >
-              <Sprout size={13} />
-              <span>Plants</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setCategory("non-plants");
-                setSubcategory(nonPlantSubcategories[0]?.slug || "pots");
-              }}
-              className={`flex items-center gap-1.5 rounded px-2.5 py-1 font-medium transition-all cursor-pointer ${
-                category === "non-plants"
-                  ? "bg-surface text-pine-deep font-semibold shadow-xs"
-                  : "text-ink-soft hover:text-ink"
-              }`}
-            >
-              <Package size={13} />
-              <span>Non-Plants</span>
-            </button>
+          {/* Category Toggle: Dynamic Buttons */}
+          <div className="flex flex-wrap items-center gap-1 rounded-md border border-line-strong bg-paper p-0.5 text-xs">
+            {categories.map((c) => {
+              const isPlants = c.slug === "plants";
+              const Icon = isPlants ? Sprout : Package;
+              const isSelected = category.toLowerCase() === c.slug.toLowerCase();
+              return (
+                <button
+                  key={c.slug}
+                  type="button"
+                  onClick={() => {
+                    setCategory(c.slug);
+                    const catSubs = subcategories.filter(
+                      (s) => s.category.toLowerCase() === c.slug.toLowerCase()
+                    );
+                    setSubcategory(catSubs[0]?.slug || "other");
+                  }}
+                  className={`flex items-center gap-1.5 rounded px-2.5 py-1 font-medium transition-all cursor-pointer ${
+                    isSelected
+                      ? "bg-surface text-pine-deep font-semibold shadow-xs"
+                      : "text-ink-soft hover:text-ink"
+                  }`}
+                >
+                  <Icon size={13} />
+                  <span>{c.name}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Subcategory Selector for Plants */}
-        {category === "plants" && (
-          <div className="mb-3 flex flex-wrap items-center gap-1.5">
-            <span className="text-xs font-medium text-ink-soft mr-1">Plant Type:</span>
-            {plantSubcategories.map((sub) => {
-              const Icon = getSubcategoryIcon(sub.slug, "plants");
-              const isSelected = subcategory === sub.slug;
-              return (
-                <button
-                  key={sub.slug}
-                  type="button"
-                  onClick={() => setSubcategory(sub.slug)}
-                  className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
-                    isSelected
-                      ? "bg-pine text-surface font-semibold shadow-xs"
-                      : "border border-line bg-paper-flat/80 text-ink-soft hover:bg-surface hover:text-ink"
-                  }`}
-                >
-                  <Icon size={12} />
-                  <span>{sub.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {/* Subcategory Selector for Current Category */}
+        {(() => {
+          const catSubs = subcategories.filter(
+            (s) => s.category.toLowerCase() === category.toLowerCase()
+          );
+          const list =
+            catSubs.length > 0
+              ? catSubs
+              : category === "plants"
+              ? DEFAULT_PLANT_SUBS
+              : category === "non-plants"
+              ? DEFAULT_NON_PLANT_SUBS
+              : [];
 
-        {/* Subcategory Selector for Non-Plants */}
-        {category === "non-plants" && (
-          <div className="mb-3 flex flex-wrap items-center gap-1.5">
-            <span className="text-xs font-medium text-ink-soft mr-1">Item Type:</span>
-            {nonPlantSubcategories.map((sub) => {
-              const Icon = getSubcategoryIcon(sub.slug, "non-plants");
-              const isSelected = subcategory === sub.slug;
-              return (
-                <button
-                  key={sub.slug}
-                  type="button"
-                  onClick={() => setSubcategory(sub.slug)}
-                  className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
-                    isSelected
-                      ? "bg-pine text-surface font-semibold shadow-xs"
-                      : "border border-line bg-paper-flat/80 text-ink-soft hover:bg-surface hover:text-ink"
-                  }`}
-                >
-                  <Icon size={12} />
-                  <span>{sub.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+          if (list.length === 0) return null;
+
+          return (
+            <div className="mb-3 flex flex-wrap items-center gap-1.5">
+              <span className="text-xs font-medium text-ink-soft mr-1">Type:</span>
+              {list.map((sub) => {
+                const Icon = getSubcategoryIcon(sub.slug, category);
+                const isSelected = subcategory === sub.slug;
+                return (
+                  <button
+                    key={sub.slug}
+                    type="button"
+                    onClick={() => setSubcategory(sub.slug)}
+                    className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
+                      isSelected
+                        ? "bg-pine text-surface font-semibold shadow-xs"
+                        : "border border-line bg-paper-flat/80 text-ink-soft hover:bg-surface hover:text-ink"
+                    }`}
+                  >
+                    <Icon size={12} />
+                    <span>{sub.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         {/* Inputs row */}
         <div className="flex flex-wrap items-end gap-2.5">
@@ -562,15 +883,37 @@ export default function StockPage() {
       {/* CATEGORY FILTER & TYPES DISPLAY WITH '+' IN-PLACE ADDITION    */}
       {/* ============================================================ */}
       <div className="mb-4 flex flex-col gap-2.5">
-        {/* Main Category Bar (Side by Side Icons) */}
+        {/* Prominent Category & Subcategory Error Banner */}
+        {categoryError && (
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-rust/30 bg-rust-tint/40 px-3.5 py-2.5 text-xs text-rust-deep animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <AlertCircle size={16} className="shrink-0 text-rust" />
+              <span className="font-medium">{categoryError}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCategoryError("")}
+              className="cursor-pointer text-rust hover:opacity-75 p-1 rounded hover:bg-rust-tint/60"
+              title="Dismiss error"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
+        {/* Main Category Bar (Side by Side Icons + Edit/Delete + Add) */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* "All Items" Button */}
           <button
             type="button"
             onClick={() => {
               setSelectedCategory("all");
               setSelectedSubcategory("all");
               setIsAddingSub(null);
-              setSubError("");
+              setIsAddingCategory(false);
+              setEditingCategoryId(null);
+              setEditingSubId(null);
+              setCategoryError("");
             }}
             className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
               selectedCategory === "all"
@@ -591,69 +934,189 @@ export default function StockPage() {
             </span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedCategory("plants");
-              setSelectedSubcategory("all");
-              setIsAddingSub(null);
-              setSubError("");
-            }}
-            className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
-              selectedCategory === "plants"
-                ? "border-pine bg-pine text-surface shadow-xs"
-                : "border-line-strong bg-surface text-ink-soft hover:bg-line/40 hover:text-ink"
-            }`}
-          >
-            <Sprout size={15} />
-            <span>Plants</span>
-            <span
-              className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
-                selectedCategory === "plants"
-                  ? "bg-white/25 text-surface"
-                  : "bg-pine-tint text-pine-deep"
-              }`}
-            >
-              {plantCount}
-            </span>
-          </button>
+          {/* Dynamic Major Categories */}
+          {categories.map((cat) => {
+            const isPlants = cat.slug === "plants";
+            const CatIcon = isPlants ? Sprout : Package;
+            const isSelected = selectedCategory.toLowerCase() === cat.slug.toLowerCase();
+            const count = categoryCounts[cat.slug.toLowerCase()] || 0;
 
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedCategory("non-plants");
-              setSelectedSubcategory("all");
-              setIsAddingSub(null);
-              setSubError("");
-            }}
-            className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
-              selectedCategory === "non-plants"
-                ? "border-pine bg-pine text-surface shadow-xs"
-                : "border-line-strong bg-surface text-ink-soft hover:bg-line/40 hover:text-ink"
-            }`}
-          >
-            <Package size={15} />
-            <span>Non-Plants</span>
-            <span
-              className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
-                selectedCategory === "non-plants"
-                  ? "bg-white/25 text-surface"
-                  : "bg-line/70 text-ink"
-              }`}
+            if (editingCategoryId === cat.id) {
+              return (
+                <form
+                  key={cat.id}
+                  onSubmit={handleSaveCategoryEdit}
+                  className="flex items-center gap-1 rounded-lg border border-pine bg-surface px-2 py-1 shadow-xs animate-in fade-in"
+                >
+                  <input
+                    type="text"
+                    autoFocus
+                    value={editingCategoryName}
+                    onChange={(e) => setEditingCategoryName(e.target.value)}
+                    disabled={savingCategory}
+                    className="w-28 sm:w-36 rounded px-1.5 py-0.5 text-xs text-ink outline-none"
+                    placeholder="Category name"
+                  />
+                  <button
+                    type="submit"
+                    disabled={savingCategory || !editingCategoryName.trim()}
+                    className="flex items-center justify-center rounded bg-pine p-1 text-surface hover:opacity-90 disabled:opacity-40 cursor-pointer"
+                    title="Save category name"
+                  >
+                    {savingCategory ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingCategoryId(null);
+                      setEditingCategoryName("");
+                    }}
+                    className="flex items-center justify-center rounded p-1 text-ink-soft hover:bg-line/60 cursor-pointer"
+                    title="Cancel"
+                  >
+                    <X size={12} />
+                  </button>
+                </form>
+              );
+            }
+
+            return (
+              <div
+                key={cat.id}
+                onClick={() => {
+                  setSelectedCategory(cat.slug);
+                  setSelectedSubcategory("all");
+                  setIsAddingSub(null);
+                  setIsAddingCategory(false);
+                  setEditingCategoryId(null);
+                  setEditingSubId(null);
+                  setCategoryError("");
+                }}
+                className={`group inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-all cursor-pointer select-none ${
+                  isSelected
+                    ? "border-pine bg-pine text-surface shadow-xs"
+                    : "border-line-strong bg-surface text-ink-soft hover:bg-line/40 hover:text-ink"
+                }`}
+              >
+                <CatIcon size={15} />
+                <span>{cat.name}</span>
+                <span
+                  className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+                    isSelected
+                      ? "bg-white/25 text-surface"
+                      : "bg-pine-tint text-pine-deep"
+                  }`}
+                >
+                  {count}
+                </span>
+
+                {/* Edit Category Button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingCategoryId(cat.id);
+                    setEditingCategoryName(cat.name);
+                    setCategoryError("");
+                  }}
+                  className={`ml-0.5 rounded p-0.5 transition-colors cursor-pointer ${
+                    isSelected
+                      ? "text-white/80 hover:bg-white/20 hover:text-white"
+                      : "text-ink-soft/60 hover:bg-line hover:text-ink"
+                  }`}
+                  title={`Rename "${cat.name}" category`}
+                >
+                  <Pencil size={11} />
+                </button>
+
+                {/* Delete Category Button (Admin only) */}
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleDeleteCategory(e, cat)}
+                    className={`rounded p-0.5 transition-colors cursor-pointer ${
+                      isSelected
+                        ? "text-white/80 hover:bg-white/20 hover:text-white"
+                        : "text-ink-soft/60 hover:bg-rust-tint hover:text-rust"
+                    }`}
+                    title={`Delete "${cat.name}" category (Admin only)`}
+                  >
+                    <Trash2 size={11} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+
+          {/* In-place Add Major Category */}
+          {isAddingCategory ? (
+            <form
+              onSubmit={handleCreateCategory}
+              className="flex items-center gap-1 rounded-lg border border-pine bg-surface px-2 py-1 shadow-xs animate-in fade-in"
             >
-              {nonPlantCount}
-            </span>
-          </button>
+              <input
+                type="text"
+                autoFocus
+                value={newCategoryName}
+                onChange={(e) => {
+                  setNewCategoryName(e.target.value);
+                  if (categoryError) setCategoryError("");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setIsAddingCategory(false);
+                    setNewCategoryName("");
+                  }
+                }}
+                placeholder="e.g. Fertilizers, Tools"
+                disabled={savingNewCategory}
+                className="w-32 sm:w-44 rounded px-1.5 py-0.5 text-xs text-ink placeholder:text-ink-soft/60 outline-none"
+              />
+              <button
+                type="submit"
+                disabled={savingNewCategory || !newCategoryName.trim()}
+                className="flex items-center justify-center rounded bg-pine p-1 text-surface hover:opacity-90 disabled:opacity-40 cursor-pointer"
+                title="Save new category"
+              >
+                {savingNewCategory ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddingCategory(false);
+                  setNewCategoryName("");
+                }}
+                className="flex items-center justify-center rounded p-1 text-ink-soft hover:bg-line/60 cursor-pointer"
+                title="Cancel"
+              >
+                <X size={12} />
+              </button>
+            </form>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setIsAddingCategory(true);
+                setNewCategoryName("");
+                setCategoryError("");
+              }}
+              className="flex items-center gap-1 rounded-lg border border-dashed border-pine/50 bg-surface/80 px-3 py-2 text-xs font-semibold text-pine-deep hover:border-pine hover:bg-pine-tint/40 transition-all cursor-pointer shadow-2xs"
+              title="Add new major category"
+            >
+              <Plus size={14} />
+              <span>Add Category</span>
+            </button>
+          )}
         </div>
 
-        {/* Secondary Subcategories Row for Plants with in-place '+' */}
-        {selectedCategory === "plants" && (
+        {/* Dynamic Subcategories / Types Row */}
+        {selectedCategory !== "all" && (
           <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-pine/20 bg-pine-tint/25 p-2 animate-in fade-in duration-150">
             <span className="mr-1 text-[11px] font-bold uppercase tracking-wider text-pine-deep">
-              Plant Types:
+              {currentCatObj?.name || selectedCategory} Types:
             </span>
 
-            {/* "All Plants" pill */}
+            {/* "All [Category]" pill */}
             <button
               type="button"
               onClick={() => setSelectedSubcategory("all")}
@@ -663,8 +1126,8 @@ export default function StockPage() {
                   : "bg-surface/90 text-ink-soft hover:bg-surface hover:text-ink border border-line"
               }`}
             >
-              <Sprout size={13} />
-              <span>All Plants</span>
+              {selectedCategory === "plants" ? <Sprout size={13} /> : <Package size={13} />}
+              <span>All {currentCatObj?.name || "Items"}</span>
               <span
                 className={`rounded-full px-1.5 py-0.1 text-[10px] ${
                   selectedSubcategory === "all"
@@ -672,26 +1135,63 @@ export default function StockPage() {
                     : "text-ink-soft/70"
                 }`}
               >
-                {plantCount}
+                {categoryCounts[selectedCategory.toLowerCase()] || 0}
               </span>
             </button>
 
-            {/* Dynamic plant subcategories */}
-            {plantSubcategories.map((sub) => {
-              const Icon = getSubcategoryIcon(sub.slug, "plants");
-              const active = selectedSubcategory === sub.slug;
+            {/* Mapped Subcategories */}
+            {currentCategorySubs.map((sub) => {
+              const Icon = getSubcategoryIcon(sub.slug, selectedCategory);
+              const active = selectedSubcategory.toLowerCase() === sub.slug.toLowerCase();
               const count = items.filter(
                 (i) =>
-                  (i.category || "plants") === "plants" &&
+                  (i.category || "plants").toLowerCase() === selectedCategory.toLowerCase() &&
                   (i.subcategory || "other").toLowerCase() === sub.slug.toLowerCase()
               ).length;
 
+              if (editingSubId === sub.id) {
+                return (
+                  <form
+                    key={sub.id || sub.slug}
+                    onSubmit={handleSaveSubcategoryEdit}
+                    className="flex items-center gap-1 rounded-md border border-pine bg-surface px-1.5 py-0.5 shadow-xs animate-in fade-in"
+                  >
+                    <input
+                      type="text"
+                      autoFocus
+                      value={editingSubName}
+                      onChange={(e) => setEditingSubName(e.target.value)}
+                      disabled={savingEditSub}
+                      className="w-24 sm:w-32 rounded px-1 py-0.5 text-xs text-ink outline-none"
+                    />
+                    <button
+                      type="submit"
+                      disabled={savingEditSub || !editingSubName.trim()}
+                      className="flex items-center justify-center rounded bg-pine p-1 text-surface hover:opacity-90 disabled:opacity-40 cursor-pointer"
+                      title="Save type name"
+                    >
+                      {savingEditSub ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingSubId(null);
+                        setEditingSubName("");
+                      }}
+                      className="flex items-center justify-center rounded p-1 text-ink-soft hover:bg-line/60 cursor-pointer"
+                      title="Cancel"
+                    >
+                      <X size={11} />
+                    </button>
+                  </form>
+                );
+              }
+
               return (
-                <button
-                  key={sub.slug}
-                  type="button"
+                <div
+                  key={sub.id || sub.slug}
                   onClick={() => setSelectedSubcategory(sub.slug)}
-                  className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer select-none ${
                     active
                       ? "bg-pine text-surface font-semibold shadow-xs"
                       : "bg-surface/90 text-ink-soft hover:bg-surface hover:text-ink border border-line"
@@ -706,12 +1206,47 @@ export default function StockPage() {
                   >
                     {count}
                   </span>
-                </button>
+
+                  {/* Rename Subcategory */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingSubId(sub.id);
+                      setEditingSubName(sub.name);
+                      setCategoryError("");
+                    }}
+                    className={`ml-0.5 rounded p-0.5 transition-colors cursor-pointer ${
+                      active
+                        ? "text-white/80 hover:bg-white/20 hover:text-white"
+                        : "text-ink-soft/60 hover:bg-line hover:text-ink"
+                    }`}
+                    title={`Rename "${sub.name}" type`}
+                  >
+                    <Pencil size={11} />
+                  </button>
+
+                  {/* Delete Subcategory (Admin only) */}
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteSubcategory(e, sub)}
+                      className={`ml-0.5 rounded p-0.5 transition-colors cursor-pointer ${
+                        active
+                          ? "text-white/80 hover:bg-white/20 hover:text-white"
+                          : "text-ink-soft/70 hover:bg-rust-tint hover:text-rust"
+                      }`}
+                      title={`Delete "${sub.name}" type (Admin only)`}
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  )}
+                </div>
               );
             })}
 
-            {/* In-place '+' Button / Input Form for Plants */}
-            {isAddingSub === "plants" ? (
+            {/* In-place '+' Button / Form for Subcategory */}
+            {isAddingSub === selectedCategory ? (
               <form
                 onSubmit={handleCreateSubcategory}
                 className="flex items-center gap-1 rounded-md border border-pine bg-surface px-1.5 py-0.5 shadow-xs animate-in fade-in duration-100"
@@ -722,16 +1257,15 @@ export default function StockPage() {
                   value={newSubName}
                   onChange={(e) => {
                     setNewSubName(e.target.value);
-                    if (subError) setSubError("");
+                    if (categoryError) setCategoryError("");
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Escape") {
                       setIsAddingSub(null);
                       setNewSubName("");
-                      setSubError("");
                     }
                   }}
-                  placeholder="e.g. Succulents, Bonsai"
+                  placeholder="e.g. Succulents, Pots"
                   disabled={savingSub}
                   className="w-32 sm:w-40 rounded px-1.5 py-0.5 text-xs text-ink placeholder:text-ink-soft/60 outline-none"
                 />
@@ -739,7 +1273,7 @@ export default function StockPage() {
                   type="submit"
                   disabled={savingSub || !newSubName.trim()}
                   className="flex items-center justify-center rounded bg-pine p-1 text-surface hover:opacity-90 disabled:opacity-40 cursor-pointer"
-                  title="Save plant type"
+                  title="Save type"
                 >
                   {savingSub ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
                 </button>
@@ -748,7 +1282,6 @@ export default function StockPage() {
                   onClick={() => {
                     setIsAddingSub(null);
                     setNewSubName("");
-                    setSubError("");
                   }}
                   className="flex items-center justify-center rounded p-1 text-ink-soft hover:bg-line/60 cursor-pointer"
                   title="Cancel"
@@ -760,152 +1293,16 @@ export default function StockPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setIsAddingSub("plants");
+                  setIsAddingSub(selectedCategory);
                   setNewSubName("");
-                  setSubError("");
+                  setCategoryError("");
                 }}
                 className="flex items-center gap-1 rounded-md border border-dashed border-pine/40 bg-surface/80 px-2 py-1 text-xs font-semibold text-pine-deep hover:border-pine hover:bg-pine-tint/40 transition-all cursor-pointer shadow-2xs"
-                title="Add new plant subcategory"
+                title={`Add new type under ${currentCatObj?.name || selectedCategory}`}
               >
                 <Plus size={13} />
                 <span>Add Type</span>
               </button>
-            )}
-
-            {subError && isAddingSub === "plants" && (
-              <span className="text-[11px] font-medium text-rust ml-1">{subError}</span>
-            )}
-          </div>
-        )}
-
-        {/* Secondary Subcategories Row for Non-Plants with in-place '+' */}
-        {selectedCategory === "non-plants" && (
-          <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50/70 p-2 animate-in fade-in duration-150">
-            <span className="mr-1 text-[11px] font-bold uppercase tracking-wider text-slate-700">
-              Non-Plant Types:
-            </span>
-
-            {/* "All Non-Plants" pill */}
-            <button
-              type="button"
-              onClick={() => setSelectedSubcategory("all")}
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
-                selectedSubcategory === "all"
-                  ? "border-pine bg-pine text-surface font-semibold shadow-xs"
-                  : "bg-surface/90 text-ink-soft hover:bg-surface hover:text-ink border border-line"
-              }`}
-            >
-              <Package size={13} />
-              <span>All Non-Plants</span>
-              <span
-                className={`rounded-full px-1.5 py-0.1 text-[10px] ${
-                  selectedSubcategory === "all"
-                    ? "bg-white/25 text-surface font-bold"
-                    : "text-ink-soft/70"
-                }`}
-              >
-                {nonPlantCount}
-              </span>
-            </button>
-
-            {/* Dynamic non-plant subcategories */}
-            {nonPlantSubcategories.map((sub) => {
-              const Icon = getSubcategoryIcon(sub.slug, "non-plants");
-              const active = selectedSubcategory === sub.slug;
-              const count = items.filter(
-                (i) =>
-                  i.category === "non-plants" &&
-                  (i.subcategory || "general").toLowerCase() === sub.slug.toLowerCase()
-              ).length;
-
-              return (
-                <button
-                  key={sub.slug}
-                  type="button"
-                  onClick={() => setSelectedSubcategory(sub.slug)}
-                  className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
-                    active
-                      ? "border-pine bg-pine text-surface font-semibold shadow-xs"
-                      : "bg-surface/90 text-ink-soft hover:bg-surface hover:text-ink border border-line"
-                  }`}
-                >
-                  <Icon size={13} />
-                  <span>{sub.name}</span>
-                  <span
-                    className={`rounded-full px-1.5 py-0.1 text-[10px] ${
-                      active ? "bg-white/25 text-surface font-bold" : "text-ink-soft/70"
-                    }`}
-                  >
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-
-            {/* In-place '+' Button / Input Form for Non-Plants */}
-            {isAddingSub === "non-plants" ? (
-              <form
-                onSubmit={handleCreateSubcategory}
-                className="flex items-center gap-1 rounded-md border border-pine bg-surface px-1.5 py-0.5 shadow-xs animate-in fade-in duration-100"
-              >
-                <input
-                  type="text"
-                  autoFocus
-                  value={newSubName}
-                  onChange={(e) => {
-                    setNewSubName(e.target.value);
-                    if (subError) setSubError("");
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      setIsAddingSub(null);
-                      setNewSubName("");
-                      setSubError("");
-                    }
-                  }}
-                  placeholder="e.g. Pots, Pesticides, Soil"
-                  disabled={savingSub}
-                  className="w-32 sm:w-40 rounded px-1.5 py-0.5 text-xs text-ink placeholder:text-ink-soft/60 outline-none"
-                />
-                <button
-                  type="submit"
-                  disabled={savingSub || !newSubName.trim()}
-                  className="flex items-center justify-center rounded bg-pine p-1 text-surface hover:opacity-90 disabled:opacity-40 cursor-pointer"
-                  title="Save non-plant type"
-                >
-                  {savingSub ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsAddingSub(null);
-                    setNewSubName("");
-                    setSubError("");
-                  }}
-                  className="flex items-center justify-center rounded p-1 text-ink-soft hover:bg-line/60 cursor-pointer"
-                  title="Cancel"
-                >
-                  <X size={12} />
-                </button>
-              </form>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setIsAddingSub("non-plants");
-                  setNewSubName("");
-                  setSubError("");
-                }}
-                className="flex items-center gap-1 rounded-md border border-dashed border-line-strong bg-surface/80 px-2 py-1 text-xs font-semibold text-ink-soft hover:border-pine hover:text-pine-deep hover:bg-pine-tint/30 transition-all cursor-pointer shadow-2xs"
-                title="Add new supply subcategory"
-              >
-                <Plus size={13} />
-                <span>Add Type</span>
-              </button>
-            )}
-
-            {subError && isAddingSub === "non-plants" && (
-              <span className="text-[11px] font-medium text-rust ml-1">{subError}</span>
             )}
           </div>
         )}
@@ -1024,7 +1421,20 @@ export default function StockPage() {
                           className="w-full rounded-md border border-line-strong bg-surface px-2 py-1 text-sm outline-none focus:border-pine"
                         />
                       ) : (
-                        item.name
+                        <button
+                          type="button"
+                          onClick={() => openDetailModal(item)}
+                          className="group inline-flex items-center gap-2 text-left font-semibold text-ink hover:text-pine transition-colors cursor-pointer"
+                          title="Click to view photos and details"
+                        >
+                          <span className="group-hover:underline">{item.name}</span>
+                          {item.images && item.images.length > 0 && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-pine-tint px-1.5 py-0.5 text-[10px] font-bold text-pine-deep shrink-0 shadow-2xs">
+                              <ImageIcon size={10} />
+                              <span>{item.images.length}</span>
+                            </span>
+                          )}
+                        </button>
                       )}
                     </td>
 
@@ -1035,60 +1445,64 @@ export default function StockPage() {
                           <select
                             value={editDraft?.category}
                             onChange={(e) => {
-                              const newCat = e.target.value as "plants" | "non-plants";
-                              const defaultSub =
-                                newCat === "plants"
-                                  ? plantSubcategories[0]?.slug || "fruit"
-                                  : nonPlantSubcategories[0]?.slug || "pots";
+                              const newCat = e.target.value;
+                              const catSubs = subcategories.filter(
+                                (s) => s.category.toLowerCase() === newCat.toLowerCase()
+                              );
                               setEditDraft((d) =>
                                 d
                                   ? {
                                       ...d,
                                       category: newCat,
-                                      subcategory: defaultSub,
+                                      subcategory: catSubs[0]?.slug || "other",
                                     }
                                   : d,
                               );
                             }}
                             className="rounded border border-line-strong bg-surface px-1.5 py-0.5 text-xs outline-none focus:border-pine"
                           >
-                            <option value="plants">Plants</option>
-                            <option value="non-plants">Non-Plants</option>
+                            {categories.map((c) => (
+                              <option key={c.slug} value={c.slug}>
+                                {c.name}
+                              </option>
+                            ))}
                           </select>
 
-                          {editDraft?.category === "plants" ? (
-                            <select
-                              value={editDraft?.subcategory}
-                              onChange={(e) =>
-                                setEditDraft((d) =>
-                                  d ? { ...d, subcategory: e.target.value } : d,
-                                )
-                              }
-                              className="rounded border border-line-strong bg-surface px-1.5 py-0.5 text-[11px] outline-none focus:border-pine"
-                            >
-                              {plantSubcategories.map((s) => (
-                                <option key={s.slug} value={s.slug}>
-                                  {s.name}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <select
-                              value={editDraft?.subcategory}
-                              onChange={(e) =>
-                                setEditDraft((d) =>
-                                  d ? { ...d, subcategory: e.target.value } : d,
-                                )
-                              }
-                              className="rounded border border-line-strong bg-surface px-1.5 py-0.5 text-[11px] outline-none focus:border-pine"
-                            >
-                              {nonPlantSubcategories.map((s) => (
-                                <option key={s.slug} value={s.slug}>
-                                  {s.name}
-                                </option>
-                              ))}
-                            </select>
-                          )}
+                          {(() => {
+                            const curCat = (editDraft?.category || "plants").toLowerCase();
+                            const catSubs = subcategories.filter(
+                              (s) => s.category.toLowerCase() === curCat
+                            );
+                            const list =
+                              catSubs.length > 0
+                                ? catSubs
+                                : curCat === "plants"
+                                ? DEFAULT_PLANT_SUBS
+                                : curCat === "non-plants"
+                                ? DEFAULT_NON_PLANT_SUBS
+                                : [];
+
+                            return (
+                              <select
+                                value={editDraft?.subcategory}
+                                onChange={(e) =>
+                                  setEditDraft((d) =>
+                                    d ? { ...d, subcategory: e.target.value } : d,
+                                  )
+                                }
+                                className="rounded border border-line-strong bg-surface px-1.5 py-0.5 text-[11px] outline-none focus:border-pine"
+                              >
+                                {list.map((s) => (
+                                  <option key={s.slug} value={s.slug}>
+                                    {s.name}
+                                  </option>
+                                ))}
+                                {!list.some((s) => s.slug === "other") && (
+                                  <option value="other">Other</option>
+                                )}
+                              </select>
+                            );
+                          })()}
                         </div>
                       ) : (
                         renderCategoryBadge(item.category, item.subcategory)
@@ -1209,6 +1623,144 @@ export default function StockPage() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Detail Modal Component */}
+      <StockItemDetailModal
+        item={selectedItem}
+        onClose={closeDetailModal}
+        onItemUpdated={handleItemUpdated}
+        onImageDeleted={handleImageDeleted}
+        onOpenUpload={(id) => openUploadModal(id)}
+        showViewInStock={false}
+      />
+
+      {/* Upload Modal Component */}
+      <StockPhotoUploadModal
+        open={uploadModalOpen}
+        onClose={closeUploadModal}
+        targetItemId={uploadTargetItemId}
+        stockItems={items}
+        onUploadSuccess={handleUploadSuccess}
+      />
+
+      {/* Reassign & Delete Stock Modal */}
+      {reassignModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-md rounded-xl border border-line bg-surface p-5 shadow-xl animate-in zoom-in-95 duration-150">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
+                <AlertCircle size={22} />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-ink sm:text-base">
+                  Active Stock Items Detected
+                </h3>
+                <p className="text-xs text-ink-soft">
+                  {reassignModal.type === "subcategory" ? "Subcategory" : "Major Category"}:{" "}
+                  <strong className="text-ink">{reassignModal.name}</strong>
+                </p>
+              </div>
+            </div>
+
+            <p className="mb-4 text-xs leading-relaxed text-ink-soft">
+              There {reassignModal.itemCount === 1 ? "is" : "are"}{" "}
+              <strong className="font-semibold text-pine-deep">
+                {reassignModal.itemCount} active stock item{reassignModal.itemCount === 1 ? "" : "s"}
+              </strong>{" "}
+              assigned to <strong className="text-ink">"{reassignModal.name}"</strong>.
+              Before deleting, choose which tag to reassign these items to:
+            </p>
+
+            <div className="mb-5">
+              <label className="mb-1.5 block text-xs font-semibold text-ink">
+                Reassign Items To:
+              </label>
+              <select
+                value={reassignTarget}
+                onChange={(e) => setReassignTarget(e.target.value)}
+                disabled={reassigning}
+                className="w-full rounded-lg border border-line-strong bg-paper px-3 py-2 text-xs font-medium text-ink outline-none focus:border-pine"
+              >
+                {reassignModal.type === "subcategory" ? (
+                  <>
+                    {reassignModal.slug.toLowerCase() !== "other" &&
+                      reassignModal.slug.toLowerCase() !== "others" && (
+                        <option value="other">Others ("other" - auto-created if needed)</option>
+                      )}
+                    {subcategories
+                      .filter(
+                        (s) =>
+                          s.category.toLowerCase() ===
+                            (reassignModal.category || "").toLowerCase() &&
+                          s.slug.toLowerCase() !== reassignModal.slug.toLowerCase() &&
+                          s.slug.toLowerCase() !== "other" &&
+                          s.slug.toLowerCase() !== "others"
+                      )
+                      .map((s) => (
+                        <option key={s.slug} value={s.slug}>
+                          {s.name}
+                        </option>
+                      ))}
+                  </>
+                ) : (
+                  <>
+                    {reassignModal.slug.toLowerCase() !== "others" &&
+                      reassignModal.slug.toLowerCase() !== "other" && (
+                        <option value="others">
+                          Others ("others" - auto-created if needed)
+                        </option>
+                      )}
+                    {categories
+                      .filter(
+                        (c) =>
+                          c.slug.toLowerCase() !== reassignModal.slug.toLowerCase() &&
+                          c.slug.toLowerCase() !== "others" &&
+                          c.slug.toLowerCase() !== "other"
+                      )
+                      .map((c) => (
+                        <option key={c.slug} value={c.slug}>
+                          {c.name} (Subcategory will default to "other")
+                        </option>
+                      ))}
+                  </>
+                )}
+              </select>
+              <p className="mt-1.5 text-[11px] text-ink-soft/80">
+                All {reassignModal.itemCount} item{reassignModal.itemCount === 1 ? "" : "s"} will be safely reassigned before deletion.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setReassignModal(null)}
+                disabled={reassigning}
+                className="rounded-lg border border-line px-3.5 py-2 text-xs font-medium text-ink-soft hover:bg-paper hover:text-ink transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReassignment}
+                disabled={reassigning || !reassignTarget}
+                className="flex items-center gap-1.5 rounded-lg bg-rust px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-rust-deep transition-all cursor-pointer disabled:opacity-50"
+              >
+                {reassigning ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Reassigning & Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={13} />
+                    <span>Reassign & Delete</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

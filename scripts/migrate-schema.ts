@@ -70,6 +70,21 @@ async function main() {
   `;
 
   await sql`
+    CREATE TABLE IF NOT EXISTS stock_categories (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL UNIQUE,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+  `;
+
+  await sql`
+    INSERT INTO stock_categories (name, slug)
+    VALUES ('Plants', 'plants'), ('Non-Plants', 'non-plants')
+    ON CONFLICT (slug) DO NOTHING;
+  `;
+
+  await sql`
     CREATE TABLE IF NOT EXISTS stock_subcategories (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       category TEXT NOT NULL,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { and, asc, eq, ilike } from "drizzle-orm";
+import { and, asc, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { stockItems, stockSubcategories } from "@/db/schema";
@@ -17,7 +17,12 @@ function slugify(text: string): string {
 
 const createSubcategorySchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(60, "Name is too long"),
-  category: z.enum(["plants", "non-plants"]),
+  category: z.string().trim().min(1, "Category is required"),
+});
+
+const updateSubcategorySchema = z.object({
+  id: z.string().uuid("Invalid ID"),
+  name: z.string().trim().min(1, "Name is required").max(60, "Name is too long"),
 });
 
 export async function GET(req: NextRequest) {
@@ -27,7 +32,7 @@ export async function GET(req: NextRequest) {
     const categoryParam = searchParams.get("category");
 
     let query = db.select().from(stockSubcategories).$dynamic();
-    if (categoryParam === "plants" || categoryParam === "non-plants") {
+    if (categoryParam && categoryParam !== "all") {
       query = query.where(eq(stockSubcategories.category, categoryParam));
     }
 
@@ -66,7 +71,7 @@ export async function POST(req: NextRequest) {
 
     if (existing.length > 0) {
       return NextResponse.json(
-        { error: `"${name}" subcategory already exists` },
+        { error: `"${name}" subcategory already exists in this category` },
         { status: 400 }
       );
     }
@@ -86,11 +91,52 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function DELETE(req: NextRequest) {
+export async function PATCH(req: NextRequest) {
   try {
     await requireUser();
+    const body = await req.json().catch(() => null);
+    const parsed = updateSubcategorySchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? "Invalid data" },
+        { status: 400 }
+      );
+    }
+    const { id, name } = parsed.data;
+
+    const [existing] = await db
+      .select()
+      .from(stockSubcategories)
+      .where(eq(stockSubcategories.id, id));
+
+    if (!existing) {
+      return NextResponse.json({ error: "Subcategory not found" }, { status: 404 });
+    }
+
+    const [updated] = await db
+      .update(stockSubcategories)
+      .set({ name })
+      .where(eq(stockSubcategories.id, id))
+      .returning();
+
+    return NextResponse.json({ subcategory: updated });
+  } catch (err) {
+    return handleApiError(err);
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const user = await requireUser();
+    if (user.role !== "admin") {
+      return NextResponse.json(
+        { error: "Only admins are allowed to delete subcategories." },
+        { status: 403 }
+      );
+    }
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
+    const reassignTo = searchParams.get("reassignTo")?.trim();
 
     if (!id) {
       return NextResponse.json({ error: "Subcategory ID required" }, { status: 400 });
@@ -105,7 +151,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Subcategory not found" }, { status: 404 });
     }
 
-    // Check if any items use this subcategory
+    // Check how many items use this subcategory
     const itemsUsingSub = await db
       .select({ id: stockItems.id })
       .from(stockItems)
@@ -114,18 +160,86 @@ export async function DELETE(req: NextRequest) {
           eq(stockItems.category, sub.category),
           eq(stockItems.subcategory, sub.slug)
         )
-      )
-      .limit(1);
-
-    if (itemsUsingSub.length > 0) {
-      return NextResponse.json(
-        { error: `Cannot remove "${sub.name}" because it contains active stock items.` },
-        { status: 400 }
       );
+
+    const count = itemsUsingSub.length;
+
+    if (count > 0) {
+      if (!reassignTo) {
+        return NextResponse.json(
+          {
+            error: `Cannot remove "${sub.name}" because it contains ${count} active stock item(s).`,
+            itemCount: count,
+            requiresReassignment: true,
+            subcategoryId: sub.id,
+            subcategoryName: sub.name,
+            category: sub.category,
+          },
+          { status: 400 }
+        );
+      }
+
+      const isOthersTarget =
+        reassignTo.toLowerCase() === "others" || reassignTo.toLowerCase() === "other";
+      const targetSubSlug = isOthersTarget ? "other" : reassignTo;
+
+      // Ensure destination subcategory exists at this level (under sub.category)
+      let [targetSub] = await db
+        .select()
+        .from(stockSubcategories)
+        .where(
+          and(
+            eq(stockSubcategories.category, sub.category),
+            or(
+              eq(stockSubcategories.slug, targetSubSlug),
+              eq(stockSubcategories.slug, "other"),
+              eq(stockSubcategories.slug, "others"),
+              ilike(stockSubcategories.name, "others")
+            )
+          )
+        );
+
+      if (!targetSub && isOthersTarget) {
+        // Auto-create subcategory named "Others" at this level
+        [targetSub] = await db
+          .insert(stockSubcategories)
+          .values({
+            category: sub.category,
+            name: "Others",
+            slug: "other",
+          })
+          .onConflictDoNothing()
+          .returning();
+
+        if (!targetSub) {
+          [targetSub] = await db
+            .select()
+            .from(stockSubcategories)
+            .where(
+              and(
+                eq(stockSubcategories.category, sub.category),
+                eq(stockSubcategories.slug, "other")
+              )
+            );
+        }
+      }
+
+      const destinationSubSlug = targetSub?.slug || targetSubSlug;
+
+      // Reassign items to destination subcategory
+      await db
+        .update(stockItems)
+        .set({ subcategory: destinationSubSlug })
+        .where(
+          and(
+            eq(stockItems.category, sub.category),
+            eq(stockItems.subcategory, sub.slug)
+          )
+        );
     }
 
     await db.delete(stockSubcategories).where(eq(stockSubcategories.id, id));
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, reassignedCount: count });
   } catch (err) {
     return handleApiError(err);
   }
