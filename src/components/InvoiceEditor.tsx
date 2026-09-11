@@ -222,6 +222,16 @@ export function InvoiceEditor({
     }
   }, [initialInvoice, invoiceId]);
 
+  // Auto-dismiss the draft restored banner after a few seconds
+  useEffect(() => {
+    if (restoredDraft) {
+      const timer = setTimeout(() => {
+        setRestoredDraft(false);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [restoredDraft]);
+
   // Persist draft to localStorage on changes (only for unpersisted invoices)
   useEffect(() => {
     if (initialInvoice || invoiceId || isFinal) return;
@@ -603,15 +613,26 @@ export function InvoiceEditor({
       </div>
 
       {restoredDraft && (
-        <div className="mb-4 flex items-center justify-between rounded-md border border-amber-300 bg-amber-50 px-3.5 py-2 text-xs font-medium text-amber-900 print:hidden">
+        <div className="mb-4 flex items-center justify-between gap-2 rounded-md border border-amber-300 bg-amber-50 px-3.5 py-2 text-xs font-medium text-amber-900 shadow-xs animate-in fade-in duration-200 print:hidden">
           <span>Restored half-filled invoice draft from your browser storage.</span>
-          <button
-            type="button"
-            onClick={clearDraft}
-            className="ml-3 rounded border border-amber-300 bg-white px-2 py-0.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition-colors cursor-pointer"
-          >
-            Discard Draft
-          </button>
+          <div className="ml-2 flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={clearDraft}
+              className="rounded border border-amber-300 bg-white px-2 py-0.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition-colors cursor-pointer whitespace-nowrap"
+            >
+              Discard Draft
+            </button>
+            <button
+              type="button"
+              onClick={() => setRestoredDraft(false)}
+              className="rounded p-0.5 text-amber-800 hover:bg-amber-200/60 cursor-pointer"
+              title="Dismiss notification"
+              aria-label="Dismiss notification"
+            >
+              <X size={14} />
+            </button>
+          </div>
         </div>
       )}      {/* ============================================================ */}
       {/* STEP 1: FORM DATA ENTRY (when step === "edit" and not final) */}
