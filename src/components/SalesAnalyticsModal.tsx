@@ -22,6 +22,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type FilterMode =
   | "today"
@@ -69,6 +70,7 @@ type StaffMember = {
 interface SalesAnalyticsModalProps {
   open: boolean;
   onClose: () => void;
+  onNavigate?: (invoiceId: string) => void;
   isAdmin?: boolean;
 }
 
@@ -122,11 +124,22 @@ function getTodayString(): string {
 export function SalesAnalyticsModal({
   open,
   onClose,
+  onNavigate,
   isAdmin = false,
 }: SalesAnalyticsModalProps) {
+  const router = useRouter();
   const [filterMode, setFilterMode] = useState<FilterMode>("today");
   const [specificDate, setSpecificDate] = useState<string>(getTodayString());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+
+  const handleViewInvoice = (invoiceId: string) => {
+    if (onNavigate) {
+      onNavigate(invoiceId);
+    } else {
+      onClose();
+      router.push(`/invoices/${invoiceId}`);
+    }
+  };
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [customStartDate, setCustomStartDate] = useState<string>(getTodayString());
   const [customEndDate, setCustomEndDate] = useState<string>(getTodayString());
@@ -700,8 +713,15 @@ export function SalesAnalyticsModal({
                           key={inv.id}
                           className="hover:bg-paper-flat/40 transition-colors"
                         >
-                          <td className="px-4 py-3 font-mono font-bold text-pine-deep">
-                            {inv.invoiceNumber}
+                          <td className="px-4 py-3">
+                            <button
+                              type="button"
+                              onClick={() => handleViewInvoice(inv.id)}
+                              className="font-mono font-bold text-pine-deep hover:underline text-left cursor-pointer"
+                              title="View Invoice"
+                            >
+                              {inv.invoiceNumber}
+                            </button>
                           </td>
                           <td className="px-4 py-3">
                             <div className="font-semibold text-ink">
@@ -743,14 +763,15 @@ export function SalesAnalyticsModal({
                             ₹{Number(inv.total || 0).toLocaleString("en-IN")}
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <Link
-                              href={`/invoice?id=${inv.id}`}
+                            <button
+                              type="button"
+                              onClick={() => handleViewInvoice(inv.id)}
                               className="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 text-[11px] font-semibold text-ink-soft hover:bg-paper hover:text-ink transition-colors cursor-pointer"
                               title="View Invoice"
                             >
                               <span>View</span>
                               <ExternalLink size={11} />
-                            </Link>
+                            </button>
                           </td>
                         </tr>
                       );

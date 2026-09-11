@@ -23,7 +23,9 @@ import {
   TrendingUp,
   ChevronRight,
   Sparkles,
+  History,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { SignatureModal } from "./SignatureModal";
 import { AdminInvoiceSettingsModal } from "./AdminInvoiceSettingsModal";
@@ -37,6 +39,21 @@ type ManagedUser = {
   createdAt: string;
 };
 
+type InvoiceVersionInfo = {
+  id?: string;
+  version: number;
+  businessName: string;
+  subheading1?: string | null;
+  subheading2?: string | null;
+  address: string;
+  mobiles?: string | null;
+  gstin?: string | null;
+  updatedAt?: string | Date;
+  isCurrent?: boolean;
+  invoiceCount?: number;
+  totalRevenue?: number;
+};
+
 export function ProfilePanel({
   open,
   onClose,
@@ -45,7 +62,24 @@ export function ProfilePanel({
   onClose: () => void;
 }) {
   const { user, logout, refresh } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"profile" | "admin">("profile");
+
+  const [invoiceVersions, setInvoiceVersions] = useState<InvoiceVersionInfo[]>([]);
+  const [loadingVersions, setLoadingVersions] = useState(false);
+
+  function loadInvoiceVersions() {
+    setLoadingVersions(true);
+    fetch("/api/settings/invoice-details", { cache: "no-store" })
+      .then(async (res) => {
+        const data = await res.json();
+        if (data.versions && Array.isArray(data.versions)) {
+          setInvoiceVersions(data.versions);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingVersions(false));
+  }
 
   const [users, setUsers] = useState<ManagedUser[] | null>(null);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -197,7 +231,16 @@ export function ProfilePanel({
       loadTodaySales();
       if (isAdmin) {
         loadUsers();
+        loadInvoiceVersions();
       }
+
+      const handleInvoiceSettingsUpdated = () => {
+        if (isAdmin) loadInvoiceVersions();
+      };
+      window.addEventListener("invoiceSettingsUpdated", handleInvoiceSettingsUpdated);
+      return () => {
+        window.removeEventListener("invoiceSettingsUpdated", handleInvoiceSettingsUpdated);
+      };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, isAdmin]);
@@ -686,6 +729,105 @@ export function ProfilePanel({
               >
                 <Building2 size={14} /> Edit Invoice Header &amp; Details
               </button>
+
+              {/* Past & Active Invoice Versions History */}
+              <div className="mt-4 pt-3 border-t border-line/70">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-ink">
+                    <History size={13} className="text-pine" />
+                    <span>Past &amp; Active Invoice Versions</span>
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-soft">
+                    {invoiceVersions.length} version{invoiceVersions.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+
+                {loadingVersions ? (
+                  <div className="py-4 text-center text-xs text-ink-soft flex items-center justify-center gap-2">
+                    <Loader2 size={14} className="animate-spin" /> Loading versions…
+                  </div>
+                ) : invoiceVersions.length === 0 ? (
+                  <p className="text-xs text-ink-soft">No versions recorded yet.</p>
+                ) : (
+                  <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                    {invoiceVersions.map((v) => (
+                      <div
+                        key={v.version}
+                        className={`rounded-lg border p-3 text-xs transition-all ${
+                          v.isCurrent
+                            ? "border-pine/50 bg-pine-tint/20 dark:bg-pine-tint/10 shadow-xs"
+                            : "border-line bg-paper-flat/50"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-mono font-bold text-xs text-ink">
+                              Version {v.version}
+                            </span>
+                            {v.isCurrent ? (
+                              <span className="rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 px-1.5 py-0.2 text-[10px] font-bold uppercase tracking-wider">
+                                Current Active
+                              </span>
+                            ) : (
+                              <span className="rounded bg-paper border border-line text-ink-soft px-1.5 py-0.2 text-[10px] font-medium">
+                                Past Version
+                              </span>
+                            )}
+                          </div>
+                          {v.updatedAt && (
+                            <span className="text-[10px] text-ink-soft/70 font-mono">
+                              {new Date(v.updatedAt).toLocaleDateString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="space-y-0.5 mb-2.5 text-[11px] text-ink-soft">
+                          <div className="font-semibold text-ink truncate">{v.businessName}</div>
+                          {v.subheading1 && (
+                            <div className="italic text-[10px] text-ink-soft/80 truncate">
+                              {v.subheading1}
+                            </div>
+                          )}
+                          <div className="text-ink-soft/90 line-clamp-1">{v.address}</div>
+                          <div className="flex items-center gap-3 text-[10px] text-ink-soft/80 font-mono mt-1 flex-wrap">
+                            {v.gstin && <span>GSTIN: {v.gstin}</span>}
+                            {v.mobiles && <span>Ph: {v.mobiles}</span>}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between border-t border-line/60 pt-2 text-[11px]">
+                          <div className="flex items-center gap-2 text-ink-soft">
+                            <span>
+                              <strong className="font-semibold text-ink">{v.invoiceCount ?? 0}</strong> bill(s)
+                            </span>
+                            <span>•</span>
+                            <span className="font-mono font-semibold text-pine-deep">
+                              ₹{Number(v.totalRevenue ?? 0).toLocaleString("en-IN")}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              router.push(`/invoices?version=${v.version}`);
+                            }}
+                            className="inline-flex items-center gap-1 font-semibold text-pine-deep hover:underline cursor-pointer"
+                            title={`Filter invoices created under Version ${v.version}`}
+                          >
+                            <span>View Bills</span>
+                            <ChevronRight size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* 2. Payment QR Code Upload Section (Admin only) */}
@@ -934,7 +1076,13 @@ export function ProfilePanel({
 
       <AdminInvoiceSettingsModal
         open={adminSettingsModalOpen}
-        onClose={() => setAdminSettingsModalOpen(false)}
+        onClose={() => {
+          setAdminSettingsModalOpen(false);
+          if (isAdmin) loadInvoiceVersions();
+        }}
+        onSuccess={() => {
+          if (isAdmin) loadInvoiceVersions();
+        }}
       />
 
       <CustomInvoiceNumberModal
@@ -952,6 +1100,11 @@ export function ProfilePanel({
         onClose={() => {
           setSalesModalOpen(false);
           loadTodaySales();
+        }}
+        onNavigate={(invoiceId) => {
+          setSalesModalOpen(false);
+          onClose();
+          router.push(`/invoices/${invoiceId}`);
         }}
         isAdmin={isAdmin}
       />

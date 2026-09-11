@@ -368,12 +368,16 @@ export function InvoiceEditor({
     [items],
   );
 
-  const dateLabel = new Date(
-    initialInvoice?.createdAt ?? Date.now(),
-  ).toLocaleDateString("en-IN", {
+  const invoiceDateObj = new Date(initialInvoice?.createdAt ?? Date.now());
+  const dateLabel = invoiceDateObj.toLocaleDateString("en-IN", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
+  });
+  const timeLabel = invoiceDateObj.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
   });
 
   function addStockItem(force = false) {
@@ -1335,10 +1339,10 @@ export function InvoiceEditor({
                   />
                 )}
               </div>
-              <div className="flex items-baseline gap-1.5 flex-1 max-w-[45%] justify-end">
-                <span className="font-bold">Date.</span>
-                <span className="font-mono font-bold border-b border-dotted border-[#1b365d] px-2 text-xs sm:text-sm text-[#1b365d] min-w-[120px] text-center">
-                  {dateLabel}
+              <div className="flex items-baseline gap-1.5 flex-1 max-w-[50%] justify-end">
+                <span className="font-bold">Date:</span>
+                <span className="font-mono font-bold border-b border-dotted border-[#1b365d] px-2 text-xs sm:text-sm text-[#1b365d] min-w-[120px] text-right">
+                  {dateLabel} <span className="text-[10px] sm:text-xs font-normal text-[#1b365d]/85 font-sans whitespace-nowrap ml-1">{timeLabel}</span>
                 </span>
               </div>
             </div>
