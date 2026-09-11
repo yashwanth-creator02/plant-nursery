@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Sparkles,
   History,
+  FolderArchive,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -31,6 +32,7 @@ import { SignatureModal } from "./SignatureModal";
 import { AdminInvoiceSettingsModal } from "./AdminInvoiceSettingsModal";
 import { CustomInvoiceNumberModal } from "./CustomInvoiceNumberModal";
 import { SalesAnalyticsModal } from "./SalesAnalyticsModal";
+import { ExportDataModal } from "./ExportDataModal";
 
 type ManagedUser = {
   id: string;
@@ -106,6 +108,7 @@ export function ProfilePanel({
   const [nextInvoiceNumber, setNextInvoiceNumber] = useState<string>("");
   const [, setSavingSignature] = useState(false);
   const [salesModalOpen, setSalesModalOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
   const [todaySalesSummary, setTodaySalesSummary] = useState<{
     total: number;
     online: number;
@@ -1045,6 +1048,32 @@ export function ProfilePanel({
               </ul>
             </div>
 
+            {/* 3.5 Nursery Data Backup & Export (Admin only) */}
+            <div className="px-5 py-4 bg-paper-flat/40">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+                  Backup &amp; Full Data Export
+                </span>
+                <span className="rounded bg-pine-tint px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-pine-deep">
+                  Admin Only
+                </span>
+              </div>
+              <p className="text-xs text-ink-soft mb-3">
+                Export all invoices, inventory, plant photos, digital signatures, and spreadsheets into a destination folder named after the website with accurate nested folders.
+              </p>
+              <button
+                type="button"
+                onClick={() => setExportModalOpen(true)}
+                className="flex w-full items-center justify-between rounded-lg bg-pine px-3.5 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-pine-deep transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <FolderArchive size={15} />
+                  <span>Export All Nursery Data</span>
+                </div>
+                <ChevronRight size={15} className="opacity-80" />
+              </button>
+            </div>
+
             {/* 4. Danger Zone */}
             <div className="px-5 py-4">
               <h4 className="mb-1 text-xs font-semibold uppercase tracking-wider text-rust">
@@ -1107,6 +1136,11 @@ export function ProfilePanel({
           router.push(`/invoices/${invoiceId}`);
         }}
         isAdmin={isAdmin}
+      />
+
+      <ExportDataModal
+        open={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
       />
     </div>
   );
