@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { asc } from "drizzle-orm";
+import { asc, desc } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { stockItems } from "@/db/schema";
+import { stockItems, stockItemImages } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { handleApiError } from "@/lib/api-utils";
 
@@ -19,10 +19,14 @@ const createSchema = z.object({
 export async function GET() {
   try {
     await requireUser();
-    const items = await db
-      .select()
-      .from(stockItems)
-      .orderBy(asc(stockItems.name));
+    const items = await db.query.stockItems.findMany({
+      orderBy: [asc(stockItems.name)],
+      with: {
+        images: {
+          orderBy: [desc(stockItemImages.isPrimary), desc(stockItemImages.createdAt)],
+        },
+      },
+    });
     return NextResponse.json({ items });
   } catch (err) {
     return handleApiError(err);

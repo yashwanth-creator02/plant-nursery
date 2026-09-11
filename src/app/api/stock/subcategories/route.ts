@@ -88,7 +88,13 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    await requireUser();
+    const user = await requireUser();
+    if (user.role !== "admin") {
+      return NextResponse.json(
+        { error: "Only admins are allowed to delete subcategories." },
+        { status: 403 }
+      );
+    }
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 

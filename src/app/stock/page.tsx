@@ -24,8 +24,12 @@ import {
   Wrench,
   Tag,
   Loader2,
+  Image as ImageIcon,
 } from "lucide-react";
-import { formatMoney, StockItem, StockSubcategory } from "@/lib/types";
+import { formatMoney, StockItem, StockSubcategory, GalleryStockItem } from "@/lib/types";
+import { useAuth } from "@/lib/auth-context";
+import { StockItemDetailModal } from "@/components/StockItemDetailModal";
+import { StockPhotoUploadModal } from "@/components/StockPhotoUploadModal";
 
 const DEFAULT_PLANT_SUBS: StockSubcategory[] = [
   { id: "fruit", category: "plants", name: "Fruit Plants", slug: "fruit" },
@@ -74,7 +78,10 @@ function getSubcategoryIcon(slug: string, category: "plants" | "non-plants") {
 }
 
 export default function StockPage() {
-  const [items, setItems] = useState<StockItem[]>([]);
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const [items, setItems] = useState<GalleryStockItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -91,6 +98,11 @@ export default function StockPage() {
   const [newSubName, setNewSubName] = useState("");
   const [savingSub, setSavingSub] = useState(false);
   const [subError, setSubError] = useState("");
+
+  // Detail & Upload Modal States
+  const [selectedItem, setSelectedItem] = useState<GalleryStockItem | null>(null);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploadTargetItemId, setUploadTargetItemId] = useState<string>("");
 
   // Add Item Form States
   const [name, setName] = useState("");
@@ -139,6 +151,86 @@ export default function StockPage() {
     load();
     loadSubcategories();
   }, []);
+
+  // Modal Handlers
+  const openDetailModal = (item: GalleryStockItem) => {
+    setSelectedItem(item);
+  };
+
+  const closeDetailModal = () => {
+    setSelectedItem(null);
+  };
+
+  const handleItemUpdated = (updatedItem: GalleryStockItem) => {
+    setSelectedItem(updatedItem);
+    setItems((prev) => prev.map((i) => (i.id === updatedItem.id ? updatedItem : i)));
+  };
+
+  const handleImageDeleted = (itemId: string, imageId: string) => {
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === itemId
+          ? { ...i, images: i.images.filter((img) => img.id !== imageId) }
+          : i
+      )
+    );
+    if (selectedItem?.id === itemId) {
+      setSelectedItem((prev) =>
+        prev
+          ? { ...prev, images: prev.images.filter((img) => img.id !== imageId) }
+          : null
+      );
+    }
+  };
+
+  const openUploadModal = (targetStockItemId?: string) => {
+    setUploadTargetItemId(targetStockItemId || (items[0]?.id ?? ""));
+    setUploadModalOpen(true);
+  };
+
+  const closeUploadModal = () => {
+    setUploadModalOpen(false);
+  };
+
+  const handleUploadSuccess = async (updatedItemId: string) => {
+    await load();
+    try {
+      const res = await fetch("/api/stock", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        const updated = (data.items || []).find((x: GalleryStockItem) => x.id === updatedItemId);
+        if (updated && selectedItem?.id === updatedItemId) {
+          setSelectedItem(updated);
+        }
+      }
+    } catch {}
+  };
+
+  async function handleDeleteSubcategory(e: React.MouseEvent, sub: StockSubcategory) {
+    e.stopPropagation();
+    if (!confirm(`Are you sure you want to delete the "${sub.name}" subcategory?`)) {
+      return;
+    }
+
+    setSubError("");
+    try {
+      const res = await fetch(`/api/stock/subcategories?id=${sub.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete subcategory");
+      }
+
+      setSubcategories((prev) => prev.filter((s) => s.id !== sub.id));
+      if (selectedSubcategory === sub.slug) {
+        setSelectedSubcategory("all");
+      }
+      load();
+    } catch (err) {
+      setSubError(err instanceof Error ? err.message : "Failed to delete subcategory");
+    }
+  }
 
   const plantSubcategories = useMemo(() => {
     const fromDb = subcategories.filter((s) => s.category === "plants");
@@ -687,11 +779,10 @@ export default function StockPage() {
               ).length;
 
               return (
-                <button
+                <div
                   key={sub.slug}
-                  type="button"
                   onClick={() => setSelectedSubcategory(sub.slug)}
-                  className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer select-none ${
                     active
                       ? "bg-pine text-surface font-semibold shadow-xs"
                       : "bg-surface/90 text-ink-soft hover:bg-surface hover:text-ink border border-line"
@@ -706,7 +797,21 @@ export default function StockPage() {
                   >
                     {count}
                   </span>
-                </button>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteSubcategory(e, sub)}
+                      className={`ml-0.5 rounded p-0.5 transition-colors cursor-pointer ${
+                        active
+                          ? "text-white/80 hover:bg-white/20 hover:text-white"
+                          : "text-ink-soft/70 hover:bg-rust-tint hover:text-rust"
+                      }`}
+                      title={`Delete "${sub.name}" plant type (Admin only)`}
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  )}
+                </div>
               );
             })}
 
@@ -819,11 +924,10 @@ export default function StockPage() {
               ).length;
 
               return (
-                <button
+                <div
                   key={sub.slug}
-                  type="button"
                   onClick={() => setSelectedSubcategory(sub.slug)}
-                  className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer select-none ${
                     active
                       ? "border-pine bg-pine text-surface font-semibold shadow-xs"
                       : "bg-surface/90 text-ink-soft hover:bg-surface hover:text-ink border border-line"
@@ -838,7 +942,21 @@ export default function StockPage() {
                   >
                     {count}
                   </span>
-                </button>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteSubcategory(e, sub)}
+                      className={`ml-0.5 rounded p-0.5 transition-colors cursor-pointer ${
+                        active
+                          ? "text-white/80 hover:bg-white/20 hover:text-white"
+                          : "text-ink-soft/70 hover:bg-rust-tint hover:text-rust"
+                      }`}
+                      title={`Delete "${sub.name}" item type (Admin only)`}
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  )}
+                </div>
               );
             })}
 
@@ -1024,7 +1142,20 @@ export default function StockPage() {
                           className="w-full rounded-md border border-line-strong bg-surface px-2 py-1 text-sm outline-none focus:border-pine"
                         />
                       ) : (
-                        item.name
+                        <button
+                          type="button"
+                          onClick={() => openDetailModal(item)}
+                          className="group inline-flex items-center gap-2 text-left font-semibold text-ink hover:text-pine transition-colors cursor-pointer"
+                          title="Click to view photos and details"
+                        >
+                          <span className="group-hover:underline">{item.name}</span>
+                          {item.images && item.images.length > 0 && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-pine-tint px-1.5 py-0.5 text-[10px] font-bold text-pine-deep shrink-0 shadow-2xs">
+                              <ImageIcon size={10} />
+                              <span>{item.images.length}</span>
+                            </span>
+                          )}
+                        </button>
                       )}
                     </td>
 
@@ -1211,6 +1342,25 @@ export default function StockPage() {
           </table>
         </div>
       )}
+
+      {/* Detail Modal Component */}
+      <StockItemDetailModal
+        item={selectedItem}
+        onClose={closeDetailModal}
+        onItemUpdated={handleItemUpdated}
+        onImageDeleted={handleImageDeleted}
+        onOpenUpload={(id) => openUploadModal(id)}
+        showViewInStock={false}
+      />
+
+      {/* Upload Modal Component */}
+      <StockPhotoUploadModal
+        open={uploadModalOpen}
+        onClose={closeUploadModal}
+        targetItemId={uploadTargetItemId}
+        stockItems={items}
+        onUploadSuccess={handleUploadSuccess}
+      />
     </div>
   );
 }
