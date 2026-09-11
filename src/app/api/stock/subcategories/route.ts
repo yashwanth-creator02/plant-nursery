@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { and, asc, eq, ilike } from "drizzle-orm";
+import { and, asc, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { stockItems, stockSubcategories } from "@/db/schema";
@@ -179,10 +179,57 @@ export async function DELETE(req: NextRequest) {
         );
       }
 
+      const isOthersTarget =
+        reassignTo.toLowerCase() === "others" || reassignTo.toLowerCase() === "other";
+      const targetSubSlug = isOthersTarget ? "other" : reassignTo;
+
+      // Ensure destination subcategory exists at this level (under sub.category)
+      let [targetSub] = await db
+        .select()
+        .from(stockSubcategories)
+        .where(
+          and(
+            eq(stockSubcategories.category, sub.category),
+            or(
+              eq(stockSubcategories.slug, targetSubSlug),
+              eq(stockSubcategories.slug, "other"),
+              eq(stockSubcategories.slug, "others"),
+              ilike(stockSubcategories.name, "others")
+            )
+          )
+        );
+
+      if (!targetSub && isOthersTarget) {
+        // Auto-create subcategory named "Others" at this level
+        [targetSub] = await db
+          .insert(stockSubcategories)
+          .values({
+            category: sub.category,
+            name: "Others",
+            slug: "other",
+          })
+          .onConflictDoNothing()
+          .returning();
+
+        if (!targetSub) {
+          [targetSub] = await db
+            .select()
+            .from(stockSubcategories)
+            .where(
+              and(
+                eq(stockSubcategories.category, sub.category),
+                eq(stockSubcategories.slug, "other")
+              )
+            );
+        }
+      }
+
+      const destinationSubSlug = targetSub?.slug || targetSubSlug;
+
       // Reassign items to destination subcategory
       await db
         .update(stockItems)
-        .set({ subcategory: reassignTo })
+        .set({ subcategory: destinationSubSlug })
         .where(
           and(
             eq(stockItems.category, sub.category),

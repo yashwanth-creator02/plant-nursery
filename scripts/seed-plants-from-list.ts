@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { eq, or, ilike } from "drizzle-orm";
 import { db } from "../src/db";
-import { stockItems } from "../src/db/schema";
+import { stockCategories, stockItems, stockSubcategories } from "../src/db/schema";
 
 interface PlantEntry {
   number: number;
@@ -391,75 +391,67 @@ const plantList: PlantEntry[] = [
 ];
 
 async function main() {
-  console.log("=== Cleaning up nonsense data and seeding plant items ===");
+  console.log("=== Removing existing stock data and seeding plant items from list ===");
 
-  // 1. Remove nonsense items
-  console.log("1. Removing nonsense test data...");
-  const deletedMghm = await db
-    .delete(stockItems)
-    .where(eq(stockItems.name, "mghm"))
-    .returning();
-  if (deletedMghm.length > 0) {
-    console.log(`Deleted nonsense item "mghm" (id: ${deletedMghm[0].id})`);
+  // 1. Directly remove all existing data from stocks as requested
+  console.log("1. Directly removing all existing data from stock items...");
+  const deleted = await db.delete(stockItems).returning({ id: stockItems.id });
+  console.log(`Successfully removed ${deleted.length} existing stock item(s).`);
+
+  // 2. Ensure base categories exist
+  console.log("2. Ensuring base categories exist...");
+  await db
+    .insert(stockCategories)
+    .values([
+      { name: "Plants", slug: "plants" },
+      { name: "Non-Plants", slug: "non-plants" },
+    ])
+    .onConflictDoNothing();
+
+  // 3. Ensure default subcategories exist
+  console.log("3. Ensuring default subcategories exist...");
+  const defaultPlantSubs = [
+    { category: "plants", name: "Fruit Plants", slug: "fruit" },
+    { category: "plants", name: "Flower Plants", slug: "flower" },
+    { category: "plants", name: "Ornamental Plants", slug: "ornamental" },
+    { category: "plants", name: "Medicinal Plants", slug: "medicinal" },
+    { category: "plants", name: "Other Plants", slug: "other" },
+  ];
+
+  const defaultNonPlantSubs = [
+    { category: "non-plants", name: "Pots & Planters", slug: "pots" },
+    { category: "non-plants", name: "Fertilizers & Manure", slug: "fertilizers" },
+    { category: "non-plants", name: "Soil & Substrates", slug: "soil" },
+    { category: "non-plants", name: "Gardening Tools", slug: "tools" },
+    { category: "non-plants", name: "General Supplies", slug: "general" },
+  ];
+
+  for (const sub of [...defaultPlantSubs, ...defaultNonPlantSubs]) {
+    await db
+      .insert(stockSubcategories)
+      .values(sub)
+      .onConflictDoNothing();
   }
 
-  // 2. Fix typos on existing items
-  console.log("2. Correcting unit typos on existing items...");
-  await db
-    .update(stockItems)
-    .set({ unit: "pcs" })
-    .where(eq(stockItems.unit, "pcspcs"));
-
-  // 3. Insert or update all plant items
-  console.log(`3. Seeding ${plantList.length} translated plant items...`);
+  // 4. Insert all plant items from list
+  console.log(`4. Inserting ${plantList.length} plant items from list...`);
   let addedCount = 0;
-  let updatedCount = 0;
 
   for (const plant of plantList) {
-    // Check if an item with similar name already exists
-    const existing = await db
-      .select()
-      .from(stockItems)
-      .where(
-        or(
-          eq(stockItems.name, plant.englishName),
-          ilike(stockItems.name, `%${plant.kannadaName}%`)
-        )
-      )
-      .limit(1);
-
-    if (existing.length > 0) {
-      await db
-        .update(stockItems)
-        .set({
-          name: plant.englishName,
-          category: plant.category,
-          subcategory: plant.subcategory,
-          price: plant.price,
-          quantity: plant.quantity,
-          unit: plant.unit,
-          description: plant.description,
-          updatedAt: new Date(),
-        })
-        .where(eq(stockItems.id, existing[0].id));
-      updatedCount++;
-    } else {
-      await db.insert(stockItems).values({
-        name: plant.englishName,
-        category: plant.category,
-        subcategory: plant.subcategory,
-        price: plant.price,
-        quantity: plant.quantity,
-        unit: plant.unit,
-        description: plant.description,
-      });
-      addedCount++;
-    }
+    await db.insert(stockItems).values({
+      name: plant.englishName,
+      category: plant.category,
+      subcategory: plant.subcategory,
+      price: plant.price,
+      quantity: plant.quantity,
+      unit: plant.unit,
+      description: plant.description,
+    });
+    addedCount++;
   }
 
-  console.log(`\nSuccessfully processed plants!`);
-  console.log(`- Newly added: ${addedCount}`);
-  console.log(`- Updated: ${updatedCount}`);
+  console.log(`\nSuccessfully populated plant items!`);
+  console.log(`- Newly inserted: ${addedCount}`);
   console.log(`- Total plants in list: ${plantList.length}`);
 
   // Query final list

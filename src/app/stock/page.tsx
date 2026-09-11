@@ -346,8 +346,14 @@ export default function StockPage() {
         slug: cat.slug,
         itemCount: count,
       });
-      const otherCats = categories.filter((c) => c.slug !== cat.slug);
-      setReassignTarget(otherCats[0]?.slug || "plants");
+      if (cat.slug.toLowerCase() === "others" || cat.slug.toLowerCase() === "other") {
+        const otherCats = categories.filter(
+          (c) => c.slug.toLowerCase() !== cat.slug.toLowerCase()
+        );
+        setReassignTarget(otherCats[0]?.slug || "plants");
+      } else {
+        setReassignTarget("others");
+      }
       return;
     }
 
@@ -367,8 +373,14 @@ export default function StockPage() {
             slug: cat.slug,
             itemCount: data.itemCount,
           });
-          const otherCats = categories.filter((c) => c.slug !== cat.slug);
-          setReassignTarget(otherCats[0]?.slug || "plants");
+          if (cat.slug.toLowerCase() === "others" || cat.slug.toLowerCase() === "other") {
+            const otherCats = categories.filter(
+              (c) => c.slug.toLowerCase() !== cat.slug.toLowerCase()
+            );
+            setReassignTarget(otherCats[0]?.slug || "plants");
+          } else {
+            setReassignTarget("others");
+          }
           return;
         }
         throw new Error(data.error || "Failed to delete category");
@@ -1673,14 +1685,18 @@ export default function StockPage() {
               >
                 {reassignModal.type === "subcategory" ? (
                   <>
-                    <option value="other">Others / Default ("other")</option>
+                    {reassignModal.slug.toLowerCase() !== "other" &&
+                      reassignModal.slug.toLowerCase() !== "others" && (
+                        <option value="other">Others ("other" - auto-created if needed)</option>
+                      )}
                     {subcategories
                       .filter(
                         (s) =>
                           s.category.toLowerCase() ===
                             (reassignModal.category || "").toLowerCase() &&
                           s.slug.toLowerCase() !== reassignModal.slug.toLowerCase() &&
-                          s.slug.toLowerCase() !== "other"
+                          s.slug.toLowerCase() !== "other" &&
+                          s.slug.toLowerCase() !== "others"
                       )
                       .map((s) => (
                         <option key={s.slug} value={s.slug}>
@@ -1690,8 +1706,19 @@ export default function StockPage() {
                   </>
                 ) : (
                   <>
+                    {reassignModal.slug.toLowerCase() !== "others" &&
+                      reassignModal.slug.toLowerCase() !== "other" && (
+                        <option value="others">
+                          Others ("others" - auto-created if needed)
+                        </option>
+                      )}
                     {categories
-                      .filter((c) => c.slug.toLowerCase() !== reassignModal.slug.toLowerCase())
+                      .filter(
+                        (c) =>
+                          c.slug.toLowerCase() !== reassignModal.slug.toLowerCase() &&
+                          c.slug.toLowerCase() !== "others" &&
+                          c.slug.toLowerCase() !== "other"
+                      )
                       .map((c) => (
                         <option key={c.slug} value={c.slug}>
                           {c.name} (Subcategory will default to "other")

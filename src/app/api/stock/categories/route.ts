@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { asc, eq, ilike } from "drizzle-orm";
+import { asc, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { stockCategories, stockItems, stockSubcategories } from "@/db/schema";
@@ -174,18 +174,60 @@ export async function DELETE(req: NextRequest) {
         );
       }
 
-      // Reassign all active items from cat.slug to reassignTo
+      const isOthersTarget =
+        reassignTo.toLowerCase() === "others" || reassignTo.toLowerCase() === "other";
+      const targetSlug = isOthersTarget ? "others" : reassignTo;
+
+      // Ensure destination category exists (create 'Others' dynamically at this level if needed)
+      let [targetCat] = await db
+        .select()
+        .from(stockCategories)
+        .where(
+          or(
+            eq(stockCategories.slug, targetSlug),
+            ilike(stockCategories.name, isOthersTarget ? "others" : targetSlug)
+          )
+        );
+
+      if (!targetCat && isOthersTarget) {
+        [targetCat] = await db
+          .insert(stockCategories)
+          .values({
+            name: "Others",
+            slug: "others",
+          })
+          .onConflictDoNothing()
+          .returning();
+
+        if (!targetCat) {
+          [targetCat] = await db
+            .select()
+            .from(stockCategories)
+            .where(eq(stockCategories.slug, "others"));
+        }
+      }
+
+      const destinationCatSlug = targetCat?.slug || targetSlug;
+
+      // Ensure an "Others" subcategory exists under the destination category
+      await db
+        .insert(stockSubcategories)
+        .values({
+          category: destinationCatSlug,
+          name: "Others",
+          slug: "other",
+        })
+        .onConflictDoNothing();
+
+      // Reassign all active items from cat.slug to destinationCatSlug
       await db
         .update(stockItems)
-        .set({ category: reassignTo, subcategory: "other" })
+        .set({ category: destinationCatSlug, subcategory: "other" })
         .where(eq(stockItems.category, cat.slug));
-    }
 
-    // Subcategories under this category
-    if (reassignTo) {
+      // Clean up orphan subcategories from the deleted category
       await db
-        .update(stockSubcategories)
-        .set({ category: reassignTo })
+        .delete(stockSubcategories)
         .where(eq(stockSubcategories.category, cat.slug));
     } else {
       await db
