@@ -6,6 +6,7 @@ export type StockItem = {
   quantity: number;
   category?: "plants" | "non-plants" | string;
   subcategory?: string | null;
+  description?: string | null;
 };
 
 export type StockItemImage = {

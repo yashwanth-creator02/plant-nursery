@@ -33,10 +33,11 @@ export async function GET(req: NextRequest) {
         const matchesName = item.name.toLowerCase().includes(lowerQ);
         const matchesCategory = item.category.toLowerCase().includes(lowerQ);
         const matchesSubcategory = item.subcategory?.toLowerCase().includes(lowerQ);
+        const matchesItemDesc = item.description?.toLowerCase().includes(lowerQ);
         const matchesImageDesc = item.images.some((img) =>
           img.description?.toLowerCase().includes(lowerQ)
         );
-        return matchesName || matchesCategory || matchesSubcategory || matchesImageDesc;
+        return matchesName || matchesCategory || matchesSubcategory || matchesItemDesc || matchesImageDesc;
       });
     }
 

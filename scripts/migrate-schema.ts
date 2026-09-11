@@ -130,6 +130,11 @@ async function main() {
     ADD COLUMN IF NOT EXISTS signature TEXT;
   `;
 
+  await sql`
+    ALTER TABLE stock_items
+    ADD COLUMN IF NOT EXISTS description TEXT;
+  `;
+
   console.log("Database migrations applied successfully.");
   await sql.end();
   process.exit(0);

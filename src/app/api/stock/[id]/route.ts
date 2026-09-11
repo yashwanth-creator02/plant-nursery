@@ -13,6 +13,7 @@ const updateSchema = z.object({
   quantity: z.number().int().nonnegative().optional(),
   category: z.enum(["plants", "non-plants"]).optional(),
   subcategory: z.string().trim().optional(),
+  description: z.string().trim().optional().nullable(),
 });
 
 export async function PATCH(
@@ -42,6 +43,8 @@ export async function PATCH(
       values.category = parsed.data.category;
     if (parsed.data.subcategory !== undefined)
       values.subcategory = parsed.data.subcategory;
+    if (parsed.data.description !== undefined)
+      values.description = parsed.data.description;
 
     const [item] = await db
       .update(stockItems)

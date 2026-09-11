@@ -691,6 +691,11 @@ export default function GalleryPage() {
                 <span className="text-xs capitalize text-ink-soft">
                   {selectedItem.category} • {selectedItem.subcategory || "General"}
                 </span>
+                {selectedItem.description && (
+                  <p className="mt-0.5 text-xs text-ink-soft/90 line-clamp-2">
+                    {selectedItem.description}
+                  </p>
+                )}
               </div>
               <button
                 onClick={closeDetailModal}
@@ -819,9 +824,9 @@ export default function GalleryPage() {
                   />
                 ) : (
                   <p className="text-xs sm:text-sm leading-relaxed text-ink">
-                    {currentImage.description || (
+                    {currentImage.description || selectedItem.description || (
                       <span className="italic text-ink-soft">
-                        No description provided for this photo yet. Click &quot;Add Description&quot; to describe this variety.
+                        No description provided yet. Click &quot;Add Description&quot; to describe this variety.
                       </span>
                     )}
                   </p>

@@ -13,6 +13,7 @@ const createSchema = z.object({
   quantity: z.coerce.number().int().min(0).optional().default(0),
   category: z.enum(["plants", "non-plants"]).optional().default("plants"),
   subcategory: z.string().trim().optional().default("other"),
+  description: z.string().trim().optional().nullable(),
 });
 
 export async function GET() {
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const { name, unit, price, quantity, category, subcategory } = parsed.data;
+    const { name, unit, price, quantity, category, subcategory, description } = parsed.data;
     const [item] = await db
       .insert(stockItems)
       .values({
@@ -49,6 +50,7 @@ export async function POST(req: NextRequest) {
         quantity,
         category,
         subcategory,
+        description: description || null,
       })
       .returning();
     return NextResponse.json({ item }, { status: 201 });
