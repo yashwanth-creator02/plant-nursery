@@ -125,6 +125,11 @@ async function main() {
     ON stock_item_images (stock_item_id);
   `;
 
+  await sql`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS signature TEXT;
+  `;
+
   console.log("Database migrations applied successfully.");
   await sql.end();
   process.exit(0);

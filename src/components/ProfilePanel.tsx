@@ -40,7 +40,7 @@ export function ProfilePanel({
   open: boolean;
   onClose: () => void;
 }) {
-  const { user, logout } = useAuth();
+  const { user, logout, refresh } = useAuth();
   const [activeTab, setActiveTab] = useState<"profile" | "admin">("profile");
 
   const [users, setUsers] = useState<ManagedUser[] | null>(null);
@@ -66,8 +66,52 @@ export function ProfilePanel({
   const [customNumberModalOpen, setCustomNumberModalOpen] = useState(false);
   const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
   const [nextInvoiceNumber, setNextInvoiceNumber] = useState<string>("");
+  const [, setSavingSignature] = useState(false);
 
   const isAdmin = user?.role === "admin";
+
+  async function handleSaveSignature(sig: string) {
+    try {
+      setSavingSignature(true);
+      const res = await fetch("/api/users/signature", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signature: sig }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save signature");
+
+      const savedSig = data.signature;
+      if (savedSig) {
+        localStorage.setItem("svl_digital_signature", savedSig);
+      } else {
+        localStorage.removeItem("svl_digital_signature");
+      }
+      setSignaturePreview(savedSig);
+      await refresh();
+      window.dispatchEvent(new Event("signatureUpdated"));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to save signature to cloud.");
+    } finally {
+      setSavingSignature(false);
+    }
+  }
+
+  async function handleResetSignature() {
+    try {
+      await fetch("/api/users/signature", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signature: null }),
+      });
+      localStorage.removeItem("svl_digital_signature");
+      setSignaturePreview(null);
+      await refresh();
+      window.dispatchEvent(new Event("signatureUpdated"));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to reset signature.");
+    }
+  }
 
   function loadInvoiceSequence() {
     fetch("/api/settings/invoice-sequence")
@@ -98,8 +142,21 @@ export function ProfilePanel({
   useEffect(() => {
     if (open) {
       setIsDark(document.documentElement.classList.contains("dark"));
-      const savedSig = localStorage.getItem("svl_digital_signature");
-      setSignaturePreview(savedSig);
+      const initialSig = user?.signature || localStorage.getItem("svl_digital_signature");
+      setSignaturePreview(initialSig);
+      fetch("/api/users/signature")
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.signature !== undefined) {
+            setSignaturePreview(d.signature);
+            if (d.signature) {
+              localStorage.setItem("svl_digital_signature", d.signature);
+            } else {
+              localStorage.removeItem("svl_digital_signature");
+            }
+          }
+        })
+        .catch(() => {});
       loadInvoiceSequence();
       loadQrCode();
       if (isAdmin) {
@@ -418,7 +475,7 @@ export function ProfilePanel({
 
               {signaturePreview ? (
                 <div className="rounded-lg border border-[#1b365d]/30 bg-blue-50/40 p-2.5 flex items-center justify-between">
-                  {signaturePreview.startsWith("data:image") ? (
+                  {signaturePreview.startsWith("data:image") || signaturePreview.startsWith("http") ? (
                     <img
                       src={signaturePreview}
                       alt="Saved signature"
@@ -431,11 +488,7 @@ export function ProfilePanel({
                   )}
                   <button
                     type="button"
-                    onClick={() => {
-                      localStorage.removeItem("svl_digital_signature");
-                      setSignaturePreview(null);
-                      window.dispatchEvent(new Event("signatureUpdated"));
-                    }}
+                    onClick={handleResetSignature}
                     className="text-[11px] text-rust hover:underline cursor-pointer"
                   >
                     Reset
@@ -752,11 +805,7 @@ export function ProfilePanel({
       <SignatureModal
         open={signatureModalOpen}
         onClose={() => setSignatureModalOpen(false)}
-        onSave={(sig) => {
-          localStorage.setItem("svl_digital_signature", sig);
-          setSignaturePreview(sig);
-          window.dispatchEvent(new Event("signatureUpdated"));
-        }}
+        onSave={handleSaveSignature}
       />
 
       <AdminInvoiceSettingsModal

@@ -31,14 +31,20 @@ export function SignatureModal({ open, onClose, onSave }: SignatureModalProps) {
 
       // Load existing drawn signature if present
       const saved = localStorage.getItem("svl_digital_signature");
-      if (saved && saved.startsWith("data:image")) {
+      if (saved && (saved.startsWith("data:image") || saved.startsWith("http"))) {
         const img = new Image();
+        img.crossOrigin = "anonymous";
         img.onload = () => {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           setHasDrawn(true);
         };
         img.src = saved;
+      }
+    } else if (open && mode === "type") {
+      const saved = localStorage.getItem("svl_digital_signature");
+      if (saved && saved.startsWith("text:")) {
+        setTypedName(saved.replace("text:", ""));
       }
     }
   }, [open, mode]);

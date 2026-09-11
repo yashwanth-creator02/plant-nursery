@@ -18,6 +18,7 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   role: userRoleEnum("role").notNull().default("staff"),
+  signature: text("signature"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

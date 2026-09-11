@@ -12,6 +12,7 @@ export type CurrentUser = {
   id: string;
   username: string;
   role: "admin" | "staff";
+  signature?: string | null;
 };
 
 type AuthContextValue = {

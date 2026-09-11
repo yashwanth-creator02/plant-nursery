@@ -13,6 +13,7 @@ import {
   StockItem,
 } from "@/lib/types";
 import { SmartStockPicker } from "./SmartStockPicker";
+import { useAuth } from "@/lib/auth-context";
 
 const DEFAULT_HEADER = {
   businessName: "SRI VIJAYA LAKSHMI NURSERY",
@@ -35,6 +36,7 @@ export function InvoiceEditor({
   initialInvoice?: InvoiceRecord;
 }) {
   const router = useRouter();
+  const { user } = useAuth();
   const isFinal = initialInvoice?.status === "final";
 
   const [invoiceId, setInvoiceId] = useState(initialInvoice?.id ?? null);
@@ -254,12 +256,12 @@ export function InvoiceEditor({
   ]);
 
   useEffect(() => {
-    // Load custom signature from profile localStorage
-    const savedSig = localStorage.getItem("svl_digital_signature");
+    // Load custom signature from profile / cloud or localStorage
+    const savedSig = user?.signature || localStorage.getItem("svl_digital_signature");
     setCustomSignature(savedSig);
 
     const handleSigUpdate = () => {
-      setCustomSignature(localStorage.getItem("svl_digital_signature"));
+      setCustomSignature(user?.signature || localStorage.getItem("svl_digital_signature"));
     };
     window.addEventListener("signatureUpdated", handleSigUpdate);
 
@@ -929,7 +931,7 @@ export function InvoiceEditor({
           <div className="min-h-[56px] sm:min-h-[64px] flex items-center justify-end py-1">
             {isSigned ? (
               <div className="relative group inline-flex flex-col items-center justify-center">
-                {customSignature && customSignature.startsWith("data:image") ? (
+                {customSignature && (customSignature.startsWith("data:image") || customSignature.startsWith("http")) ? (
                   <img
                     src={customSignature}
                     alt="Digital signature"
