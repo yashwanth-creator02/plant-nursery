@@ -18,17 +18,60 @@ import {
   Trees,
   ShieldPlus,
   Sparkles,
+  Layers,
+  FlaskConical,
+  Shovel,
+  Wrench,
+  Tag,
+  Loader2,
 } from "lucide-react";
-import { formatMoney, StockItem } from "@/lib/types";
+import { formatMoney, StockItem, StockSubcategory } from "@/lib/types";
 
-const PLANT_SUBCATEGORIES = [
-  { id: "all", label: "All Plants", icon: Sprout },
-  { id: "fruit", label: "Fruit Plants", icon: Apple },
-  { id: "flower", label: "Flower Plants", icon: Flower2 },
-  { id: "ornamental", label: "Ornamental Plants", icon: Trees },
-  { id: "medicinal", label: "Medicinal Plants", icon: ShieldPlus },
-  { id: "other", label: "Other Plants", icon: Sparkles },
+const DEFAULT_PLANT_SUBS: StockSubcategory[] = [
+  { id: "fruit", category: "plants", name: "Fruit Plants", slug: "fruit" },
+  { id: "flower", category: "plants", name: "Flower Plants", slug: "flower" },
+  { id: "ornamental", category: "plants", name: "Ornamental Plants", slug: "ornamental" },
+  { id: "medicinal", category: "plants", name: "Medicinal Plants", slug: "medicinal" },
+  { id: "other", category: "plants", name: "Other Plants", slug: "other" },
 ];
+
+const DEFAULT_NON_PLANT_SUBS: StockSubcategory[] = [
+  { id: "pots", category: "non-plants", name: "Pots & Planters", slug: "pots" },
+  { id: "fertilizers", category: "non-plants", name: "Fertilizers & Manure", slug: "fertilizers" },
+  { id: "soil", category: "non-plants", name: "Soil & Substrates", slug: "soil" },
+  { id: "tools", category: "non-plants", name: "Gardening Tools", slug: "tools" },
+  { id: "general", category: "non-plants", name: "General Supplies", slug: "general" },
+];
+
+function getSubcategoryIcon(slug: string, category: "plants" | "non-plants") {
+  const s = slug.toLowerCase();
+  switch (s) {
+    // Plants
+    case "fruit":
+      return Apple;
+    case "flower":
+      return Flower2;
+    case "ornamental":
+      return Trees;
+    case "medicinal":
+      return ShieldPlus;
+    case "other":
+      return Sparkles;
+    // Non-plants
+    case "pots":
+      return Layers;
+    case "fertilizers":
+      return FlaskConical;
+    case "soil":
+      return Shovel;
+    case "tools":
+      return Wrench;
+    case "general":
+      return Package;
+    default:
+      return category === "plants" ? Sprout : Tag;
+  }
+}
 
 export default function StockPage() {
   const [items, setItems] = useState<StockItem[]>([]);
@@ -36,9 +79,18 @@ export default function StockPage() {
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Category Filtering States
+  // Subcategories from Database
+  const [subcategories, setSubcategories] = useState<StockSubcategory[]>([]);
+
+  // Category & Subcategory Filtering States
   const [selectedCategory, setSelectedCategory] = useState<"all" | "plants" | "non-plants">("all");
-  const [selectedPlantSubcategory, setSelectedPlantSubcategory] = useState<string>("all");
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
+
+  // In-place Add Subcategory States
+  const [isAddingSub, setIsAddingSub] = useState<"plants" | "non-plants" | null>(null);
+  const [newSubName, setNewSubName] = useState("");
+  const [savingSub, setSavingSub] = useState(false);
+  const [subError, setSubError] = useState("");
 
   // Add Item Form States
   const [name, setName] = useState("");
@@ -72,7 +124,31 @@ export default function StockPage() {
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, []);
+  function loadSubcategories() {
+    fetch("/api/stock/subcategories", { cache: "no-store" })
+      .then(async (res) => {
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.subcategories) && data.subcategories.length > 0) {
+          setSubcategories(data.subcategories);
+        }
+      })
+      .catch((e) => console.error("Could not load subcategories:", e));
+  }
+
+  useEffect(() => {
+    load();
+    loadSubcategories();
+  }, []);
+
+  const plantSubcategories = useMemo(() => {
+    const fromDb = subcategories.filter((s) => s.category === "plants");
+    return fromDb.length > 0 ? fromDb : DEFAULT_PLANT_SUBS;
+  }, [subcategories]);
+
+  const nonPlantSubcategories = useMemo(() => {
+    const fromDb = subcategories.filter((s) => s.category === "non-plants");
+    return fromDb.length > 0 ? fromDb : DEFAULT_NON_PLANT_SUBS;
+  }, [subcategories]);
 
   const plantCount = useMemo(
     () => items.filter((i) => (i.category || "plants") === "plants").length,
@@ -87,18 +163,18 @@ export default function StockPage() {
     const q = searchQuery.trim().toLowerCase();
     return items.filter((item) => {
       const itemCat = (item.category || "plants").toLowerCase();
-      const itemSub = (item.subcategory || "other").toLowerCase();
+      const itemSub = (item.subcategory || (itemCat === "plants" ? "other" : "general")).toLowerCase();
 
       // Filter by top-level category
       if (selectedCategory !== "all" && itemCat !== selectedCategory) {
         return false;
       }
 
-      // Filter by plant subcategory
+      // Filter by subcategory
       if (
-        selectedCategory === "plants" &&
-        selectedPlantSubcategory !== "all" &&
-        itemSub !== selectedPlantSubcategory
+        selectedCategory !== "all" &&
+        selectedSubcategory !== "all" &&
+        itemSub !== selectedSubcategory.toLowerCase()
       ) {
         return false;
       }
@@ -114,13 +190,19 @@ export default function StockPage() {
 
       return nameMatch || unitMatch || priceMatch || qtyMatch || subMatch || catMatch;
     });
-  }, [items, searchQuery, selectedCategory, selectedPlantSubcategory]);
+  }, [items, searchQuery, selectedCategory, selectedSubcategory]);
 
   async function addItem(e: React.FormEvent) {
     e.preventDefault();
     setAdding(true);
     setError("");
     try {
+      const chosenSubcategory =
+        subcategory ||
+        (category === "plants"
+          ? plantSubcategories[0]?.slug || "fruit"
+          : nonPlantSubcategories[0]?.slug || "general");
+
       const res = await fetch("/api/stock", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -130,7 +212,7 @@ export default function StockPage() {
           price: Number(price) || 0,
           quantity: Number(quantity) || 0,
           category,
-          subcategory: category === "plants" ? subcategory : "general",
+          subcategory: chosenSubcategory,
         }),
       });
       const data = await res.json();
@@ -161,6 +243,7 @@ export default function StockPage() {
   }
 
   function startEdit(item: StockItem) {
+    const isPlant = (item.category || "plants") === "plants";
     setEditingId(item.id);
     setEditDraft({
       name: item.name,
@@ -168,7 +251,11 @@ export default function StockPage() {
       price: item.price.toString(),
       quantity: item.quantity.toString(),
       category: (item.category as "plants" | "non-plants") || "plants",
-      subcategory: item.subcategory || "other",
+      subcategory:
+        item.subcategory ||
+        (isPlant
+          ? plantSubcategories[0]?.slug || "fruit"
+          : nonPlantSubcategories[0]?.slug || "general"),
     });
   }
 
@@ -198,48 +285,98 @@ export default function StockPage() {
     }
   }
 
+  async function handleCreateSubcategory(e: React.FormEvent) {
+    e.preventDefault();
+    if (!isAddingSub || !newSubName.trim()) return;
+
+    setSavingSub(true);
+    setSubError("");
+    try {
+      const res = await fetch("/api/stock/subcategories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newSubName.trim(),
+          category: isAddingSub,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to add subcategory");
+
+      const created: StockSubcategory = data.subcategory;
+      setSubcategories((prev) => {
+        if (prev.some((s) => s.category === created.category && s.slug === created.slug)) {
+          return prev;
+        }
+        return [...prev, created];
+      });
+
+      // Select the new subcategory in filter and form
+      setSelectedSubcategory(created.slug);
+      setSubcategory(created.slug);
+
+      // Reset inline form
+      setIsAddingSub(null);
+      setNewSubName("");
+    } catch (err) {
+      setSubError(err instanceof Error ? err.message : "Failed to add subcategory");
+    } finally {
+      setSavingSub(false);
+    }
+  }
+
   function renderCategoryBadge(cat?: string, sub?: string | null) {
     const isPlant = (cat || "plants") === "plants";
+    const currentSub = (sub || (isPlant ? "other" : "general")).toLowerCase();
+
+    const currentList = isPlant ? plantSubcategories : nonPlantSubcategories;
+    const foundSub = currentList.find((s) => s.slug.toLowerCase() === currentSub);
+    const label =
+      foundSub?.name ||
+      (currentSub.charAt(0).toUpperCase() + currentSub.slice(1));
+    const Icon = getSubcategoryIcon(currentSub, isPlant ? "plants" : "non-plants");
+
     if (!isPlant) {
+      let colorClasses = "bg-slate-100 border-slate-200 text-slate-700";
+      if (currentSub === "pots") {
+        colorClasses = "bg-amber-50/90 border-amber-200 text-amber-800";
+      } else if (currentSub === "fertilizers") {
+        colorClasses = "bg-blue-50 border-blue-200 text-blue-800";
+      } else if (currentSub === "soil") {
+        colorClasses = "bg-stone-100 border-stone-200 text-stone-800";
+      } else if (currentSub === "tools") {
+        colorClasses = "bg-violet-50 border-violet-200 text-violet-800";
+      }
+
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-700">
-          <Package size={11} /> Non-Plant
+        <span
+          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${colorClasses}`}
+        >
+          <Icon size={11} />
+          <span>{label}</span>
         </span>
       );
     }
 
-    switch (sub) {
-      case "fruit":
-        return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-medium text-amber-800">
-            <Apple size={11} /> Fruit Plant
-          </span>
-        );
-      case "flower":
-        return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-pink-50 border border-pink-200 px-2 py-0.5 text-[11px] font-medium text-pink-700">
-            <Flower2 size={11} /> Flower Plant
-          </span>
-        );
-      case "ornamental":
-        return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] font-medium text-emerald-800">
-            <Trees size={11} /> Ornamental
-          </span>
-        );
-      case "medicinal":
-        return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 border border-teal-200 px-2 py-0.5 text-[11px] font-medium text-teal-800">
-            <ShieldPlus size={11} /> Medicinal
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-pine-tint border border-pine/20 px-2 py-0.5 text-[11px] font-medium text-pine-deep">
-            <Sprout size={11} /> Plant
-          </span>
-        );
+    let colorClasses = "bg-pine-tint border-pine/20 text-pine-deep";
+    if (currentSub === "fruit") {
+      colorClasses = "bg-amber-50 border-amber-200 text-amber-800";
+    } else if (currentSub === "flower") {
+      colorClasses = "bg-pink-50 border-pink-200 text-pink-700";
+    } else if (currentSub === "ornamental") {
+      colorClasses = "bg-emerald-50 border-emerald-200 text-emerald-800";
+    } else if (currentSub === "medicinal") {
+      colorClasses = "bg-teal-50 border-teal-200 text-teal-800";
     }
+
+    return (
+      <span
+        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${colorClasses}`}
+      >
+        <Icon size={11} />
+        <span>{label}</span>
+      </span>
+    );
   }
 
   return (
@@ -276,7 +413,10 @@ export default function StockPage() {
           <div className="flex items-center gap-1 rounded-md border border-line-strong bg-paper p-0.5 text-xs">
             <button
               type="button"
-              onClick={() => setCategory("plants")}
+              onClick={() => {
+                setCategory("plants");
+                setSubcategory(plantSubcategories[0]?.slug || "fruit");
+              }}
               className={`flex items-center gap-1.5 rounded px-2.5 py-1 font-medium transition-all cursor-pointer ${
                 category === "plants"
                   ? "bg-surface text-pine-deep font-semibold shadow-xs"
@@ -288,7 +428,10 @@ export default function StockPage() {
             </button>
             <button
               type="button"
-              onClick={() => setCategory("non-plants")}
+              onClick={() => {
+                setCategory("non-plants");
+                setSubcategory(nonPlantSubcategories[0]?.slug || "pots");
+              }}
               className={`flex items-center gap-1.5 rounded px-2.5 py-1 font-medium transition-all cursor-pointer ${
                 category === "non-plants"
                   ? "bg-surface text-pine-deep font-semibold shadow-xs"
@@ -301,18 +444,18 @@ export default function StockPage() {
           </div>
         </div>
 
-        {/* Plant Subcategory Selector (When Plants selected) */}
+        {/* Subcategory Selector for Plants */}
         {category === "plants" && (
           <div className="mb-3 flex flex-wrap items-center gap-1.5">
             <span className="text-xs font-medium text-ink-soft mr-1">Plant Type:</span>
-            {PLANT_SUBCATEGORIES.filter((s) => s.id !== "all").map((sub) => {
-              const Icon = sub.icon;
-              const isSelected = subcategory === sub.id;
+            {plantSubcategories.map((sub) => {
+              const Icon = getSubcategoryIcon(sub.slug, "plants");
+              const isSelected = subcategory === sub.slug;
               return (
                 <button
-                  key={sub.id}
+                  key={sub.slug}
                   type="button"
-                  onClick={() => setSubcategory(sub.id)}
+                  onClick={() => setSubcategory(sub.slug)}
                   className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
                     isSelected
                       ? "bg-pine text-surface font-semibold shadow-xs"
@@ -320,17 +463,36 @@ export default function StockPage() {
                   }`}
                 >
                   <Icon size={12} />
-                  <span>{sub.label}</span>
+                  <span>{sub.name}</span>
                 </button>
               );
             })}
           </div>
         )}
 
-        {/* Non-Plants Notice (When Non-Plants selected) */}
+        {/* Subcategory Selector for Non-Plants */}
         {category === "non-plants" && (
-          <div className="mb-3 rounded-md bg-paper-flat px-3 py-1.5 text-xs text-ink-soft">
-            Adding non-plant supplies (Pots, Soil, Tools, Fertilizers). Future subcategories can be organized here.
+          <div className="mb-3 flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-medium text-ink-soft mr-1">Item Type:</span>
+            {nonPlantSubcategories.map((sub) => {
+              const Icon = getSubcategoryIcon(sub.slug, "non-plants");
+              const isSelected = subcategory === sub.slug;
+              return (
+                <button
+                  key={sub.slug}
+                  type="button"
+                  onClick={() => setSubcategory(sub.slug)}
+                  className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
+                    isSelected
+                      ? "bg-pine text-surface font-semibold shadow-xs"
+                      : "border border-line bg-paper-flat/80 text-ink-soft hover:bg-surface hover:text-ink"
+                  }`}
+                >
+                  <Icon size={12} />
+                  <span>{sub.name}</span>
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -343,7 +505,11 @@ export default function StockPage() {
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={category === "plants" ? "e.g. Alphonso Mango, Kashmiri Rose" : "e.g. 10-inch Clay Pot, Vermicompost"}
+              placeholder={
+                category === "plants"
+                  ? "e.g. Alphonso Mango, Kashmiri Rose"
+                  : "e.g. 10-inch Clay Pot, Vermicompost"
+              }
               className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
             />
           </label>
@@ -393,7 +559,7 @@ export default function StockPage() {
       </form>
 
       {/* ============================================================ */}
-      {/* CATEGORY FILTER: Above Total Inventory Line with Side-by-Side Icons */}
+      {/* CATEGORY FILTER & TYPES DISPLAY WITH '+' IN-PLACE ADDITION    */}
       {/* ============================================================ */}
       <div className="mb-4 flex flex-col gap-2.5">
         {/* Main Category Bar (Side by Side Icons) */}
@@ -402,7 +568,9 @@ export default function StockPage() {
             type="button"
             onClick={() => {
               setSelectedCategory("all");
-              setSelectedPlantSubcategory("all");
+              setSelectedSubcategory("all");
+              setIsAddingSub(null);
+              setSubError("");
             }}
             className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
               selectedCategory === "all"
@@ -427,7 +595,9 @@ export default function StockPage() {
             type="button"
             onClick={() => {
               setSelectedCategory("plants");
-              setSelectedPlantSubcategory("all");
+              setSelectedSubcategory("all");
+              setIsAddingSub(null);
+              setSubError("");
             }}
             className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
               selectedCategory === "plants"
@@ -452,7 +622,9 @@ export default function StockPage() {
             type="button"
             onClick={() => {
               setSelectedCategory("non-plants");
-              setSelectedPlantSubcategory("all");
+              setSelectedSubcategory("all");
+              setIsAddingSub(null);
+              setSubError("");
             }}
             className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
               selectedCategory === "non-plants"
@@ -474,27 +646,51 @@ export default function StockPage() {
           </button>
         </div>
 
-        {/* Secondary Subcategories Row for Plants (Side by Side Icons) */}
+        {/* Secondary Subcategories Row for Plants with in-place '+' */}
         {selectedCategory === "plants" && (
           <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-pine/20 bg-pine-tint/25 p-2 animate-in fade-in duration-150">
             <span className="mr-1 text-[11px] font-bold uppercase tracking-wider text-pine-deep">
               Plant Types:
             </span>
-            {PLANT_SUBCATEGORIES.map((sub) => {
-              const Icon = sub.icon;
-              const active = selectedPlantSubcategory === sub.id;
-              const count =
-                sub.id === "all"
-                  ? plantCount
-                  : items.filter(
-                      (i) => (i.category || "plants") === "plants" && i.subcategory === sub.id,
-                    ).length;
+
+            {/* "All Plants" pill */}
+            <button
+              type="button"
+              onClick={() => setSelectedSubcategory("all")}
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
+                selectedSubcategory === "all"
+                  ? "bg-pine text-surface font-semibold shadow-xs"
+                  : "bg-surface/90 text-ink-soft hover:bg-surface hover:text-ink border border-line"
+              }`}
+            >
+              <Sprout size={13} />
+              <span>All Plants</span>
+              <span
+                className={`rounded-full px-1.5 py-0.1 text-[10px] ${
+                  selectedSubcategory === "all"
+                    ? "bg-white/25 text-surface font-bold"
+                    : "text-ink-soft/70"
+                }`}
+              >
+                {plantCount}
+              </span>
+            </button>
+
+            {/* Dynamic plant subcategories */}
+            {plantSubcategories.map((sub) => {
+              const Icon = getSubcategoryIcon(sub.slug, "plants");
+              const active = selectedSubcategory === sub.slug;
+              const count = items.filter(
+                (i) =>
+                  (i.category || "plants") === "plants" &&
+                  (i.subcategory || "other").toLowerCase() === sub.slug.toLowerCase()
+              ).length;
 
               return (
                 <button
-                  key={sub.id}
+                  key={sub.slug}
                   type="button"
-                  onClick={() => setSelectedPlantSubcategory(sub.id)}
+                  onClick={() => setSelectedSubcategory(sub.slug)}
                   className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
                     active
                       ? "bg-pine text-surface font-semibold shadow-xs"
@@ -502,7 +698,7 @@ export default function StockPage() {
                   }`}
                 >
                   <Icon size={13} />
-                  <span>{sub.label}</span>
+                  <span>{sub.name}</span>
                   <span
                     className={`rounded-full px-1.5 py-0.1 text-[10px] ${
                       active ? "bg-white/25 text-surface font-bold" : "text-ink-soft/70"
@@ -513,16 +709,204 @@ export default function StockPage() {
                 </button>
               );
             })}
+
+            {/* In-place '+' Button / Input Form for Plants */}
+            {isAddingSub === "plants" ? (
+              <form
+                onSubmit={handleCreateSubcategory}
+                className="flex items-center gap-1 rounded-md border border-pine bg-surface px-1.5 py-0.5 shadow-xs animate-in fade-in duration-100"
+              >
+                <input
+                  type="text"
+                  autoFocus
+                  value={newSubName}
+                  onChange={(e) => {
+                    setNewSubName(e.target.value);
+                    if (subError) setSubError("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      setIsAddingSub(null);
+                      setNewSubName("");
+                      setSubError("");
+                    }
+                  }}
+                  placeholder="e.g. Succulents, Bonsai"
+                  disabled={savingSub}
+                  className="w-32 sm:w-40 rounded px-1.5 py-0.5 text-xs text-ink placeholder:text-ink-soft/60 outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={savingSub || !newSubName.trim()}
+                  className="flex items-center justify-center rounded bg-pine p-1 text-surface hover:opacity-90 disabled:opacity-40 cursor-pointer"
+                  title="Save plant type"
+                >
+                  {savingSub ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddingSub(null);
+                    setNewSubName("");
+                    setSubError("");
+                  }}
+                  className="flex items-center justify-center rounded p-1 text-ink-soft hover:bg-line/60 cursor-pointer"
+                  title="Cancel"
+                >
+                  <X size={12} />
+                </button>
+              </form>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddingSub("plants");
+                  setNewSubName("");
+                  setSubError("");
+                }}
+                className="flex items-center gap-1 rounded-md border border-dashed border-pine/40 bg-surface/80 px-2 py-1 text-xs font-semibold text-pine-deep hover:border-pine hover:bg-pine-tint/40 transition-all cursor-pointer shadow-2xs"
+                title="Add new plant subcategory"
+              >
+                <Plus size={13} />
+                <span>Add Type</span>
+              </button>
+            )}
+
+            {subError && isAddingSub === "plants" && (
+              <span className="text-[11px] font-medium text-rust ml-1">{subError}</span>
+            )}
           </div>
         )}
 
-        {/* Non-Plants Info Row */}
+        {/* Secondary Subcategories Row for Non-Plants with in-place '+' */}
         {selectedCategory === "non-plants" && (
-          <div className="flex items-center justify-between rounded-lg border border-line bg-paper-flat px-3 py-2 text-xs text-ink-soft animate-in fade-in duration-150">
-            <span>Showing non-plant supplies and materials.</span>
-            <span className="text-[11px] font-medium text-pine-deep">
-              (More subcategories: Fertilizers, Pots, Tools coming soon)
+          <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50/70 p-2 animate-in fade-in duration-150">
+            <span className="mr-1 text-[11px] font-bold uppercase tracking-wider text-slate-700">
+              Non-Plant Types:
             </span>
+
+            {/* "All Non-Plants" pill */}
+            <button
+              type="button"
+              onClick={() => setSelectedSubcategory("all")}
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
+                selectedSubcategory === "all"
+                  ? "border-pine bg-pine text-surface font-semibold shadow-xs"
+                  : "bg-surface/90 text-ink-soft hover:bg-surface hover:text-ink border border-line"
+              }`}
+            >
+              <Package size={13} />
+              <span>All Non-Plants</span>
+              <span
+                className={`rounded-full px-1.5 py-0.1 text-[10px] ${
+                  selectedSubcategory === "all"
+                    ? "bg-white/25 text-surface font-bold"
+                    : "text-ink-soft/70"
+                }`}
+              >
+                {nonPlantCount}
+              </span>
+            </button>
+
+            {/* Dynamic non-plant subcategories */}
+            {nonPlantSubcategories.map((sub) => {
+              const Icon = getSubcategoryIcon(sub.slug, "non-plants");
+              const active = selectedSubcategory === sub.slug;
+              const count = items.filter(
+                (i) =>
+                  i.category === "non-plants" &&
+                  (i.subcategory || "general").toLowerCase() === sub.slug.toLowerCase()
+              ).length;
+
+              return (
+                <button
+                  key={sub.slug}
+                  type="button"
+                  onClick={() => setSelectedSubcategory(sub.slug)}
+                  className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
+                    active
+                      ? "border-pine bg-pine text-surface font-semibold shadow-xs"
+                      : "bg-surface/90 text-ink-soft hover:bg-surface hover:text-ink border border-line"
+                  }`}
+                >
+                  <Icon size={13} />
+                  <span>{sub.name}</span>
+                  <span
+                    className={`rounded-full px-1.5 py-0.1 text-[10px] ${
+                      active ? "bg-white/25 text-surface font-bold" : "text-ink-soft/70"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+
+            {/* In-place '+' Button / Input Form for Non-Plants */}
+            {isAddingSub === "non-plants" ? (
+              <form
+                onSubmit={handleCreateSubcategory}
+                className="flex items-center gap-1 rounded-md border border-pine bg-surface px-1.5 py-0.5 shadow-xs animate-in fade-in duration-100"
+              >
+                <input
+                  type="text"
+                  autoFocus
+                  value={newSubName}
+                  onChange={(e) => {
+                    setNewSubName(e.target.value);
+                    if (subError) setSubError("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      setIsAddingSub(null);
+                      setNewSubName("");
+                      setSubError("");
+                    }
+                  }}
+                  placeholder="e.g. Pots, Pesticides, Soil"
+                  disabled={savingSub}
+                  className="w-32 sm:w-40 rounded px-1.5 py-0.5 text-xs text-ink placeholder:text-ink-soft/60 outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={savingSub || !newSubName.trim()}
+                  className="flex items-center justify-center rounded bg-pine p-1 text-surface hover:opacity-90 disabled:opacity-40 cursor-pointer"
+                  title="Save non-plant type"
+                >
+                  {savingSub ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddingSub(null);
+                    setNewSubName("");
+                    setSubError("");
+                  }}
+                  className="flex items-center justify-center rounded p-1 text-ink-soft hover:bg-line/60 cursor-pointer"
+                  title="Cancel"
+                >
+                  <X size={12} />
+                </button>
+              </form>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddingSub("non-plants");
+                  setNewSubName("");
+                  setSubError("");
+                }}
+                className="flex items-center gap-1 rounded-md border border-dashed border-line-strong bg-surface/80 px-2 py-1 text-xs font-semibold text-ink-soft hover:border-pine hover:text-pine-deep hover:bg-pine-tint/30 transition-all cursor-pointer shadow-2xs"
+                title="Add new supply subcategory"
+              >
+                <Plus size={13} />
+                <span>Add Type</span>
+              </button>
+            )}
+
+            {subError && isAddingSub === "non-plants" && (
+              <span className="text-[11px] font-medium text-rust ml-1">{subError}</span>
+            )}
           </div>
         )}
       </div>
@@ -533,7 +917,7 @@ export default function StockPage() {
       {items.length > 0 && (
         <div className="mb-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-xs text-ink-soft">
-            {searchQuery || selectedCategory !== "all" || selectedPlantSubcategory !== "all" ? (
+            {searchQuery || selectedCategory !== "all" || selectedSubcategory !== "all" ? (
               <span>
                 Showing <strong className="text-ink">{filteredItems.length}</strong> of{" "}
                 {items.length} {items.length === 1 ? "item" : "items"}
@@ -597,7 +981,8 @@ export default function StockPage() {
             onClick={() => {
               setSearchQuery("");
               setSelectedCategory("all");
-              setSelectedPlantSubcategory("all");
+              setSelectedSubcategory("all");
+              setIsAddingSub(null);
             }}
             className="mt-3 inline-block text-xs font-medium text-pine-deep underline hover:opacity-80 cursor-pointer"
           >
@@ -649,22 +1034,29 @@ export default function StockPage() {
                         <div className="flex flex-col gap-1">
                           <select
                             value={editDraft?.category}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              const newCat = e.target.value as "plants" | "non-plants";
+                              const defaultSub =
+                                newCat === "plants"
+                                  ? plantSubcategories[0]?.slug || "fruit"
+                                  : nonPlantSubcategories[0]?.slug || "pots";
                               setEditDraft((d) =>
                                 d
                                   ? {
                                       ...d,
-                                      category: e.target.value as "plants" | "non-plants",
+                                      category: newCat,
+                                      subcategory: defaultSub,
                                     }
                                   : d,
-                              )
-                            }
+                              );
+                            }}
                             className="rounded border border-line-strong bg-surface px-1.5 py-0.5 text-xs outline-none focus:border-pine"
                           >
                             <option value="plants">Plants</option>
                             <option value="non-plants">Non-Plants</option>
                           </select>
-                          {editDraft?.category === "plants" && (
+
+                          {editDraft?.category === "plants" ? (
                             <select
                               value={editDraft?.subcategory}
                               onChange={(e) =>
@@ -674,11 +1066,27 @@ export default function StockPage() {
                               }
                               className="rounded border border-line-strong bg-surface px-1.5 py-0.5 text-[11px] outline-none focus:border-pine"
                             >
-                              <option value="fruit">Fruit Plants</option>
-                              <option value="flower">Flower Plants</option>
-                              <option value="ornamental">Ornamental Plants</option>
-                              <option value="medicinal">Medicinal Plants</option>
-                              <option value="other">Other Plants</option>
+                              {plantSubcategories.map((s) => (
+                                <option key={s.slug} value={s.slug}>
+                                  {s.name}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <select
+                              value={editDraft?.subcategory}
+                              onChange={(e) =>
+                                setEditDraft((d) =>
+                                  d ? { ...d, subcategory: e.target.value } : d,
+                                )
+                              }
+                              className="rounded border border-line-strong bg-surface px-1.5 py-0.5 text-[11px] outline-none focus:border-pine"
+                            >
+                              {nonPlantSubcategories.map((s) => (
+                                <option key={s.slug} value={s.slug}>
+                                  {s.name}
+                                </option>
+                              ))}
                             </select>
                           )}
                         </div>

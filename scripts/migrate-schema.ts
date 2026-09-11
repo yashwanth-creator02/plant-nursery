@@ -69,6 +69,45 @@ async function main() {
     ADD COLUMN IF NOT EXISTS subcategory TEXT DEFAULT 'other';
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS stock_subcategories (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      category TEXT NOT NULL,
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+  `;
+
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS stock_subcategories_cat_slug_idx 
+    ON stock_subcategories (category, slug);
+  `;
+
+  const defaultPlantSubs = [
+    { category: "plants", name: "Fruit Plants", slug: "fruit" },
+    { category: "plants", name: "Flower Plants", slug: "flower" },
+    { category: "plants", name: "Ornamental Plants", slug: "ornamental" },
+    { category: "plants", name: "Medicinal Plants", slug: "medicinal" },
+    { category: "plants", name: "Other Plants", slug: "other" },
+  ];
+
+  const defaultNonPlantSubs = [
+    { category: "non-plants", name: "Pots & Planters", slug: "pots" },
+    { category: "non-plants", name: "Fertilizers & Manure", slug: "fertilizers" },
+    { category: "non-plants", name: "Soil & Substrates", slug: "soil" },
+    { category: "non-plants", name: "Gardening Tools", slug: "tools" },
+    { category: "non-plants", name: "General Supplies", slug: "general" },
+  ];
+
+  for (const sub of [...defaultPlantSubs, ...defaultNonPlantSubs]) {
+    await sql`
+      INSERT INTO stock_subcategories (category, name, slug)
+      VALUES (${sub.category}, ${sub.name}, ${sub.slug})
+      ON CONFLICT (category, slug) DO NOTHING;
+    `;
+  }
+
   console.log("Database migrations applied successfully.");
   await sql.end();
   process.exit(0);

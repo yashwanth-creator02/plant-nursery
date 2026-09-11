@@ -8,6 +8,14 @@ export type StockItem = {
   subcategory?: string | null;
 };
 
+export type StockSubcategory = {
+  id: string;
+  category: "plants" | "non-plants";
+  name: string;
+  slug: string;
+  createdAt?: string;
+};
+
 export type InvoiceLineItem = {
   key: string;
   stockItemId: string | null;

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Printer, Save, FilePlus2, Trash2, Lock, PenTool, X, AlertTriangle, Banknote, QrCode, Check, Loader2 } from "lucide-react";
 import {
@@ -12,6 +12,7 @@ import {
   InvoiceRecord,
   StockItem,
 } from "@/lib/types";
+import { SmartStockPicker } from "./SmartStockPicker";
 
 const DEFAULT_HEADER = {
   businessName: "SRI VIJAYA LAKSHMI NURSERY",
@@ -91,6 +92,7 @@ export function InvoiceEditor({
   const [stock, setStock] = useState<StockItem[]>([]);
   const [pickerStockId, setPickerStockId] = useState("");
   const [pickerQty, setPickerQty] = useState("1");
+  const qtyInputRef = useRef<HTMLInputElement>(null);
   const [customMode, setCustomMode] = useState(false);
   const [customName, setCustomName] = useState("");
   const [customPrice, setCustomPrice] = useState("");
@@ -988,17 +990,17 @@ export function InvoiceEditor({
 
       {/* Warning or error appears just below the invoice instead of upside */}
       {error && (
-        <div className="mt-4 mb-2 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-600/40 bg-amber-500/10 px-3.5 py-2.5 text-sm font-medium text-amber-900 dark:text-amber-200 shadow-xs print:hidden">
+        <div className="mt-4 mb-2 flex flex-wrap items-center justify-between gap-3 rounded-md border border-red-300 bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-900 shadow-xs print:hidden">
           <div className="flex items-center gap-2">
-            <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
-            <span>{error}</span>
+            <AlertTriangle size={16} className="text-red-600 shrink-0" />
+            <span className="text-red-800 font-medium">{error}</span>
           </div>
           <div className="flex items-center gap-2.5 shrink-0">
             {pendingShortage && (
               <button
                 type="button"
                 onClick={() => addStockItem(true)}
-                className="rounded-md bg-amber-600 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-700 shadow-xs cursor-pointer transition-colors"
+                className="rounded-md bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700 shadow-xs cursor-pointer transition-colors"
               >
                 Force Add to Bill
               </button>
@@ -1009,7 +1011,7 @@ export function InvoiceEditor({
                 setError("");
                 setPendingShortage(null);
               }}
-              className="text-xs underline text-amber-800 dark:text-amber-300 hover:opacity-80 cursor-pointer"
+              className="text-xs underline font-semibold text-red-700 hover:text-red-900 cursor-pointer"
             >
               Dismiss
             </button>
@@ -1028,35 +1030,26 @@ export function InvoiceEditor({
 
           {!customMode ? (
             <div className="flex flex-wrap items-end gap-2.5">
-              <label className="flex w-full min-w-[200px] sm:w-auto sm:flex-1 flex-col gap-1">
+              <div className="flex w-full min-w-[220px] sm:w-auto sm:flex-1 flex-col gap-1">
                 <span className="text-xs text-ink-soft">Select item from stock</span>
-                <select
-                  value={pickerStockId}
-                  onChange={(e) => setPickerStockId(e.target.value)}
-                  className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
-                >
-                  <option value="">Choose a plant / item…</option>
-                  {stock.map((s) => {
-                    const tag =
-                      s.category === "non-plants"
-                        ? "[Non-Plant]"
-                        : s.subcategory && s.subcategory !== "other"
-                        ? `[${s.subcategory.charAt(0).toUpperCase() + s.subcategory.slice(1)}]`
-                        : "[Plant]";
-                    return (
-                      <option key={s.id} value={s.id}>
-                        {tag} {s.name} — Rs {formatMoney(Number(s.price))} ({s.quantity}{" "}
-                        {s.unit || "pcs"} in stock)
-                      </option>
-                    );
-                  })}
-                </select>
-              </label>
+                <SmartStockPicker
+                  stock={stock}
+                  selectedId={pickerStockId}
+                  onSelect={(item) => {
+                    setPickerStockId(item?.id || "");
+                    if (item) {
+                      setTimeout(() => qtyInputRef.current?.focus(), 50);
+                    }
+                  }}
+                  onEnterSubmit={() => addStockItem(hasInsufficientQty)}
+                />
+              </div>
 
               <div className="flex w-full sm:w-auto items-end gap-2">
                 <label className="flex w-20 flex-col gap-1">
                   <span className="text-xs text-ink-soft">Qty (optional)</span>
                   <input
+                    ref={qtyInputRef}
                     type="number"
                     min={0}
                     value={pickerQty}
@@ -1065,31 +1058,31 @@ export function InvoiceEditor({
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
-                        addStockItem(false);
+                        addStockItem(hasInsufficientQty);
                       }
                     }}
                     className="rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm outline-none focus:border-pine"
                   />
                 </label>
 
-                <button
-                  type="button"
-                  onClick={() => addStockItem(false)}
-                  disabled={!pickerStockId}
-                  className="flex items-center gap-1.5 rounded-md bg-pine px-3.5 py-1.5 text-sm font-medium text-surface hover:opacity-90 disabled:opacity-50 shadow-sm cursor-pointer"
-                >
-                  <Plus size={15} /> Add to bill
-                </button>
-
-                {hasInsufficientQty && (
+                {hasInsufficientQty ? (
                   <button
                     type="button"
                     onClick={() => addStockItem(true)}
-                    className="flex items-center gap-1.5 rounded-md border border-amber-600/70 bg-amber-500/15 px-3 py-1.5 text-sm font-semibold text-amber-800 dark:text-amber-200 hover:bg-amber-500/25 shadow-xs cursor-pointer transition-colors"
+                    className="flex items-center gap-1.5 rounded-md bg-red-600 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-red-700 shadow-sm cursor-pointer transition-colors"
                     title={`Available in stock: ${selectedStockItem?.quantity ?? 0}. Click to force add.`}
                   >
-                    <AlertTriangle size={15} className="text-amber-600 dark:text-amber-400" />
-                    Force Add
+                    <AlertTriangle size={15} className="text-white" />
+                    <span>Force Add</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => addStockItem(false)}
+                    disabled={!pickerStockId}
+                    className="flex items-center gap-1.5 rounded-md bg-pine px-3.5 py-1.5 text-sm font-medium text-surface hover:opacity-90 disabled:opacity-50 shadow-sm cursor-pointer"
+                  >
+                    <Plus size={15} /> Add to bill
                   </button>
                 )}
 

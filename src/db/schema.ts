@@ -32,6 +32,14 @@ export const stockItems = pgTable("stock_items", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const stockSubcategories = pgTable("stock_subcategories", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  category: text("category").notNull(), // 'plants' | 'non-plants'
+  name: text("name").notNull(),
+  slug: text("slug").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const businessSettings = pgTable("business_settings", {
   id: uuid("id").defaultRandom().primaryKey(),
   version: integer("version").notNull().default(1),
