@@ -145,8 +145,9 @@ export function ProfilePanel({
       const initialSig = user?.signature || localStorage.getItem("svl_digital_signature");
       setSignaturePreview(initialSig);
       fetch("/api/users/signature")
-        .then((r) => r.json())
-        .then((d) => {
+        .then(async (r) => {
+          if (!r.ok) return;
+          const d = await r.json();
           if (d.signature !== undefined) {
             setSignaturePreview(d.signature);
             if (d.signature) {

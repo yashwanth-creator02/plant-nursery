@@ -3,25 +3,14 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { requireUser } from "@/lib/session";
-import { handleApiError } from "@/lib/api-utils";
+import { getAuthenticatedUser, handleApiError } from "@/lib/api-utils";
 import { uploadUserSignature, deleteUserSignature } from "@/lib/supabase-storage";
 
 export async function GET() {
   try {
-    const sessionUser = await requireUser();
-
-    const [dbUser] = await db
-      .select({
-        id: users.id,
-        signature: users.signature,
-      })
-      .from(users)
-      .where(eq(users.id, sessionUser.id))
-      .limit(1);
-
+    const user = await getAuthenticatedUser();
     return NextResponse.json({
-      signature: dbUser?.signature || null,
+      signature: user.signature || null,
     });
   } catch (err) {
     return handleApiError(err);
@@ -34,7 +23,7 @@ const saveSignatureSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const sessionUser = await requireUser();
+    const user = await getAuthenticatedUser();
     const body = await req.json().catch(() => null);
 
     const parsed = saveSignatureSchema.safeParse(body);
@@ -49,31 +38,33 @@ export async function POST(req: NextRequest) {
 
     // Case 1: Clearing signature
     if (!rawSignature) {
-      await deleteUserSignature(sessionUser.id);
+      await deleteUserSignature(user.id);
       await db
         .update(users)
         .set({ signature: null })
-        .where(eq(users.id, sessionUser.id));
+        .where(eq(users.id, user.id));
 
       return NextResponse.json({ signature: null });
     }
 
     // Case 2: Drawn signature (base64 data URL)
     if (rawSignature.startsWith("data:image")) {
-      const match = rawSignature.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
-      if (!match) {
+      const commaIdx = rawSignature.indexOf(",");
+      if (commaIdx === -1) {
         return NextResponse.json(
           { error: "Invalid signature image format." },
           { status: 400 }
         );
       }
 
-      const contentType = match[1];
-      const base64Data = match[2];
+      const header = rawSignature.slice(0, commaIdx);
+      const base64Data = rawSignature.slice(commaIdx + 1).replace(/\s+/g, "");
+      const mimeMatch = header.match(/^data:(image\/[a-zA-Z0-9.+_-]+);base64/);
+      const contentType = mimeMatch ? mimeMatch[1] : "image/png";
       const buffer = Buffer.from(base64Data, "base64");
 
       const { imageUrl } = await uploadUserSignature({
-        userId: sessionUser.id,
+        userId: user.id,
         fileBuffer: buffer,
         contentType,
       });
@@ -81,7 +72,7 @@ export async function POST(req: NextRequest) {
       await db
         .update(users)
         .set({ signature: imageUrl })
-        .where(eq(users.id, sessionUser.id));
+        .where(eq(users.id, user.id));
 
       return NextResponse.json({ signature: imageUrl });
     }
@@ -90,7 +81,7 @@ export async function POST(req: NextRequest) {
     await db
       .update(users)
       .set({ signature: rawSignature })
-      .where(eq(users.id, sessionUser.id));
+      .where(eq(users.id, user.id));
 
     return NextResponse.json({ signature: rawSignature });
   } catch (err) {
