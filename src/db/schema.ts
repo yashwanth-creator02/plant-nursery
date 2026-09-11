@@ -6,6 +6,7 @@ import {
   numeric,
   timestamp,
   pgEnum,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -92,8 +93,32 @@ export const invoiceItems = pgTable("invoice_items", {
   lineTotal: numeric("line_total", { precision: 12, scale: 2 }).notNull(),
 });
 
+export const stockItemImages = pgTable("stock_item_images", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  stockItemId: uuid("stock_item_id")
+    .notNull()
+    .references(() => stockItems.id, { onDelete: "cascade" }),
+  imageUrl: text("image_url").notNull(),
+  storagePath: text("storage_path").notNull(),
+  description: text("description"),
+  isPrimary: boolean("is_primary").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   invoices: many(invoices),
+}));
+
+export const stockItemsRelations = relations(stockItems, ({ many }) => ({
+  images: many(stockItemImages),
+  invoiceItems: many(invoiceItems),
+}));
+
+export const stockItemImagesRelations = relations(stockItemImages, ({ one }) => ({
+  stockItem: one(stockItems, {
+    fields: [stockItemImages.stockItemId],
+    references: [stockItems.id],
+  }),
 }));
 
 export const invoicesRelations = relations(invoices, ({ one, many }) => ({

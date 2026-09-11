@@ -5,13 +5,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FilePlus2, Receipt, Boxes, Sun, Moon, X } from "lucide-react";
+import { FilePlus2, Receipt, Boxes, Images, Sun, Moon, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 const navItems = [
   { href: "/invoice", label: "New Invoice", icon: FilePlus2 },
   { href: "/invoices", label: "Invoices", icon: Receipt },
   { href: "/stock", label: "Stock", icon: Boxes },
+  { href: "/gallery", label: "Gallery", icon: Images },
 ];
 
 interface SidebarProps {

@@ -108,6 +108,23 @@ async function main() {
     `;
   }
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS stock_item_images (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      stock_item_id UUID NOT NULL REFERENCES stock_items(id) ON DELETE CASCADE,
+      image_url TEXT NOT NULL,
+      storage_path TEXT NOT NULL,
+      description TEXT,
+      is_primary BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS stock_item_images_stock_item_id_idx
+    ON stock_item_images (stock_item_id);
+  `;
+
   console.log("Database migrations applied successfully.");
   await sql.end();
   process.exit(0);

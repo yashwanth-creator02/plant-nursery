@@ -8,6 +8,20 @@ export type StockItem = {
   subcategory?: string | null;
 };
 
+export type StockItemImage = {
+  id: string;
+  stockItemId: string;
+  imageUrl: string;
+  storagePath: string;
+  description: string | null;
+  isPrimary: boolean;
+  createdAt: string;
+};
+
+export type GalleryStockItem = StockItem & {
+  images: StockItemImage[];
+};
+
 export type StockSubcategory = {
   id: string;
   category: "plants" | "non-plants";
