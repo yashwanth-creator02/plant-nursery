@@ -48,6 +48,20 @@ function newKey() {
   return `line-${Date.now()}-${keyCounter}`;
 }
 
+export function getInvoicePdfFileName(custName: string, invNum?: string | null): string {
+  const cleanCust = (custName || "Customer")
+    .trim()
+    .replace(/[/\\?%*:|"<>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim() || "Customer";
+  const cleanNum = (invNum || "Invoice")
+    .trim()
+    .replace(/[/\\?%*:|"<>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim() || "Invoice";
+  return `${cleanCust}_${cleanNum}`;
+}
+
 export function InvoiceEditor({
   initialInvoice,
 }: {
@@ -321,6 +335,34 @@ export function InvoiceEditor({
     };
   }, [isFinal, initialInvoice]);
 
+  const effectiveInvoiceNumber = invoiceNumber || suggestedInvoiceNumber || "Invoice";
+
+  const handlePrint = (overrideNum?: string | null) => {
+    const num = overrideNum || invoiceNumber || suggestedInvoiceNumber;
+    const pdfName = getInvoicePdfFileName(customerName, num);
+    document.title = pdfName;
+    window.print();
+  };
+
+  useEffect(() => {
+    const handleBeforePrint = () => {
+      document.title = getInvoicePdfFileName(customerName, effectiveInvoiceNumber);
+    };
+    window.addEventListener("beforeprint", handleBeforePrint);
+    return () => {
+      window.removeEventListener("beforeprint", handleBeforePrint);
+    };
+  }, [customerName, effectiveInvoiceNumber]);
+
+  useEffect(() => {
+    if (step === "preview" || initialInvoice) {
+      document.title = getInvoicePdfFileName(customerName, effectiveInvoiceNumber);
+    }
+    return () => {
+      document.title = "Sri Vijaya Lakshmi Nursery — Invoices & Stock";
+    };
+  }, [customerName, effectiveInvoiceNumber, step, initialInvoice]);
+
   const total = useMemo(
     () => items.reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0),
     [items],
@@ -556,10 +598,12 @@ export function InvoiceEditor({
 
       if (action === "final") {
         setStep("preview");
+        const finalNum = saved.invoiceNumber || invoiceNumber || suggestedInvoiceNumber;
+        document.title = getInvoicePdfFileName(customerName, finalNum);
         // Direct print from rendered DOM to eliminate blank print bug
         requestAnimationFrame(() => {
           setTimeout(() => {
-            window.print();
+            handlePrint(finalNum);
           }, 150);
         });
       }
@@ -1676,7 +1720,7 @@ export function InvoiceEditor({
                 </>
               ) : (
                 <button
-                  onClick={() => window.print()}
+                  onClick={() => handlePrint()}
                   className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-md bg-pine px-5 py-2.5 text-sm font-medium text-surface shadow-sm transition-opacity hover:opacity-90 cursor-pointer whitespace-nowrap"
                 >
                   <Printer size={15} /> Print Bill
