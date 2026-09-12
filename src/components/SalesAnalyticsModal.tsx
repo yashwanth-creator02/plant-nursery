@@ -679,21 +679,6 @@ export function SalesAnalyticsModal({
 
           <div className="flex items-center gap-2">
             <button
-              type="button"
-              onClick={() => setShowVisualization(!showVisualization)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
-                showVisualization
-                  ? "bg-pine text-white border-pine shadow-xs ring-1 ring-pine"
-                  : "bg-surface text-ink hover:bg-paper border-line text-ink-soft hover:text-ink"
-              }`}
-              title="Toggle data visualization charts"
-            >
-              <BarChart3 size={14} className={showVisualization ? "text-white" : "text-pine-deep"} />
-              <span className="hidden sm:inline">
-                {showVisualization ? "Hide Charts" : "Visualize Data"}
-              </span>
-            </button>
-            <button
               onClick={() => fetchSalesData()}
               disabled={loading}
               title="Refresh Data"
