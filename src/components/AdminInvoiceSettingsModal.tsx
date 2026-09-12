@@ -101,7 +101,7 @@ export function AdminInvoiceSettingsModal({
           <div className="flex items-center gap-2">
             <Building2 size={18} className="text-pine" />
             <h3 className="font-serif text-base font-semibold text-ink">
-              Invoice Header Settings (Admin Only)
+              Invoice Header Settings
             </h3>
           </div>
           <button

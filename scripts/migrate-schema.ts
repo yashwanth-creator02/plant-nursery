@@ -60,6 +60,11 @@ async function main() {
   `;
 
   await sql`
+    ALTER TABLE business_settings
+    ADD COLUMN IF NOT EXISTS logo_data TEXT;
+  `;
+
+  await sql`
     ALTER TABLE stock_items
     ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT 'plants';
   `;

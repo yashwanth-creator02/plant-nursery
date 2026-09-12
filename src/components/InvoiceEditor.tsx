@@ -40,6 +40,7 @@ const DEFAULT_HEADER = {
   address: "Harige B. H. Road, Shimoga - 577203",
   mobiles: "7353025302, 9448140483, 9606602194",
   gstin: "29ADXPV1295N2Z6",
+  logoData: null as string | null,
 };
 
 let keyCounter = 0;
@@ -87,19 +88,11 @@ export function InvoiceEditor({
   );
   const [notes, setNotes] = useState(initialInvoice?.notes ?? "");
   const [paymentMode, setPaymentMode] = useState<"CASH" | "CREDIT">("CASH");
-  const [paymentTag, setPaymentTag] = useState<"cash" | "online">(
-    initialInvoice?.paymentMode ?? "cash",
-  );
-  const [isSigned, setIsSigned] = useState(true);
-  const [customSignature, setCustomSignature] = useState<string | null>(null);
-
-  // QR Payment Modal State
-  const [qrModalOpen, setQrModalOpen] = useState(false);
-  const [qrCodeData, setQrCodeData] = useState<string | null>(null);
-  const [loadingQr, setLoadingQr] = useState(false);
-
   // Invoice version & header snapshot
-  let parsedInitialHeader = DEFAULT_HEADER;
+  let parsedInitialHeader: typeof DEFAULT_HEADER & {
+    signature?: string | null;
+    isSigned?: boolean;
+  } = DEFAULT_HEADER;
   if (initialInvoice?.headerSnapshot) {
     try {
       parsedInitialHeader = {
@@ -113,6 +106,25 @@ export function InvoiceEditor({
     initialInvoice?.version ?? 1,
   );
   const [headerDetails, setHeaderDetails] = useState(parsedInitialHeader);
+
+  const [paymentTag, setPaymentTag] = useState<"cash" | "online">(
+    initialInvoice?.paymentMode ?? "cash",
+  );
+  const [isSigned, setIsSigned] = useState(
+    isFinal
+      ? (parsedInitialHeader.isSigned ?? true)
+      : true,
+  );
+  const [customSignature, setCustomSignature] = useState<string | null>(
+    isFinal && parsedInitialHeader.signature !== undefined
+      ? parsedInitialHeader.signature
+      : null,
+  );
+
+  // QR Payment Modal State
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState<string | null>(null);
+  const [loadingQr, setLoadingQr] = useState(false);
 
   const [items, setItems] = useState<InvoiceLineItem[]>(
     initialInvoice?.items.map((i) => ({
@@ -299,22 +311,34 @@ export function InvoiceEditor({
   ]);
 
   useEffect(() => {
+    // If finalized, signature and header are frozen from snapshot
+    if (isFinal) {
+      if (parsedInitialHeader.signature !== undefined) {
+        setCustomSignature(parsedInitialHeader.signature);
+      }
+      return;
+    }
+
     // Load custom signature from profile / cloud or localStorage
     const savedSig = user?.signature || localStorage.getItem("svl_digital_signature");
     setCustomSignature(savedSig);
 
     const handleSigUpdate = () => {
+      if (isFinal) return;
       setCustomSignature(user?.signature || localStorage.getItem("svl_digital_signature"));
     };
     window.addEventListener("signatureUpdated", handleSigUpdate);
 
-    // If new unsaved invoice, fetch active business settings
-    if (!initialInvoice?.headerSnapshot) {
+    // If new unsaved invoice or draft, fetch active business settings
+    if (!initialInvoice?.headerSnapshot || initialInvoice.status === "draft") {
       fetch("/api/settings/invoice-details")
         .then((r) => r.json())
         .then((d) => {
           if (d.settings) {
-            setHeaderDetails(d.settings);
+            setHeaderDetails((prev) => ({
+              ...prev,
+              ...d.settings,
+            }));
             if (!initialInvoice) {
               setInvoiceVersion(d.settings.version || 1);
             }
@@ -322,6 +346,16 @@ export function InvoiceEditor({
         })
         .catch(() => {});
     }
+
+    const handleLogoUpdate = (e: Event) => {
+      if (isFinal) return;
+      const customEvent = e as CustomEvent<{ logoData: string | null }>;
+      setHeaderDetails((prev) => ({
+        ...prev,
+        logoData: customEvent.detail?.logoData ?? null,
+      }));
+    };
+    window.addEventListener("nurseryLogoUpdated", handleLogoUpdate as EventListener);
 
     if (!isFinal) {
       fetch("/api/stock", { cache: "no-store" })
@@ -332,6 +366,7 @@ export function InvoiceEditor({
 
     return () => {
       window.removeEventListener("signatureUpdated", handleSigUpdate);
+      window.removeEventListener("nurseryLogoUpdated", handleLogoUpdate as EventListener);
     };
   }, [isFinal, initialInvoice]);
 
@@ -544,6 +579,8 @@ export function InvoiceEditor({
         notes: notes.trim(),
         force: hasShortage,
         paymentMode: modeToSave,
+        signature: customSignature,
+        isSigned: isSigned,
         items: items.map((i) => ({
           stockItemId: i.stockItemId,
           name: i.name.trim() || "Item",
@@ -1258,24 +1295,39 @@ export function InvoiceEditor({
               <div
                 id="nursery-logo-placeholder"
                 className="sm:absolute left-0 top-1/2 sm:-translate-y-1/2 flex items-center justify-center shrink-0 mb-1 sm:mb-0"
-                title="Logo Placeholder — Swap with your original SVG"
+                title={headerDetails.logoData ? "Sri Vijaya Lakshmi Nursery Logo" : "Logo Placeholder — Swap with your original SVG"}
               >
-                <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded border border-dashed border-[#1b365d]/50 bg-blue-50/60 text-[#1b365d]">
-                  <svg
-                    className="h-8 w-8 opacity-80"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 2a10 10 0 0 0-10 10c0 5.523 4.477 10 10 10s10-4.477 10-10A10 10 0 0 0 12 2z" />
-                    <path d="M12 18V9" strokeWidth="2" />
-                    <path d="M12 13c-2.5 0-4-2-4-4 2 0 4 1.5 4 4z" fill="currentColor" fillOpacity="0.25" />
-                    <path d="M12 11c2.5 0 4-2 4-4-2 0-4 1.5-4 4z" fill="currentColor" fillOpacity="0.25" />
-                  </svg>
-                </div>
+                {headerDetails.logoData ? (
+                  headerDetails.logoData.trim().startsWith("<svg") ? (
+                    <div
+                      className="h-12 w-12 sm:h-14 sm:w-14 flex items-center justify-center [&>svg]:max-h-full [&>svg]:max-w-full [&>svg]:w-auto [&>svg]:h-auto object-contain text-[#1b365d]"
+                      dangerouslySetInnerHTML={{ __html: headerDetails.logoData }}
+                    />
+                  ) : (
+                    <img
+                      src={headerDetails.logoData}
+                      alt="Nursery Logo"
+                      className="h-12 w-12 sm:h-14 sm:w-14 object-contain"
+                    />
+                  )
+                ) : (
+                  <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded border border-dashed border-[#1b365d]/50 bg-blue-50/60 text-[#1b365d]">
+                    <svg
+                      className="h-8 w-8 opacity-80"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 2a10 10 0 0 0-10 10c0 5.523 4.477 10 10 10s10-4.477 10-10A10 10 0 0 0 12 2z" />
+                      <path d="M12 18V9" strokeWidth="2" />
+                      <path d="M12 13c-2.5 0-4-2-4-4 2 0 4 1.5 4 4z" fill="currentColor" fillOpacity="0.25" />
+                      <path d="M12 11c2.5 0 4-2 4-4-2 0-4 1.5-4 4z" fill="currentColor" fillOpacity="0.25" />
+                    </svg>
+                  </div>
+                )}
               </div>
 
               {/* Centered Government Approval & Address Details */}
@@ -1558,17 +1610,23 @@ export function InvoiceEditor({
                   </span>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[11px] font-medium text-[#1b365d]/80">Digital Signature:</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsSigned(!isSigned)}
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
-                        isSigned
-                          ? "bg-[#1b365d] text-white"
-                          : "border border-[#1b365d]/30 text-[#1b365d] hover:bg-blue-50/50"
-                      }`}
-                    >
-                      {isSigned ? "Included" : "None"}
-                    </button>
+                    {status === "final" ? (
+                      <span className="text-[11px] font-bold text-[#1b365d]">
+                        {isSigned ? "Included (Locked)" : "None"}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setIsSigned(!isSigned)}
+                        className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
+                          isSigned
+                            ? "bg-[#1b365d] text-white"
+                            : "border border-[#1b365d]/30 text-[#1b365d] hover:bg-blue-50/50"
+                        }`}
+                      >
+                        {isSigned ? "Included" : "None"}
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -1608,24 +1666,28 @@ export function InvoiceEditor({
                     <span className="text-[9px] font-sans font-semibold tracking-wider text-[#1b365d]/75 uppercase -mt-0.5">
                       Digitally Signed
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setIsSigned(false)}
-                      className="absolute -top-1 -right-6 opacity-0 group-hover:opacity-100 transition-opacity bg-white border border-[#1b365d]/30 text-[#1b365d]/70 hover:text-rust rounded-full p-0.5 text-[10px] print:hidden shadow-xs cursor-pointer"
-                      title="Remove digital signature"
-                    >
-                      <X size={12} />
-                    </button>
+                    {status !== "final" && (
+                      <button
+                        type="button"
+                        onClick={() => setIsSigned(false)}
+                        className="absolute -top-1 -right-6 opacity-0 group-hover:opacity-100 transition-opacity bg-white border border-[#1b365d]/30 text-[#1b365d]/70 hover:text-rust rounded-full p-0.5 text-[10px] print:hidden shadow-xs cursor-pointer"
+                        title="Remove digital signature"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setIsSigned(true)}
-                    className="rounded border border-dashed border-[#1b365d]/40 bg-blue-50/40 px-3 py-1.5 text-xs font-semibold text-[#1b365d] hover:bg-blue-100/60 print:hidden transition-colors cursor-pointer flex items-center gap-1.5"
-                    title="Click to add digital signature"
-                  >
-                    <PenTool size={12} /> Add Digital Signature
-                  </button>
+                  status !== "final" ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsSigned(true)}
+                      className="rounded border border-dashed border-[#1b365d]/40 bg-blue-50/40 px-3 py-1.5 text-xs font-semibold text-[#1b365d] hover:bg-blue-100/60 print:hidden transition-colors cursor-pointer flex items-center gap-1.5"
+                      title="Click to add digital signature"
+                    >
+                      <PenTool size={12} /> Add Digital Signature
+                    </button>
+                  ) : null
                 )}
               </div>
 

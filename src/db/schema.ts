@@ -60,6 +60,7 @@ export const businessSettings = pgTable("business_settings", {
   mobiles: text("mobiles").notNull().default("7353025302, 9448140483, 9606602194"),
   gstin: text("gstin").notNull().default("29ADXPV1295N2Z6"),
   qrCodeData: text("qr_code_data"),
+  logoData: text("logo_data"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
