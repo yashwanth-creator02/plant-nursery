@@ -300,9 +300,6 @@ export function SalesAnalyticsModal({
           inv.createdByUser.username.toLowerCase().includes(q))
     );
   }, [invoices, searchQuery]);
-
-  if (!open) return null;
-
   // Percentage calculations
   const onlinePercent =
     summary.totalRevenue > 0
@@ -638,6 +635,8 @@ export function SalesAnalyticsModal({
       }))
       .sort((a, b) => b.revenue - a.revenue);
   }, [isAdmin, staffList, filteredInvoices, summary.totalRevenue]);
+
+  if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
