@@ -15,8 +15,6 @@ import {
   X,
   PanelLeftClose,
   PanelLeftOpen,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
@@ -191,22 +189,10 @@ export function Sidebar({
     <>
       {/* Desktop sidebar */}
       <aside
-        className={`hidden md:flex shrink-0 flex-col justify-between border-r border-line bg-paper-flat relative transition-all duration-300 ease-in-out ${
+        className={`hidden md:flex shrink-0 flex-col justify-between border-r border-line bg-paper-flat transition-all duration-300 ease-in-out ${
           collapsed ? "w-16 px-2 py-4" : "w-56 px-3 py-4"
         }`}
       >
-        {/* Desktop edge border toggle button */}
-        {onToggleCollapse && (
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            className="hidden md:flex absolute -right-3 top-6 z-20 h-6 w-6 items-center justify-center rounded-full border border-line bg-surface shadow-xs text-ink-soft hover:text-ink hover:bg-paper hover:scale-110 transition-all cursor-pointer"
-            title={collapsed ? "Expand sidebar (Ctrl+B)" : "Collapse sidebar (Ctrl+B)"}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {collapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
-          </button>
-        )}
 
         <div>
           {collapsed ? (
