@@ -126,6 +126,8 @@ export async function POST(req: Request) {
         address: address.trim(),
         mobiles: (mobiles || "").trim(),
         gstin: (gstin || "").trim(),
+        qrCodeData: latest.length > 0 ? latest[0].qrCodeData : null,
+        logoData: latest.length > 0 ? latest[0].logoData : null,
         updatedAt: new Date(),
       })
       .returning();

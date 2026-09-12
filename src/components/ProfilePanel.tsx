@@ -25,6 +25,7 @@ import {
   Sparkles,
   History,
   FolderArchive,
+  ImageIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -100,6 +101,14 @@ export function ProfilePanel({
   const [qrError, setQrError] = useState("");
   const [qrSuccess, setQrSuccess] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Nursery Logo Settings State
+  const [logoData, setLogoData] = useState<string | null>(null);
+  const [loadingLogo, setLoadingLogo] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoError, setLogoError] = useState("");
+  const [logoSuccess, setLogoSuccess] = useState("");
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
 
   const [signatureModalOpen, setSignatureModalOpen] = useState(false);
   const [adminSettingsModalOpen, setAdminSettingsModalOpen] = useState(false);
@@ -231,6 +240,7 @@ export function ProfilePanel({
         .catch(() => {});
       loadInvoiceSequence();
       loadQrCode();
+      loadLogo();
       loadTodaySales();
       if (isAdmin) {
         loadUsers();
@@ -326,6 +336,122 @@ export function ProfilePanel({
       setQrError(e instanceof Error ? e.message : "Failed to remove QR code");
     } finally {
       setUploadingQr(false);
+    }
+  }
+
+  async function loadLogo() {
+    setLoadingLogo(true);
+    try {
+      const res = await fetch("/api/settings/logo", { cache: "no-store" });
+      const data = await res.json();
+      if (res.ok && data.logoData) {
+        setLogoData(data.logoData);
+      } else {
+        setLogoData(null);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingLogo(false);
+    }
+  }
+
+  async function handleLogoFileUpload(file: File) {
+    const isSvg = file.type === "image/svg+xml" || file.name.toLowerCase().endsWith(".svg");
+    const isImage = file.type.startsWith("image/");
+    if (!isSvg && !isImage) {
+      setLogoError("Please select a valid image file (SVG, PNG, JPG, or WEBP).");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setLogoError("Logo file is too large. Please select a file under 2MB.");
+      return;
+    }
+
+    setUploadingLogo(true);
+    setLogoError("");
+    setLogoSuccess("");
+
+    if (isSvg) {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const rawSvg = reader.result as string;
+          const res = await fetch("/api/settings/logo", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ logoData: rawSvg.trim() }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Failed to update logo");
+          setLogoData(data.logoData);
+          setLogoSuccess("Nursery logo updated successfully! It applies to all future & draft bills.");
+          setTimeout(() => setLogoSuccess(""), 4000);
+          window.dispatchEvent(new CustomEvent("nurseryLogoUpdated", { detail: { logoData: data.logoData } }));
+        } catch (e) {
+          setLogoError(e instanceof Error ? e.message : "Upload failed");
+        } finally {
+          setUploadingLogo(false);
+        }
+      };
+      reader.onerror = () => {
+        setLogoError("Could not read SVG file");
+        setUploadingLogo(false);
+      };
+      reader.readAsText(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const dataUri = reader.result as string;
+          const res = await fetch("/api/settings/logo", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ logoData: dataUri }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Failed to update logo");
+          setLogoData(data.logoData);
+          setLogoSuccess("Nursery logo updated successfully! It applies to all future & draft bills.");
+          setTimeout(() => setLogoSuccess(""), 4000);
+          window.dispatchEvent(new CustomEvent("nurseryLogoUpdated", { detail: { logoData: data.logoData } }));
+        } catch (e) {
+          setLogoError(e instanceof Error ? e.message : "Upload failed");
+        } finally {
+          setUploadingLogo(false);
+        }
+      };
+      reader.onerror = () => {
+        setLogoError("Could not read image file");
+        setUploadingLogo(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  async function handleRemoveLogo() {
+    if (!confirm("Reset to the default nursery plant logo? Future and draft bills will use the default plant logo.")) {
+      return;
+    }
+    setUploadingLogo(true);
+    setLogoError("");
+    setLogoSuccess("");
+    try {
+      const res = await fetch("/api/settings/logo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ logoData: null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to reset logo");
+      setLogoData(null);
+      setLogoSuccess("Logo reset to default plant logo.");
+      setTimeout(() => setLogoSuccess(""), 3500);
+      window.dispatchEvent(new CustomEvent("nurseryLogoUpdated", { detail: { logoData: null } }));
+    } catch (e) {
+      setLogoError(e instanceof Error ? e.message : "Failed to reset logo");
+    } finally {
+      setUploadingLogo(false);
     }
   }
 
@@ -931,6 +1057,133 @@ export function ProfilePanel({
                     className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-pine px-3 py-1 text-xs font-medium text-surface shadow-xs hover:opacity-90"
                   >
                     <Upload size={12} /> Select Photo / Image
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 3. Nursery Logo Upload Section (Admin only) */}
+            <div className="px-5 py-4 border-t border-line">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+                  Nursery Logo (Invoice Header)
+                </span>
+                <span className="text-[10px] font-mono font-bold bg-pine-tint text-pine-deep px-1.5 py-0.5 rounded">
+                  Admin Only
+                </span>
+              </div>
+              <p className="text-xs text-ink-soft mb-3">
+                Upload your official nursery logo (SVG or image). This logo appears on all future and draft invoice headers. Past finalized invoices remain strictly immutable.
+              </p>
+
+              {logoError && (
+                <p className="mb-3 rounded-md bg-rust-tint px-3 py-2 text-xs text-rust">
+                  {logoError}
+                </p>
+              )}
+
+              {logoSuccess && (
+                <p className="mb-3 flex items-center gap-1.5 rounded-md bg-pine-tint px-3 py-2 text-xs text-pine-deep">
+                  <Check size={14} /> {logoSuccess}
+                </p>
+              )}
+
+              {/* Hidden file input for logo */}
+              <input
+                type="file"
+                ref={logoFileInputRef}
+                accept="image/svg+xml,image/*,.svg"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleLogoFileUpload(file);
+                  e.target.value = "";
+                }}
+              />
+
+              {loadingLogo ? (
+                <div className="flex items-center justify-center py-6 text-xs text-ink-soft gap-2">
+                  <Loader2 size={15} className="animate-spin" /> Loading nursery logo…
+                </div>
+              ) : logoData ? (
+                <div className="rounded-lg border border-line bg-paper-flat/70 p-3 flex flex-col items-center gap-3">
+                  <div className="flex items-center justify-center p-2 rounded border border-line bg-white shadow-xs">
+                    {logoData.trim().startsWith("<svg") ? (
+                      <div
+                        className="h-16 w-16 flex items-center justify-center [&>svg]:max-h-full [&>svg]:max-w-full [&>svg]:w-auto [&>svg]:h-auto object-contain text-[#1b365d]"
+                        dangerouslySetInnerHTML={{ __html: logoData }}
+                      />
+                    ) : (
+                      <img
+                        src={logoData}
+                        alt="Nursery Custom Logo"
+                        className="h-16 w-auto max-w-[160px] object-contain"
+                      />
+                    )}
+                  </div>
+                  <span className="text-[11px] font-medium text-ink-soft">
+                    Active Custom Logo (shown on new & draft bills)
+                  </span>
+
+                  <div className="flex items-center gap-2 w-full">
+                    <button
+                      type="button"
+                      disabled={uploadingLogo}
+                      onClick={() => logoFileInputRef.current?.click()}
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-line/50 cursor-pointer disabled:opacity-50"
+                    >
+                      <RefreshCw size={13} /> {uploadingLogo ? "Updating…" : "Change Logo"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={uploadingLogo}
+                      onClick={handleRemoveLogo}
+                      className="flex items-center justify-center gap-1 rounded-md border border-rust/30 bg-rust-tint/40 px-2.5 py-1.5 text-xs font-medium text-rust hover:bg-rust-tint cursor-pointer disabled:opacity-50"
+                      title="Reset to default plant logo"
+                    >
+                      <Trash2 size={13} /> Reset
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onClick={() => !uploadingLogo && logoFileInputRef.current?.click()}
+                  className="rounded-lg border-2 border-dashed border-line-strong/80 p-5 flex flex-col items-center justify-center gap-2 text-center bg-paper-flat/40 hover:bg-paper-flat cursor-pointer transition-colors"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-pine-tint text-pine-deep">
+                    {uploadingLogo ? (
+                      <Loader2 size={22} className="animate-spin" />
+                    ) : (
+                      <svg
+                        className="h-7 w-7 opacity-90"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 2a10 10 0 0 0-10 10c0 5.523 4.477 10 10 10s10-4.477 10-10A10 10 0 0 0 12 2z" />
+                        <path d="M12 18V9" strokeWidth="2" />
+                        <path d="M12 13c-2.5 0-4-2-4-4 2 0 4 1.5 4 4z" fill="currentColor" fillOpacity="0.25" />
+                        <path d="M12 11c2.5 0 4-2 4-4-2 0-4 1.5-4 4z" fill="currentColor" fillOpacity="0.25" />
+                      </svg>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-ink">
+                      {uploadingLogo ? "Updating logo…" : "Upload Nursery Logo"}
+                    </div>
+                    <div className="text-[11px] text-ink-soft mt-0.5">
+                      Supports SVG (recommended), PNG, JPG, or WEBP (max 2MB)
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={uploadingLogo}
+                    className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-pine px-3 py-1 text-xs font-medium text-surface shadow-xs hover:opacity-90 cursor-pointer"
+                  >
+                    <Upload size={12} /> Select Logo File
                   </button>
                 </div>
               )}

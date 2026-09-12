@@ -218,7 +218,7 @@ export async function GET() {
     // 7. Image Manifest (Stock images, signatures, and QR code)
     type ExportImageItem = {
       id: string;
-      category: "stock" | "signature" | "qr";
+      category: "stock" | "signature" | "qr" | "logo";
       targetRelativePath: string;
       downloadUrl: string;
       storagePath?: string;
@@ -277,6 +277,19 @@ export async function GET() {
         targetRelativePath: "business-details/payment-qr.png",
         downloadUrl: "/api/export/image?type=qr",
         dataUri: activeSettings.qrCodeData,
+      });
+    }
+
+    // Nursery Logo
+    if (activeSettings.logoData) {
+      const isSvg = activeSettings.logoData.trim().startsWith("<svg") || activeSettings.logoData.startsWith("data:image/svg+xml");
+      const ext = isSvg ? "svg" : "png";
+      imageFiles.push({
+        id: "nursery-logo",
+        category: "logo",
+        targetRelativePath: `business-details/nursery-logo.${ext}`,
+        downloadUrl: "/api/export/image?type=logo",
+        dataUri: activeSettings.logoData.startsWith("data:") ? activeSettings.logoData : undefined,
       });
     }
 

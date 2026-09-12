@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { invoiceItems, invoices, stockItems } from "@/db/schema";
+import { invoiceItems, invoices, stockItems, businessSettings, users } from "@/db/schema";
 import { requireUser, ForbiddenError } from "@/lib/session";
 import { handleApiError } from "@/lib/api-utils";
 import { advanceInvoiceSequence } from "@/lib/invoice-number";
@@ -23,6 +23,8 @@ const updateSchema = z.object({
   action: z.enum(["save", "finalize"]).default("save"),
   paymentMode: z.enum(["cash", "online"]).optional(),
   force: z.boolean().optional().default(false),
+  signature: z.string().nullable().optional(),
+  isSigned: z.boolean().optional(),
 });
 
 class StockShortageError extends Error {
@@ -100,7 +102,7 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    const { invoiceNumber: customNumber, customerName, customerDetails, notes, items, action, paymentMode, force } = parsed.data;
+    const { invoiceNumber: customNumber, customerName, customerDetails, notes, items, action, paymentMode, force, signature, isSigned } = parsed.data;
 
     const result = await db.transaction(async (tx) => {
       let nextInvNum = existing.invoiceNumber;
@@ -163,6 +165,43 @@ export async function PATCH(
           );
         }
 
+        let nextHeaderSnapshot = existing.headerSnapshot;
+        if (action === "finalize" || !existing.headerSnapshot) {
+          const [activeSettings] = await tx
+            .select()
+            .from(businessSettings)
+            .orderBy(desc(businessSettings.version))
+            .limit(1);
+
+          const activeLogo = activeSettings?.logoData || null;
+
+          let effectiveSig: string | null = signature !== undefined ? signature : null;
+          if (signature === undefined && user.id) {
+            const userRow = await tx
+              .select({ signature: users.signature })
+              .from(users)
+              .where(eq(users.id, user.id))
+              .limit(1);
+            effectiveSig = userRow.length > 0 ? userRow[0].signature : null;
+          }
+
+          const effectiveIsSigned = isSigned !== undefined ? isSigned : true;
+
+          if (activeSettings) {
+            nextHeaderSnapshot = JSON.stringify({
+              businessName: activeSettings.businessName,
+              subheading1: activeSettings.subheading1,
+              subheading2: activeSettings.subheading2,
+              address: activeSettings.address,
+              mobiles: activeSettings.mobiles,
+              gstin: activeSettings.gstin,
+              logoData: activeLogo,
+              signature: effectiveSig,
+              isSigned: effectiveIsSigned,
+            });
+          }
+        }
+
         await tx
           .update(invoices)
           .set({
@@ -173,6 +212,7 @@ export async function PATCH(
             total: total.toFixed(2),
             status: action === "finalize" ? "final" : "draft",
             paymentMode: paymentMode ?? existing.paymentMode ?? "cash",
+            headerSnapshot: nextHeaderSnapshot,
             finalizedAt: action === "finalize" ? new Date() : null,
             updatedAt: new Date(),
           })

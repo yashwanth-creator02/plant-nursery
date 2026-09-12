@@ -55,6 +55,8 @@ export type BusinessSettings = {
   address: string;
   mobiles: string;
   gstin: string;
+  qrCodeData?: string | null;
+  logoData?: string | null;
   updatedAt?: string;
 };
 

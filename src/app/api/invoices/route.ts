@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { invoiceItems, invoices, stockItems, businessSettings } from "@/db/schema";
+import { invoiceItems, invoices, stockItems, businessSettings, users } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { handleApiError } from "@/lib/api-utils";
 import { generateInvoiceNumber, advanceInvoiceSequence } from "@/lib/invoice-number";
@@ -23,6 +23,8 @@ const createSchema = z.object({
   paymentMode: z.enum(["cash", "online"]).optional().default("cash"),
   force: z.boolean().optional().default(false),
   items: z.array(lineItemSchema).optional().default([]),
+  signature: z.string().nullable().optional(),
+  isSigned: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -54,7 +56,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const { invoiceNumber: customNumber, customerName, customerDetails, notes, status, paymentMode, force, items } = parsed.data;
+    const { invoiceNumber: customNumber, customerName, customerDetails, notes, status, paymentMode, force, items, signature, isSigned } = parsed.data;
 
     const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
@@ -113,6 +115,20 @@ export async function POST(req: NextRequest) {
         .limit(1);
 
       const version = activeSettings.length > 0 ? activeSettings[0].version : 1;
+      const activeLogo = activeSettings.length > 0 ? activeSettings[0].logoData : null;
+
+      let effectiveSig: string | null = signature !== undefined ? signature : null;
+      if (signature === undefined && user.id) {
+        const userRow = await tx
+          .select({ signature: users.signature })
+          .from(users)
+          .where(eq(users.id, user.id))
+          .limit(1);
+        effectiveSig = userRow.length > 0 ? userRow[0].signature : null;
+      }
+
+      const effectiveIsSigned = isSigned !== undefined ? isSigned : true;
+
       const headerSnapshot = activeSettings.length > 0
         ? JSON.stringify({
             businessName: activeSettings[0].businessName,
@@ -121,6 +137,9 @@ export async function POST(req: NextRequest) {
             address: activeSettings[0].address,
             mobiles: activeSettings[0].mobiles,
             gstin: activeSettings[0].gstin,
+            logoData: activeLogo || null,
+            signature: effectiveSig,
+            isSigned: effectiveIsSigned,
           })
         : JSON.stringify({
             businessName: "SRI VIJAYA LAKSHMI NURSERY",
@@ -129,6 +148,9 @@ export async function POST(req: NextRequest) {
             address: "Harige B. H. Road, Shimoga - 577203",
             mobiles: "7353025302, 9448140483, 9606602194",
             gstin: "29ADXPV1295N2Z6",
+            logoData: null,
+            signature: effectiveSig,
+            isSigned: effectiveIsSigned,
           });
 
       const [invoice] = await tx

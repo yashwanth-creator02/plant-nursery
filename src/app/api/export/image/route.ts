@@ -29,7 +29,40 @@ export async function GET(req: NextRequest) {
     const userId = searchParams.get("userId");
     const type = searchParams.get("type");
 
-    // 1. Payment QR code
+    // 1a. Nursery Logo
+    if (type === "logo") {
+      const [latest] = await db
+        .select({ logoData: businessSettings.logoData })
+        .from(businessSettings)
+        .orderBy(desc(businessSettings.version))
+        .limit(1);
+
+      if (!latest?.logoData) {
+        return NextResponse.json({ error: "No logo configured" }, { status: 404 });
+      }
+
+      if (latest.logoData.trim().startsWith("<svg")) {
+        return new NextResponse(Buffer.from(latest.logoData, "utf-8"), {
+          headers: {
+            "Content-Type": "image/svg+xml",
+            "Cache-Control": "public, max-age=3600",
+          },
+        });
+      }
+
+      const parsed = dataUriToBuffer(latest.logoData);
+      if (parsed) {
+        return new NextResponse(new Uint8Array(parsed.buffer), {
+          headers: {
+            "Content-Type": parsed.contentType,
+            "Cache-Control": "public, max-age=3600",
+          },
+        });
+      }
+      return NextResponse.json({ error: "Invalid logo format" }, { status: 400 });
+    }
+
+    // 1b. Payment QR code
     if (type === "qr") {
       const [latest] = await db
         .select({ qrCodeData: businessSettings.qrCodeData })
