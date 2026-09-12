@@ -15,8 +15,38 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const isLoginRoute = pathname === "/login";
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("svl_sidebar_collapsed");
+      if (saved === "true") setSidebarCollapsed(true);
+    } catch {}
+  }, []);
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("svl_sidebar_collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Toggle sidebar with Ctrl+B / Cmd+B
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        toggleSidebar();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   useEffect(() => {
     if (loading) return;
@@ -70,6 +100,8 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       </header>
 
       <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={toggleSidebar}
         mobileOpen={mobileMenuOpen}
         onMobileClose={() => setMobileMenuOpen(false)}
         onProfileClick={() => {
