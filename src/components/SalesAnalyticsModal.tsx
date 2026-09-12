@@ -178,10 +178,11 @@ export function SalesAnalyticsModal({
   const [hoveredBucketKey, setHoveredBucketKey] = useState<string | null>(null);
   const [hoveredTooltip, setHoveredTooltip] = useState<{
     key: string;
-    left: number;
-    top: number;
+    x: number;
+    y: number;
   } | null>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const barsWrapperRef = useRef<HTMLDivElement>(null);
 
   // Compute ISO timestamps for API query
   const { startDateISO, endDateISO } = useMemo(() => {
@@ -1183,7 +1184,7 @@ export function SalesAnalyticsModal({
                       </div>
 
                       {/* Bars Area with dynamic floating indicator */}
-                      <div className="relative">
+                      <div ref={barsWrapperRef} className="relative">
                         <div
                           className="h-52 flex items-end gap-1 sm:gap-2 pt-6 pb-1 px-1 sm:px-2 border-b border-line overflow-x-auto"
                           onScroll={() => {
@@ -1208,19 +1209,23 @@ export function SalesAnalyticsModal({
                                 className="relative flex-1 min-w-[28px] sm:min-w-[36px] flex flex-col items-center h-full justify-end group cursor-pointer"
                                 onMouseEnter={(e) => {
                                   setHoveredBucketKey(bucket.key);
-                                  if (chartContainerRef.current) {
-                                    const cRect = chartContainerRef.current.getBoundingClientRect();
-                                    const bRect = e.currentTarget.getBoundingClientRect();
-                                    const left = bRect.left + bRect.width / 2 - cRect.left;
-                                    setHoveredTooltip({ key: bucket.key, left, top: bRect.top - cRect.top });
+                                  if (barsWrapperRef.current) {
+                                    const wRect = barsWrapperRef.current.getBoundingClientRect();
+                                    const barEl = e.currentTarget.querySelector('[data-bar="true"]');
+                                    const barRect = (barEl || e.currentTarget).getBoundingClientRect();
+                                    const x = barRect.left + barRect.width / 2 - wRect.left;
+                                    const y = barRect.top - wRect.top;
+                                    setHoveredTooltip({ key: bucket.key, x, y });
                                   }
                                 }}
                                 onMouseMove={(e) => {
-                                  if (chartContainerRef.current) {
-                                    const cRect = chartContainerRef.current.getBoundingClientRect();
-                                    const bRect = e.currentTarget.getBoundingClientRect();
-                                    const left = bRect.left + bRect.width / 2 - cRect.left;
-                                    setHoveredTooltip({ key: bucket.key, left, top: bRect.top - cRect.top });
+                                  if (barsWrapperRef.current) {
+                                    const wRect = barsWrapperRef.current.getBoundingClientRect();
+                                    const barEl = e.currentTarget.querySelector('[data-bar="true"]');
+                                    const barRect = (barEl || e.currentTarget).getBoundingClientRect();
+                                    const x = barRect.left + barRect.width / 2 - wRect.left;
+                                    const y = barRect.top - wRect.top;
+                                    setHoveredTooltip({ key: bucket.key, x, y });
                                   }
                                 }}
                                 onMouseLeave={() => {
@@ -1244,6 +1249,7 @@ export function SalesAnalyticsModal({
 
                                 {/* The Stacked Bar */}
                                 <div
+                                  data-bar="true"
                                   style={{ height: `${heightPct}%` }}
                                   className={`w-full max-w-[42px] rounded-t-md overflow-hidden flex flex-col justify-end transition-all duration-300 ${
                                     val === 0
@@ -1283,22 +1289,35 @@ export function SalesAnalyticsModal({
                           })}
                         </div>
 
-                        {/* Floating Tooltip anchored inside chart container - NEVER clipped by overflow-x-auto */}
+                        {/* Floating Tooltip anchored inside barsWrapperRef - NEVER clipped */}
                         {hoveredTooltip && (() => {
                           const active = timelineData.find((b) => b.key === hoveredTooltip.key);
                           if (!active) return null;
-                          const cWidth = chartContainerRef.current?.clientWidth || 700;
-                          const clampedLeft = Math.max(115, Math.min(hoveredTooltip.left, cWidth - 115));
-                          const arrowOffset = Math.max(14, Math.min(hoveredTooltip.left - clampedLeft + 105, 196));
+                          const wrapperW = barsWrapperRef.current?.clientWidth || 700;
+                          const cardWidth = 224;
+                          // Center card on bar, clamped within container boundaries
+                          const cardCenterX = Math.max(
+                            cardWidth / 2 + 8,
+                            Math.min(hoveredTooltip.x, wrapperW - cardWidth / 2 - 8)
+                          );
+                          // Exact arrow offset relative to the card's left edge
+                          const arrowInsideCard = Math.max(
+                            14,
+                            Math.min(hoveredTooltip.x - (cardCenterX - cardWidth / 2), cardWidth - 14)
+                          );
+                          // If bar is tall (top is within 65px from wrapper top), flip below bar top.
+                          // Otherwise position cleanly above the bar.
+                          const isAbove = hoveredTooltip.y >= 65;
 
                           return (
                             <div
                               style={{
-                                left: `${clampedLeft}px`,
-                                top: "8px",
-                                transform: "translateX(-50%)",
+                                left: `${cardCenterX}px`,
+                                top: isAbove ? `${hoveredTooltip.y - 8}px` : `${hoveredTooltip.y + 12}px`,
+                                transform: isAbove ? "translate(-50%, -100%)" : "translate(-50%, 0)",
+                                width: `${cardWidth}px`,
                               }}
-                              className="absolute z-30 pointer-events-none rounded-xl border border-line bg-surface/98 backdrop-blur-md p-3 shadow-2xl text-xs whitespace-nowrap min-w-[210px] animate-in fade-in zoom-in-95 duration-150 ring-1 ring-black/5 dark:ring-white/10"
+                              className="absolute z-30 pointer-events-none rounded-xl border border-line bg-surface/98 backdrop-blur-md p-3 shadow-2xl text-xs whitespace-nowrap animate-in fade-in zoom-in-95 duration-100 ring-1 ring-black/5 dark:ring-white/10"
                             >
                               <div className="flex items-center justify-between border-b border-line pb-1.5 mb-2 gap-2">
                                 <span className="font-bold text-ink truncate max-w-[140px]">{active.fullLabel}</span>
@@ -1332,11 +1351,18 @@ export function SalesAnalyticsModal({
                                   </span>
                                 </div>
                               </div>
-                              {/* Downward pointing arrow */}
-                              <div
-                                style={{ left: `${arrowOffset}px` }}
-                                className="absolute top-full -mt-[1px] -translate-x-1/2 w-0 h-0 border-x-[6px] border-x-transparent border-t-[6px] border-t-surface drop-shadow-xs"
-                              />
+                              {/* Arrow Caret */}
+                              {isAbove ? (
+                                <div
+                                  style={{ left: `${arrowInsideCard}px` }}
+                                  className="absolute top-full -mt-[1px] -translate-x-1/2 w-0 h-0 border-x-[6px] border-x-transparent border-t-[6px] border-t-surface drop-shadow-xs"
+                                />
+                              ) : (
+                                <div
+                                  style={{ left: `${arrowInsideCard}px` }}
+                                  className="absolute bottom-full -mb-[1px] -translate-x-1/2 w-0 h-0 border-x-[6px] border-x-transparent border-b-[6px] border-b-surface drop-shadow-xs"
+                                />
+                              )}
                             </div>
                           );
                         })()}
