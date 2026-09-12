@@ -1039,7 +1039,7 @@ export default function StockPage() {
                         ? "text-white/80 hover:bg-white/20 hover:text-white"
                         : "text-ink-soft/60 hover:bg-rust-tint hover:text-rust"
                     }`}
-                    title={`Delete "${cat.name}" category (Admin only)`}
+                    title={`Delete "${cat.name}" category`}
                   >
                     <Trash2 size={11} />
                   </button>
@@ -1236,7 +1236,7 @@ export default function StockPage() {
                           ? "text-white/80 hover:bg-white/20 hover:text-white"
                           : "text-ink-soft/70 hover:bg-rust-tint hover:text-rust"
                       }`}
-                      title={`Delete "${sub.name}" type (Admin only)`}
+                      title={`Delete "${sub.name}" type`}
                     >
                       <Trash2 size={11} />
                     </button>

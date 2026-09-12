@@ -623,11 +623,6 @@ export function ProfilePanel({
                 </div>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="text-xs capitalize font-medium text-ink-soft">{user?.role}</span>
-                  {isAdmin && (
-                    <span className="rounded bg-pine-tint px-1.5 py-0.2 text-[10px] font-bold uppercase tracking-wider text-pine-deep">
-                      Admin Access
-                    </span>
-                  )}
                 </div>
               </div>
             </div>
@@ -840,12 +835,9 @@ export function ProfilePanel({
 
             {/* 1. Admin Invoice Header & Details */}
             <div className="px-5 py-4">
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="mb-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
                   Invoice Details &amp; Header
-                </span>
-                <span className="text-[10px] font-mono font-bold bg-pine-tint text-pine-deep px-1.5 py-0.5 rounded">
-                  Admin Only
                 </span>
               </div>
               <p className="text-xs text-ink-soft mb-2.5">
@@ -961,12 +953,9 @@ export function ProfilePanel({
 
             {/* 2. Payment QR Code Upload Section (Admin only) */}
             <div className="px-5 py-4">
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="mb-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
                   Payment QR Code
-                </span>
-                <span className="text-[10px] font-mono font-bold bg-pine-tint text-pine-deep px-1.5 py-0.5 rounded">
-                  Admin Only
                 </span>
               </div>
               <p className="text-xs text-ink-soft mb-3">
@@ -1064,12 +1053,9 @@ export function ProfilePanel({
 
             {/* 3. Nursery Logo Upload Section (Admin only) */}
             <div className="px-5 py-4 border-t border-line">
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="mb-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
                   Nursery Logo (Invoice Header)
-                </span>
-                <span className="text-[10px] font-mono font-bold bg-pine-tint text-pine-deep px-1.5 py-0.5 rounded">
-                  Admin Only
                 </span>
               </div>
               <p className="text-xs text-ink-soft mb-3">
@@ -1303,12 +1289,9 @@ export function ProfilePanel({
 
             {/* 3.5 Nursery Data Backup & Export (Admin only) */}
             <div className="px-5 py-4 bg-paper-flat/40">
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="mb-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
                   Backup &amp; Full Data Export
-                </span>
-                <span className="rounded bg-pine-tint px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-pine-deep">
-                  Admin Only
                 </span>
               </div>
               <p className="text-xs text-ink-soft mb-3">
