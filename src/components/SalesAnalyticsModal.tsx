@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import {
   X,
   TrendingUp,
@@ -25,6 +25,7 @@ import {
   Layers,
   Eye,
   EyeOff,
+  Info,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -175,6 +176,12 @@ export function SalesAnalyticsModal({
   const [showVisualization, setShowVisualization] = useState<boolean>(false);
   const [chartMetric, setChartMetric] = useState<"revenue" | "count">("revenue");
   const [hoveredBucketKey, setHoveredBucketKey] = useState<string | null>(null);
+  const [hoveredTooltip, setHoveredTooltip] = useState<{
+    key: string;
+    left: number;
+    top: number;
+  } | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
 
   // Compute ISO timestamps for API query
   const { startDateISO, endDateISO } = useMemo(() => {
@@ -1121,117 +1128,218 @@ export function SalesAnalyticsModal({
                 </div>
 
                 {/* Timeline Chart Container */}
-                <div className="rounded-xl border border-line bg-surface p-4">
+                <div ref={chartContainerRef} className="relative rounded-xl border border-line bg-surface p-4">
                   {timelineData.length === 0 || summary.totalRevenue === 0 ? (
                     <div className="h-44 flex flex-col items-center justify-center text-xs text-ink-soft text-center">
                       <BarChart3 size={32} className="text-ink-soft/30 mb-2" />
                       <span>No transactions recorded for this period to visualize.</span>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      {/* Bars Area */}
-                      <div className="h-48 flex items-end gap-1 sm:gap-2 pt-6 pb-1 px-1 sm:px-2 border-b border-line overflow-x-auto">
-                        {timelineData.map((bucket) => {
-                          const val = chartMetric === "revenue" ? bucket.totalRevenue : bucket.totalCount;
-                          const heightPct =
-                            maxTimelineVal > 0
-                              ? Math.max(Math.round((val / maxTimelineVal) * 100), val > 0 ? 8 : 2)
-                              : 2;
-                          const onlineVal =
-                            chartMetric === "revenue" ? bucket.onlineRevenue : bucket.onlineCount;
-                          const onlineRatio = val > 0 ? onlineVal / val : 0;
-                          const isHovered = hoveredBucketKey === bucket.key;
+                    <div className="space-y-3">
+                      {/* Active Interval / Day Inspection Header */}
+                      <div className="min-h-[46px] rounded-lg bg-paper-flat border border-line px-3.5 py-2 flex flex-wrap items-center justify-between gap-2.5 transition-all">
+                        {hoveredBucketKey && timelineData.find((b) => b.key === hoveredBucketKey) ? (() => {
+                          const active = timelineData.find((b) => b.key === hoveredBucketKey)!;
+                          return (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-ink text-xs sm:text-sm flex items-center gap-1.5">
+                                  <Calendar size={14} className="text-pine-deep" />
+                                  {active.fullLabel}
+                                </span>
+                                <span className="rounded-full bg-pine/10 text-pine-deep px-2 py-0.5 text-[10px] font-bold">
+                                  {active.totalCount} {active.totalCount === 1 ? "bill" : "bills"}
+                                </span>
+                              </div>
+                              <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-ink-soft">Total:</span>
+                                  <span className="font-mono font-bold text-ink text-[13px]">{formatCurrency(active.totalRevenue)}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-medium">
+                                  <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                                  <span>Online:</span>
+                                  <span className="font-mono font-semibold">{formatCurrency(active.onlineRevenue)} ({active.onlineCount})</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                                  <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                                  <span>Cash:</span>
+                                  <span className="font-mono font-semibold">{formatCurrency(active.cashRevenue)} ({active.cashCount})</span>
+                                </div>
+                              </div>
+                            </>
+                          );
+                        })() : (
+                          <div className="flex items-center justify-between w-full text-xs text-ink-soft">
+                            <span className="flex items-center gap-1.5">
+                              <Info size={14} className="text-pine-deep/70 shrink-0" />
+                              Hover over or click any bar below to inspect that time period's sales breakdown.
+                            </span>
+                            <span className="text-[11px] font-mono hidden sm:inline shrink-0">
+                              Peak: {chartMetric === "revenue" ? formatCurrency(maxTimelineVal) : `${maxTimelineVal} bills`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Bars Area with dynamic floating indicator */}
+                      <div className="relative">
+                        <div
+                          className="h-52 flex items-end gap-1 sm:gap-2 pt-6 pb-1 px-1 sm:px-2 border-b border-line overflow-x-auto"
+                          onScroll={() => {
+                            setHoveredTooltip(null);
+                            setHoveredBucketKey(null);
+                          }}
+                        >
+                          {timelineData.map((bucket) => {
+                            const val = chartMetric === "revenue" ? bucket.totalRevenue : bucket.totalCount;
+                            const heightPct =
+                              maxTimelineVal > 0
+                                ? Math.max(Math.round((val / maxTimelineVal) * 100), val > 0 ? 8 : 2)
+                                : 2;
+                            const onlineVal =
+                              chartMetric === "revenue" ? bucket.onlineRevenue : bucket.onlineCount;
+                            const onlineRatio = val > 0 ? onlineVal / val : 0;
+                            const isHovered = hoveredBucketKey === bucket.key;
+
+                            return (
+                              <div
+                                key={bucket.key}
+                                className="relative flex-1 min-w-[28px] sm:min-w-[36px] flex flex-col items-center h-full justify-end group cursor-pointer"
+                                onMouseEnter={(e) => {
+                                  setHoveredBucketKey(bucket.key);
+                                  if (chartContainerRef.current) {
+                                    const cRect = chartContainerRef.current.getBoundingClientRect();
+                                    const bRect = e.currentTarget.getBoundingClientRect();
+                                    const left = bRect.left + bRect.width / 2 - cRect.left;
+                                    setHoveredTooltip({ key: bucket.key, left, top: bRect.top - cRect.top });
+                                  }
+                                }}
+                                onMouseMove={(e) => {
+                                  if (chartContainerRef.current) {
+                                    const cRect = chartContainerRef.current.getBoundingClientRect();
+                                    const bRect = e.currentTarget.getBoundingClientRect();
+                                    const left = bRect.left + bRect.width / 2 - cRect.left;
+                                    setHoveredTooltip({ key: bucket.key, left, top: bRect.top - cRect.top });
+                                  }
+                                }}
+                                onMouseLeave={() => {
+                                  setHoveredBucketKey(null);
+                                  setHoveredTooltip(null);
+                                }}
+                                onClick={() => {
+                                  setHoveredBucketKey(bucket.key);
+                                }}
+                              >
+                                {/* Value Label above bar if > 0 */}
+                                {val > 0 && (
+                                  <span className="mb-1 text-[9px] font-mono text-ink-soft opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block">
+                                    {chartMetric === "revenue"
+                                      ? val >= 1000
+                                        ? `₹${(val / 1000).toFixed(1)}k`
+                                        : `₹${val}`
+                                      : `${val}`}
+                                  </span>
+                                )}
+
+                                {/* The Stacked Bar */}
+                                <div
+                                  style={{ height: `${heightPct}%` }}
+                                  className={`w-full max-w-[42px] rounded-t-md overflow-hidden flex flex-col justify-end transition-all duration-300 ${
+                                    val === 0
+                                      ? "bg-line/40"
+                                      : isHovered
+                                      ? "ring-2 ring-pine ring-offset-1 shadow-md scale-y-[1.02]"
+                                      : "shadow-xs"
+                                  }`}
+                                >
+                                  {/* Cash portion (top of stack) */}
+                                  {bucket.cashRevenue > 0 && (
+                                    <div
+                                      style={{ height: `${(1 - onlineRatio) * 100}%` }}
+                                      className="w-full bg-emerald-500 hover:bg-emerald-600 transition-colors"
+                                    />
+                                  )}
+                                  {/* Online portion (bottom of stack) */}
+                                  {bucket.onlineRevenue > 0 && (
+                                    <div
+                                      style={{ height: `${onlineRatio * 100}%` }}
+                                      className="w-full bg-blue-500 hover:bg-blue-600 transition-colors"
+                                    />
+                                  )}
+                                </div>
+
+                                {/* X-axis Label */}
+                                <span
+                                  className={`mt-2 text-[10px] truncate max-w-full font-mono transition-colors ${
+                                    isHovered ? "text-pine-deep font-bold" : "text-ink-soft"
+                                  }`}
+                                  title={bucket.fullLabel}
+                                >
+                                  {bucket.label}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Floating Tooltip anchored inside chart container - NEVER clipped by overflow-x-auto */}
+                        {hoveredTooltip && (() => {
+                          const active = timelineData.find((b) => b.key === hoveredTooltip.key);
+                          if (!active) return null;
+                          const cWidth = chartContainerRef.current?.clientWidth || 700;
+                          const clampedLeft = Math.max(115, Math.min(hoveredTooltip.left, cWidth - 115));
+                          const arrowOffset = Math.max(14, Math.min(hoveredTooltip.left - clampedLeft + 105, 196));
 
                           return (
                             <div
-                              key={bucket.key}
-                              className="relative flex-1 min-w-[28px] sm:min-w-[36px] flex flex-col items-center h-full justify-end group cursor-pointer"
-                              onMouseEnter={() => setHoveredBucketKey(bucket.key)}
-                              onMouseLeave={() => setHoveredBucketKey(null)}
+                              style={{
+                                left: `${clampedLeft}px`,
+                                top: "8px",
+                                transform: "translateX(-50%)",
+                              }}
+                              className="absolute z-30 pointer-events-none rounded-xl border border-line bg-surface/98 backdrop-blur-md p-3 shadow-2xl text-xs whitespace-nowrap min-w-[210px] animate-in fade-in zoom-in-95 duration-150 ring-1 ring-black/5 dark:ring-white/10"
                             >
-                              {/* Hover Tooltip */}
-                              {isHovered && (
-                                <div className="absolute bottom-full mb-2 z-40 pointer-events-none rounded-xl border border-line bg-surface p-3 shadow-2xl text-xs whitespace-nowrap -translate-x-1/2 left-1/2 min-w-[180px] animate-in fade-in zoom-in-95 duration-150">
-                                  <div className="font-bold text-ink border-b border-line pb-1.5 mb-2">
-                                    {bucket.fullLabel}
-                                  </div>
-                                  <div className="space-y-1">
-                                    <div className="flex items-center justify-between text-ink-soft">
-                                      <span>Total:</span>
-                                      <span className="font-bold font-mono text-ink">
-                                        {formatCurrency(bucket.totalRevenue)}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-blue-600 dark:text-blue-400">
-                                      <span>Online (UPI):</span>
-                                      <span className="font-semibold font-mono">
-                                        {formatCurrency(bucket.onlineRevenue)} ({bucket.onlineCount} bills)
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400">
-                                      <span>Cash:</span>
-                                      <span className="font-semibold font-mono">
-                                        {formatCurrency(bucket.cashRevenue)} ({bucket.cashCount} bills)
-                                      </span>
-                                    </div>
-                                    <div className="border-t border-line/60 pt-1 mt-1 flex items-center justify-between text-[11px] text-ink-soft">
-                                      <span>Total Transactions:</span>
-                                      <span className="font-semibold text-ink">{bucket.totalCount}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Value Label above bar if > 0 */}
-                              {val > 0 && (
-                                <span className="mb-1 text-[9px] font-mono text-ink-soft opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block">
-                                  {chartMetric === "revenue"
-                                    ? val >= 1000
-                                      ? `₹${(val / 1000).toFixed(1)}k`
-                                      : `₹${val}`
-                                    : `${val}`}
+                              <div className="flex items-center justify-between border-b border-line pb-1.5 mb-2 gap-2">
+                                <span className="font-bold text-ink truncate max-w-[140px]">{active.fullLabel}</span>
+                                <span className="text-[10px] font-mono font-semibold text-pine-deep bg-pine-tint px-1.5 py-0.5 rounded">
+                                  {active.totalCount} {active.totalCount === 1 ? "bill" : "bills"}
                                 </span>
-                              )}
-
-                              {/* The Stacked Bar */}
-                              <div
-                                style={{ height: `${heightPct}%` }}
-                                className={`w-full max-w-[42px] rounded-t-md overflow-hidden flex flex-col justify-end transition-all duration-300 ${
-                                  val === 0
-                                    ? "bg-line/40"
-                                    : isHovered
-                                    ? "ring-2 ring-pine ring-offset-1 shadow-md scale-y-[1.02]"
-                                    : "shadow-xs"
-                                }`}
-                              >
-                                {/* Cash portion (top of stack) */}
-                                {bucket.cashRevenue > 0 && (
-                                  <div
-                                    style={{ height: `${(1 - onlineRatio) * 100}%` }}
-                                    className="w-full bg-emerald-500 hover:bg-emerald-600 transition-colors"
-                                  />
-                                )}
-                                {/* Online portion (bottom of stack) */}
-                                {bucket.onlineRevenue > 0 && (
-                                  <div
-                                    style={{ height: `${onlineRatio * 100}%` }}
-                                    className="w-full bg-blue-500 hover:bg-blue-600 transition-colors"
-                                  />
-                                )}
                               </div>
-
-                              {/* X-axis Label */}
-                              <span
-                                className={`mt-2 text-[10px] truncate max-w-full font-mono transition-colors ${
-                                  isHovered ? "text-pine-deep font-bold" : "text-ink-soft"
-                                }`}
-                                title={bucket.fullLabel}
-                              >
-                                {bucket.label}
-                              </span>
+                              <div className="space-y-1.5">
+                                <div className="flex items-center justify-between text-ink-soft">
+                                  <span>Total:</span>
+                                  <span className="font-bold font-mono text-ink text-[13px]">
+                                    {formatCurrency(active.totalRevenue)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between text-blue-600 dark:text-blue-400 font-medium">
+                                  <span className="flex items-center gap-1.5">
+                                    <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                                    Online (UPI):
+                                  </span>
+                                  <span className="font-semibold font-mono">
+                                    {formatCurrency(active.onlineRevenue)} ({active.onlineCount})
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-medium">
+                                  <span className="flex items-center gap-1.5">
+                                    <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                                    Cash:
+                                  </span>
+                                  <span className="font-semibold font-mono">
+                                    {formatCurrency(active.cashRevenue)} ({active.cashCount})
+                                  </span>
+                                </div>
+                              </div>
+                              {/* Downward pointing arrow */}
+                              <div
+                                style={{ left: `${arrowOffset}px` }}
+                                className="absolute top-full -mt-[1px] -translate-x-1/2 w-0 h-0 border-x-[6px] border-x-transparent border-t-[6px] border-t-surface drop-shadow-xs"
+                              />
                             </div>
                           );
-                        })}
+                        })()}
                       </div>
                     </div>
                   )}
