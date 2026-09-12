@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import {
   X,
   TrendingUp,
@@ -20,6 +20,12 @@ import {
   ChevronRight,
   Sparkles,
   RefreshCw,
+  BarChart3,
+  PieChart,
+  Layers,
+  Eye,
+  EyeOff,
+  Info,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -166,6 +172,18 @@ export function SalesAnalyticsModal({
     new Date().getFullYear(),
   ]);
 
+  // Data Visualization State
+  const [showVisualization, setShowVisualization] = useState<boolean>(false);
+  const [chartMetric, setChartMetric] = useState<"revenue" | "count">("revenue");
+  const [hoveredBucketKey, setHoveredBucketKey] = useState<string | null>(null);
+  const [hoveredTooltip, setHoveredTooltip] = useState<{
+    key: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const barsWrapperRef = useRef<HTMLDivElement>(null);
+
   // Compute ISO timestamps for API query
   const { startDateISO, endDateISO } = useMemo(() => {
     const now = new Date();
@@ -290,9 +308,6 @@ export function SalesAnalyticsModal({
           inv.createdByUser.username.toLowerCase().includes(q))
     );
   }, [invoices, searchQuery]);
-
-  if (!open) return null;
-
   // Percentage calculations
   const onlinePercent =
     summary.totalRevenue > 0
@@ -302,6 +317,334 @@ export function SalesAnalyticsModal({
     summary.totalRevenue > 0
       ? Math.round((summary.cashRevenue / summary.totalRevenue) * 100)
       : 0;
+
+  // Timeline series aggregation for interactive charts
+  type TimelineBucket = {
+    key: string;
+    label: string;
+    fullLabel: string;
+    totalRevenue: number;
+    onlineRevenue: number;
+    cashRevenue: number;
+    totalCount: number;
+    onlineCount: number;
+    cashCount: number;
+  };
+
+  const timelineData: TimelineBucket[] = useMemo(() => {
+    if (!filteredInvoices || filteredInvoices.length === 0) {
+      return [];
+    }
+
+    // 1. Single Day Mode: 2-Hour Time Slots
+    if (filterMode === "today" || filterMode === "yesterday" || filterMode === "date") {
+      const intervals = [
+        { start: 6, end: 8, label: "6-8 AM", fullLabel: "06:00 AM – 08:00 AM" },
+        { start: 8, end: 10, label: "8-10 AM", fullLabel: "08:00 AM – 10:00 AM" },
+        { start: 10, end: 12, label: "10-12 PM", fullLabel: "10:00 AM – 12:00 PM" },
+        { start: 12, end: 14, label: "12-2 PM", fullLabel: "12:00 PM – 02:00 PM" },
+        { start: 14, end: 16, label: "2-4 PM", fullLabel: "02:00 PM – 04:00 PM" },
+        { start: 16, end: 18, label: "4-6 PM", fullLabel: "04:00 PM – 06:00 PM" },
+        { start: 18, end: 20, label: "6-8 PM", fullLabel: "06:00 PM – 08:00 PM" },
+        { start: 20, end: 24, label: "8-12 AM", fullLabel: "08:00 PM – Midnight" },
+      ];
+
+      const buckets: TimelineBucket[] = intervals.map((slot, idx) => ({
+        key: `slot-${idx}`,
+        label: slot.label,
+        fullLabel: slot.fullLabel,
+        totalRevenue: 0,
+        onlineRevenue: 0,
+        cashRevenue: 0,
+        totalCount: 0,
+        onlineCount: 0,
+        cashCount: 0,
+      }));
+
+      filteredInvoices.forEach((inv) => {
+        const d = new Date(inv.createdAt);
+        const hour = d.getHours();
+        const amt = Number(inv.total) || 0;
+        const isOnline = inv.paymentMode === "online";
+
+        const slotIndex = intervals.findIndex((s) => hour >= s.start && hour < s.end);
+        const target = slotIndex >= 0 ? buckets[slotIndex] : buckets[buckets.length - 1];
+        if (target) {
+          target.totalRevenue += amt;
+          target.totalCount += 1;
+          if (isOnline) {
+            target.onlineRevenue += amt;
+            target.onlineCount += 1;
+          } else {
+            target.cashRevenue += amt;
+            target.cashCount += 1;
+          }
+        }
+      });
+
+      return buckets;
+    }
+
+    // 2. Week Mode: 7 Days
+    if (filterMode === "week") {
+      const buckets: TimelineBucket[] = [];
+      const now = new Date();
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const label = d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric" });
+        const fullLabel = d.toLocaleDateString("en-IN", {
+          weekday: "long",
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+        buckets.push({
+          key,
+          label,
+          fullLabel,
+          totalRevenue: 0,
+          onlineRevenue: 0,
+          cashRevenue: 0,
+          totalCount: 0,
+          onlineCount: 0,
+          cashCount: 0,
+        });
+      }
+
+      filteredInvoices.forEach((inv) => {
+        const d = new Date(inv.createdAt);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const bucket = buckets.find((b) => b.key === key);
+        if (bucket) {
+          const amt = Number(inv.total) || 0;
+          bucket.totalRevenue += amt;
+          bucket.totalCount += 1;
+          if (inv.paymentMode === "online") {
+            bucket.onlineRevenue += amt;
+            bucket.onlineCount += 1;
+          } else {
+            bucket.cashRevenue += amt;
+            bucket.cashCount += 1;
+          }
+        }
+      });
+
+      return buckets;
+    }
+
+    // 3. Year Mode: 12 Months
+    if (filterMode === "year") {
+      const buckets: TimelineBucket[] = [];
+      for (let m = 0; m < 12; m++) {
+        const d = new Date(selectedYear, m, 1);
+        const label = d.toLocaleDateString("en-IN", { month: "short" });
+        const fullLabel = d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+        buckets.push({
+          key: `m-${m}`,
+          label,
+          fullLabel,
+          totalRevenue: 0,
+          onlineRevenue: 0,
+          cashRevenue: 0,
+          totalCount: 0,
+          onlineCount: 0,
+          cashCount: 0,
+        });
+      }
+
+      filteredInvoices.forEach((inv) => {
+        const d = new Date(inv.createdAt);
+        if (d.getFullYear() === selectedYear) {
+          const m = d.getMonth();
+          const bucket = buckets[m];
+          if (bucket) {
+            const amt = Number(inv.total) || 0;
+            bucket.totalRevenue += amt;
+            bucket.totalCount += 1;
+            if (inv.paymentMode === "online") {
+              bucket.onlineRevenue += amt;
+              bucket.onlineCount += 1;
+            } else {
+              bucket.cashRevenue += amt;
+              bucket.cashCount += 1;
+            }
+          }
+        }
+      });
+
+      return buckets;
+    }
+
+    // 4. Month Mode: Days of the Selected Month
+    if (filterMode === "month") {
+      const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+      const buckets: TimelineBucket[] = [];
+      for (let day = 1; day <= daysInMonth; day++) {
+        const d = new Date(selectedYear, selectedMonth, day);
+        const key = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        buckets.push({
+          key,
+          label: String(day),
+          fullLabel: d.toLocaleDateString("en-IN", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+          }),
+          totalRevenue: 0,
+          onlineRevenue: 0,
+          cashRevenue: 0,
+          totalCount: 0,
+          onlineCount: 0,
+          cashCount: 0,
+        });
+      }
+
+      filteredInvoices.forEach((inv) => {
+        const d = new Date(inv.createdAt);
+        if (d.getFullYear() === selectedYear && d.getMonth() === selectedMonth) {
+          const dayIdx = d.getDate() - 1;
+          const bucket = buckets[dayIdx];
+          if (bucket) {
+            const amt = Number(inv.total) || 0;
+            bucket.totalRevenue += amt;
+            bucket.totalCount += 1;
+            if (inv.paymentMode === "online") {
+              bucket.onlineRevenue += amt;
+              bucket.onlineCount += 1;
+            } else {
+              bucket.cashRevenue += amt;
+              bucket.cashCount += 1;
+            }
+          }
+        }
+      });
+
+      return buckets;
+    }
+
+    // 5. Default / Custom Range / All Time: Group by active invoice dates
+    const map = new Map<string, TimelineBucket>();
+    filteredInvoices.forEach((inv) => {
+      const d = new Date(inv.createdAt);
+      const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      if (!map.has(dateKey)) {
+        map.set(dateKey, {
+          key: dateKey,
+          label: d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+          fullLabel: d.toLocaleDateString("en-IN", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          }),
+          totalRevenue: 0,
+          onlineRevenue: 0,
+          cashRevenue: 0,
+          totalCount: 0,
+          onlineCount: 0,
+          cashCount: 0,
+        });
+      }
+      const b = map.get(dateKey)!;
+      const amt = Number(inv.total) || 0;
+      b.totalRevenue += amt;
+      b.totalCount += 1;
+      if (inv.paymentMode === "online") {
+        b.onlineRevenue += amt;
+        b.onlineCount += 1;
+      } else {
+        b.cashRevenue += amt;
+        b.cashCount += 1;
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
+  }, [filteredInvoices, filterMode, selectedYear, selectedMonth]);
+
+  // Max value in timeline data for scaling bar heights
+  const maxTimelineVal = useMemo(() => {
+    if (timelineData.length === 0) return 1;
+    const vals = timelineData.map((d) => (chartMetric === "revenue" ? d.totalRevenue : d.totalCount));
+    return Math.max(...vals, 1);
+  }, [timelineData, chartMetric]);
+
+  // Order size / ticket value distribution
+  const orderSizeDistribution = useMemo(() => {
+    let small = { count: 0, revenue: 0 };
+    let medium = { count: 0, revenue: 0 };
+    let large = { count: 0, revenue: 0 };
+
+    filteredInvoices.forEach((inv) => {
+      const amt = Number(inv.total) || 0;
+      if (amt < 500) {
+        small.count += 1;
+        small.revenue += amt;
+      } else if (amt <= 2000) {
+        medium.count += 1;
+        medium.revenue += amt;
+      } else {
+        large.count += 1;
+        large.revenue += amt;
+      }
+    });
+
+    const total = filteredInvoices.length || 1;
+    return [
+      {
+        label: "Small Bills (< ₹500)",
+        count: small.count,
+        revenue: small.revenue,
+        percent: Math.round((small.count / total) * 100),
+        dotColor: "bg-sky-500",
+        barColor: "bg-sky-500",
+      },
+      {
+        label: "Medium Bills (₹500 – ₹2,000)",
+        count: medium.count,
+        revenue: medium.revenue,
+        percent: Math.round((medium.count / total) * 100),
+        dotColor: "bg-pine",
+        barColor: "bg-pine",
+      },
+      {
+        label: "Large Orders (> ₹2,000)",
+        count: large.count,
+        revenue: large.revenue,
+        percent: Math.round((large.count / total) * 100),
+        dotColor: "bg-amber-500",
+        barColor: "bg-amber-500",
+      },
+    ];
+  }, [filteredInvoices]);
+
+  // Staff sales leaderboard for admin view
+  const staffSalesData = useMemo(() => {
+    if (!isAdmin || staffList.length <= 1) return [];
+    const staffMap = new Map<string, { id: string; username: string; role: string; revenue: number; count: number }>();
+    staffList.forEach((s) => {
+      staffMap.set(s.id, { id: s.id, username: s.username, role: s.role, revenue: 0, count: 0 });
+    });
+
+    filteredInvoices.forEach((inv) => {
+      const uId = inv.createdByUser?.id;
+      if (uId && staffMap.has(uId)) {
+        const item = staffMap.get(uId)!;
+        item.revenue += Number(inv.total) || 0;
+        item.count += 1;
+      }
+    });
+
+    const totalRev = summary.totalRevenue || 1;
+    return Array.from(staffMap.values())
+      .map((s) => ({
+        ...s,
+        percent: Math.round((s.revenue / totalRev) * 100),
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+  }, [isAdmin, staffList, filteredInvoices, summary.totalRevenue]);
+
+  if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
@@ -543,6 +886,46 @@ export function SalesAnalyticsModal({
             </div>
           )}
 
+          {/* Statistics Section Header with Optional "Visualize Data" Toggle Button */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+                  Key Statistics &amp; Performance
+                </h3>
+                <span className="rounded bg-pine-tint px-2 py-0.5 text-[10px] font-bold text-pine-deep font-mono">
+                  {filteredInvoices.length} Bills
+                </span>
+              </div>
+              <p className="text-[11px] text-ink-soft mt-0.5">
+                Financial totals and payment mode breakdown
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowVisualization(!showVisualization)}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border shadow-xs ${
+                showVisualization
+                  ? "bg-pine text-white border-pine shadow-sm ring-2 ring-pine/20"
+                  : "bg-paper text-ink hover:bg-line/50 border-line-strong"
+              }`}
+              title="Toggle interactive data visualization charts"
+            >
+              <BarChart3 size={15} className={showVisualization ? "text-white" : "text-pine"} />
+              <span>{showVisualization ? "Hide Charts" : "Visualize Data"}</span>
+              <span
+                className={`rounded px-1.5 py-0.2 text-[10px] font-mono font-bold uppercase tracking-wider ${
+                  showVisualization
+                    ? "bg-white/20 text-white"
+                    : "bg-pine-tint text-pine-deep"
+                }`}
+              >
+                {showVisualization ? "ON" : "Charts"}
+              </span>
+            </button>
+          </div>
+
           {/* KPI Stat Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {/* Total Revenue Card */}
@@ -646,6 +1029,516 @@ export function SalesAnalyticsModal({
                   title={`Cash: ${cashPercent}%`}
                 />
               </div>
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* OPTIONAL VISUALIZATION DASHBOARD                          */}
+          {/* ========================================================= */}
+          {showVisualization && (
+            <div className="rounded-2xl border border-line bg-paper-flat/70 p-4 sm:p-5 space-y-5 shadow-xs animate-in fade-in zoom-in-95 duration-150">
+              {/* Header of Visualization with Metric Toggle */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pine text-white shadow-xs">
+                    <BarChart3 size={16} />
+                  </div>
+                  <div>
+                    <h4 className="font-serif text-sm font-bold text-ink">
+                      Visual Statistics &amp; Analytics
+                    </h4>
+                    <p className="text-[11px] text-ink-soft">
+                      Interactive chart breakdowns by time, payment mode, and order ticket size
+                    </p>
+                  </div>
+                </div>
+
+                {/* Metric Mode Switcher */}
+                <div className="flex items-center gap-1 rounded-lg border border-line bg-surface p-0.5 text-xs self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setChartMetric("revenue")}
+                    className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+                      chartMetric === "revenue"
+                        ? "bg-pine text-white shadow-xs"
+                        : "text-ink-soft hover:text-ink"
+                    }`}
+                  >
+                    Revenue (₹)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setChartMetric("count")}
+                    className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+                      chartMetric === "count"
+                        ? "bg-pine text-white shadow-xs"
+                        : "text-ink-soft hover:text-ink"
+                    }`}
+                  >
+                    Bill Count (#)
+                  </button>
+                </div>
+              </div>
+
+              {/* 1. Timeline Bar Chart */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="font-semibold text-ink flex items-center gap-2">
+                    <span>
+                      {filterMode === "today" || filterMode === "yesterday" || filterMode === "date"
+                        ? "Hourly Sales Velocity (06:00 AM – 10:00 PM)"
+                        : filterMode === "week"
+                        ? "7-Day Sales Trend"
+                        : filterMode === "month"
+                        ? `Daily Sales Performance (${MONTH_NAMES[selectedMonth]} ${selectedYear})`
+                        : filterMode === "year"
+                        ? `Monthly Performance (${selectedYear})`
+                        : "Sales Performance Timeline"}
+                    </span>
+                    <span className="text-[10px] text-ink-soft font-normal hidden sm:inline">
+                      (Hover over bars for details)
+                    </span>
+                  </div>
+
+                  {/* Legend */}
+                  <div className="flex items-center gap-3 text-[11px] font-medium">
+                    <div className="flex items-center gap-1">
+                      <span className="h-2.5 w-2.5 rounded-sm bg-blue-500"></span>
+                      <span className="text-ink-soft">Online (UPI)</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500"></span>
+                      <span className="text-ink-soft">Cash (Offline)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Timeline Chart Container */}
+                <div ref={chartContainerRef} className="relative rounded-xl border border-line bg-surface p-4">
+                  {timelineData.length === 0 || summary.totalRevenue === 0 ? (
+                    <div className="h-44 flex flex-col items-center justify-center text-xs text-ink-soft text-center">
+                      <BarChart3 size={32} className="text-ink-soft/30 mb-2" />
+                      <span>No transactions recorded for this period to visualize.</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {/* Active Interval / Day Inspection Header */}
+                      <div className="min-h-[46px] rounded-lg bg-paper-flat border border-line px-3.5 py-2 flex flex-wrap items-center justify-between gap-2.5 transition-all">
+                        {hoveredBucketKey && timelineData.find((b) => b.key === hoveredBucketKey) ? (() => {
+                          const active = timelineData.find((b) => b.key === hoveredBucketKey)!;
+                          return (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-ink text-xs sm:text-sm flex items-center gap-1.5">
+                                  <Calendar size={14} className="text-pine-deep" />
+                                  {active.fullLabel}
+                                </span>
+                                <span className="rounded-full bg-pine/10 text-pine-deep px-2 py-0.5 text-[10px] font-bold">
+                                  {active.totalCount} {active.totalCount === 1 ? "bill" : "bills"}
+                                </span>
+                              </div>
+                              <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-ink-soft">Total:</span>
+                                  <span className="font-mono font-bold text-ink text-[13px]">{formatCurrency(active.totalRevenue)}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-medium">
+                                  <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                                  <span>Online:</span>
+                                  <span className="font-mono font-semibold">{formatCurrency(active.onlineRevenue)} ({active.onlineCount})</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                                  <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                                  <span>Cash:</span>
+                                  <span className="font-mono font-semibold">{formatCurrency(active.cashRevenue)} ({active.cashCount})</span>
+                                </div>
+                              </div>
+                            </>
+                          );
+                        })() : (
+                          <div className="flex items-center justify-between w-full text-xs text-ink-soft">
+                            <span className="flex items-center gap-1.5">
+                              <Info size={14} className="text-pine-deep/70 shrink-0" />
+                              Hover over or click any bar below to inspect that time period's sales breakdown.
+                            </span>
+                            <span className="text-[11px] font-mono hidden sm:inline shrink-0">
+                              Peak: {chartMetric === "revenue" ? formatCurrency(maxTimelineVal) : `${maxTimelineVal} bills`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Bars Area with dynamic floating indicator */}
+                      <div ref={barsWrapperRef} className="relative">
+                        <div
+                          className="h-52 flex items-end gap-1 sm:gap-2 pt-6 pb-1 px-1 sm:px-2 border-b border-line overflow-x-auto"
+                          onScroll={() => {
+                            setHoveredTooltip(null);
+                            setHoveredBucketKey(null);
+                          }}
+                        >
+                          {timelineData.map((bucket) => {
+                            const val = chartMetric === "revenue" ? bucket.totalRevenue : bucket.totalCount;
+                            const heightPct =
+                              maxTimelineVal > 0
+                                ? Math.max(Math.round((val / maxTimelineVal) * 100), val > 0 ? 8 : 2)
+                                : 2;
+                            const onlineVal =
+                              chartMetric === "revenue" ? bucket.onlineRevenue : bucket.onlineCount;
+                            const onlineRatio = val > 0 ? onlineVal / val : 0;
+                            const isHovered = hoveredBucketKey === bucket.key;
+
+                            return (
+                              <div
+                                key={bucket.key}
+                                className="relative flex-1 min-w-[28px] sm:min-w-[36px] flex flex-col items-center h-full justify-end group cursor-pointer"
+                                onMouseEnter={(e) => {
+                                  setHoveredBucketKey(bucket.key);
+                                  if (barsWrapperRef.current) {
+                                    const wRect = barsWrapperRef.current.getBoundingClientRect();
+                                    const barEl = e.currentTarget.querySelector('[data-bar="true"]');
+                                    const barRect = (barEl || e.currentTarget).getBoundingClientRect();
+                                    const x = barRect.left + barRect.width / 2 - wRect.left;
+                                    const y = barRect.top - wRect.top;
+                                    setHoveredTooltip({ key: bucket.key, x, y });
+                                  }
+                                }}
+                                onMouseMove={(e) => {
+                                  if (barsWrapperRef.current) {
+                                    const wRect = barsWrapperRef.current.getBoundingClientRect();
+                                    const barEl = e.currentTarget.querySelector('[data-bar="true"]');
+                                    const barRect = (barEl || e.currentTarget).getBoundingClientRect();
+                                    const x = barRect.left + barRect.width / 2 - wRect.left;
+                                    const y = barRect.top - wRect.top;
+                                    setHoveredTooltip({ key: bucket.key, x, y });
+                                  }
+                                }}
+                                onMouseLeave={() => {
+                                  setHoveredBucketKey(null);
+                                  setHoveredTooltip(null);
+                                }}
+                                onClick={() => {
+                                  setHoveredBucketKey(bucket.key);
+                                }}
+                              >
+                                {/* Value Label above bar if > 0 */}
+                                {val > 0 && (
+                                  <span className="mb-1 text-[9px] font-mono text-ink-soft opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block">
+                                    {chartMetric === "revenue"
+                                      ? val >= 1000
+                                        ? `₹${(val / 1000).toFixed(1)}k`
+                                        : `₹${val}`
+                                      : `${val}`}
+                                  </span>
+                                )}
+
+                                {/* The Stacked Bar */}
+                                <div
+                                  data-bar="true"
+                                  style={{ height: `${heightPct}%` }}
+                                  className={`w-full max-w-[42px] rounded-t-md overflow-hidden flex flex-col justify-end transition-all duration-300 ${
+                                    val === 0
+                                      ? "bg-line/40"
+                                      : isHovered
+                                      ? "ring-2 ring-pine ring-offset-1 shadow-md scale-y-[1.02]"
+                                      : "shadow-xs"
+                                  }`}
+                                >
+                                  {/* Cash portion (top of stack) */}
+                                  {bucket.cashRevenue > 0 && (
+                                    <div
+                                      style={{ height: `${(1 - onlineRatio) * 100}%` }}
+                                      className="w-full bg-emerald-500 hover:bg-emerald-600 transition-colors"
+                                    />
+                                  )}
+                                  {/* Online portion (bottom of stack) */}
+                                  {bucket.onlineRevenue > 0 && (
+                                    <div
+                                      style={{ height: `${onlineRatio * 100}%` }}
+                                      className="w-full bg-blue-500 hover:bg-blue-600 transition-colors"
+                                    />
+                                  )}
+                                </div>
+
+                                {/* X-axis Label */}
+                                <span
+                                  className={`mt-2 text-[10px] truncate max-w-full font-mono transition-colors ${
+                                    isHovered ? "text-pine-deep font-bold" : "text-ink-soft"
+                                  }`}
+                                  title={bucket.fullLabel}
+                                >
+                                  {bucket.label}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Floating Tooltip anchored inside barsWrapperRef - NEVER clipped */}
+                        {hoveredTooltip && (() => {
+                          const active = timelineData.find((b) => b.key === hoveredTooltip.key);
+                          if (!active) return null;
+                          const wrapperW = barsWrapperRef.current?.clientWidth || 700;
+                          const cardWidth = 224;
+                          // Center card on bar, clamped within container boundaries
+                          const cardCenterX = Math.max(
+                            cardWidth / 2 + 8,
+                            Math.min(hoveredTooltip.x, wrapperW - cardWidth / 2 - 8)
+                          );
+                          // Exact arrow offset relative to the card's left edge
+                          const arrowInsideCard = Math.max(
+                            14,
+                            Math.min(hoveredTooltip.x - (cardCenterX - cardWidth / 2), cardWidth - 14)
+                          );
+                          // If bar is tall (top is within 65px from wrapper top), flip below bar top.
+                          // Otherwise position cleanly above the bar.
+                          const isAbove = hoveredTooltip.y >= 65;
+
+                          return (
+                            <div
+                              style={{
+                                left: `${cardCenterX}px`,
+                                top: isAbove ? `${hoveredTooltip.y - 8}px` : `${hoveredTooltip.y + 12}px`,
+                                transform: isAbove ? "translate(-50%, -100%)" : "translate(-50%, 0)",
+                                width: `${cardWidth}px`,
+                              }}
+                              className="absolute z-30 pointer-events-none rounded-xl border border-line bg-surface/98 backdrop-blur-md p-3 shadow-2xl text-xs whitespace-nowrap animate-in fade-in zoom-in-95 duration-100 ring-1 ring-black/5 dark:ring-white/10"
+                            >
+                              <div className="flex items-center justify-between border-b border-line pb-1.5 mb-2 gap-2">
+                                <span className="font-bold text-ink truncate max-w-[140px]">{active.fullLabel}</span>
+                                <span className="text-[10px] font-mono font-semibold text-pine-deep bg-pine-tint px-1.5 py-0.5 rounded">
+                                  {active.totalCount} {active.totalCount === 1 ? "bill" : "bills"}
+                                </span>
+                              </div>
+                              <div className="space-y-1.5">
+                                <div className="flex items-center justify-between text-ink-soft">
+                                  <span>Total:</span>
+                                  <span className="font-bold font-mono text-ink text-[13px]">
+                                    {formatCurrency(active.totalRevenue)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between text-blue-600 dark:text-blue-400 font-medium">
+                                  <span className="flex items-center gap-1.5">
+                                    <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                                    Online (UPI):
+                                  </span>
+                                  <span className="font-semibold font-mono">
+                                    {formatCurrency(active.onlineRevenue)} ({active.onlineCount})
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-medium">
+                                  <span className="flex items-center gap-1.5">
+                                    <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                                    Cash:
+                                  </span>
+                                  <span className="font-semibold font-mono">
+                                    {formatCurrency(active.cashRevenue)} ({active.cashCount})
+                                  </span>
+                                </div>
+                              </div>
+                              {/* Arrow Caret */}
+                              {isAbove ? (
+                                <div
+                                  style={{ left: `${arrowInsideCard}px` }}
+                                  className="absolute top-full -mt-[1px] -translate-x-1/2 w-0 h-0 border-x-[6px] border-x-transparent border-t-[6px] border-t-surface drop-shadow-xs"
+                                />
+                              ) : (
+                                <div
+                                  style={{ left: `${arrowInsideCard}px` }}
+                                  className="absolute bottom-full -mb-[1px] -translate-x-1/2 w-0 h-0 border-x-[6px] border-x-transparent border-b-[6px] border-b-surface drop-shadow-xs"
+                                />
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 2. Donut & Order Distribution Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Left: Payment Method Donut Chart */}
+                <div className="rounded-xl border border-line bg-surface p-4 flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-bold text-ink flex items-center gap-1.5">
+                      <PieChart size={14} className="text-pine-deep" />
+                      <span>Payment Method Split</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-ink-soft">
+                      {summary.totalInvoices} Bills
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-5 my-auto py-2">
+                    {/* SVG Donut Circle */}
+                    <div className="relative shrink-0 flex items-center justify-center">
+                      <svg className="w-28 h-28 -rotate-90 transform" viewBox="0 0 120 120">
+                        {/* Background track */}
+                        <circle
+                          cx="60"
+                          cy="60"
+                          r="46"
+                          className="stroke-line"
+                          strokeWidth="14"
+                          fill="transparent"
+                        />
+                        {/* Online (Blue) Arc */}
+                        {onlinePercent > 0 && (
+                          <circle
+                            cx="60"
+                            cy="60"
+                            r="46"
+                            stroke="#3b82f6"
+                            strokeWidth="14"
+                            fill="transparent"
+                            strokeDasharray={`${(onlinePercent / 100) * 289.026} 289.026`}
+                            strokeLinecap="round"
+                            className="transition-all duration-700"
+                          />
+                        )}
+                        {/* Cash (Emerald) Arc */}
+                        {cashPercent > 0 && (
+                          <circle
+                            cx="60"
+                            cy="60"
+                            r="46"
+                            stroke="#10b981"
+                            strokeWidth="14"
+                            fill="transparent"
+                            strokeDasharray={`${(cashPercent / 100) * 289.026} 289.026`}
+                            strokeDashoffset={-((onlinePercent / 100) * 289.026)}
+                            strokeLinecap="round"
+                            className="transition-all duration-700"
+                          />
+                        )}
+                      </svg>
+                      {/* Central Stat */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+                        <span className="text-[10px] font-medium text-ink-soft uppercase">Split</span>
+                        <span className="text-xs font-bold text-ink font-mono">
+                          {onlinePercent}:{cashPercent}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Donut Legend Cards */}
+                    <div className="flex-1 space-y-2 text-xs">
+                      <div className="rounded-lg border border-blue-200/60 bg-blue-50/40 dark:bg-blue-950/20 p-2.5">
+                        <div className="flex items-center justify-between text-blue-700 dark:text-blue-300 font-semibold mb-1">
+                          <span className="flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                            Online (UPI)
+                          </span>
+                          <span>{onlinePercent}%</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-blue-900 dark:text-blue-300/80 font-mono">
+                          <span>{formatCurrency(summary.onlineRevenue)}</span>
+                          <span>{summary.onlineCount} bills</span>
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border border-emerald-200/60 bg-emerald-50/40 dark:bg-emerald-950/20 p-2.5">
+                        <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-300 font-semibold mb-1">
+                          <span className="flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                            Cash (Offline)
+                          </span>
+                          <span>{cashPercent}%</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-emerald-900 dark:text-emerald-300/80 font-mono">
+                          <span>{formatCurrency(summary.cashRevenue)}</span>
+                          <span>{summary.cashCount} bills</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Order Value Size Distribution */}
+                <div className="rounded-xl border border-line bg-surface p-4 flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-bold text-ink flex items-center gap-1.5">
+                      <Layers size={14} className="text-pine-deep" />
+                      <span>Ticket Value Distribution</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-ink-soft">
+                      Avg: {formatCurrency(summary.averageInvoiceValue)}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3 my-auto">
+                    {orderSizeDistribution.map((item) => (
+                      <div key={item.label} className="space-y-1 text-xs">
+                        <div className="flex items-center justify-between text-ink-soft">
+                          <span className="flex items-center gap-1.5 font-medium text-ink">
+                            <span className={`h-2 w-2 rounded-full ${item.dotColor}`}></span>
+                            {item.label}
+                          </span>
+                          <span className="font-mono text-ink font-semibold">
+                            {item.count} bills ({item.percent}%)
+                          </span>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="h-2 w-full rounded-full bg-line overflow-hidden">
+                          <div
+                            style={{ width: `${item.percent}%` }}
+                            className={`h-full ${item.barColor} transition-all duration-500`}
+                          />
+                        </div>
+                        <div className="text-[10px] text-ink-soft text-right font-mono">
+                          Total: {formatCurrency(item.revenue)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Staff Sales Performance (Admin Only) */}
+              {isAdmin && staffSalesData.length > 0 && (
+                <div className="rounded-xl border border-line bg-surface p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-ink flex items-center gap-1.5">
+                      <UserIcon size={14} className="text-pine-deep" />
+                      <span>Staff Sales Contribution</span>
+                    </span>
+                    <span className="text-[10px] text-ink-soft font-mono">
+                      {staffSalesData.length} Staff Members Active
+                    </span>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {staffSalesData.map((staff) => (
+                      <div key={staff.id} className="space-y-1 text-xs">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 font-semibold text-ink">
+                            <span>{staff.username}</span>
+                            <span className="text-[10px] font-normal text-ink-soft capitalize">
+                              ({staff.role})
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 font-mono">
+                            <span className="font-bold text-pine-deep">
+                              {formatCurrency(staff.revenue)}
+                            </span>
+                            <span className="text-ink-soft">
+                              ({staff.count} bills • {staff.percent}%)
+                            </span>
+                          </div>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-line overflow-hidden">
+                          <div
+                            style={{ width: `${staff.percent}%` }}
+                            className="h-full bg-pine transition-all duration-500"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
