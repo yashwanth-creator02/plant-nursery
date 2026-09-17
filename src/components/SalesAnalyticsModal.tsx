@@ -34,6 +34,10 @@ type FilterMode =
   | "today"
   | "yesterday"
   | "week"
+  | "this_month"
+  | "last_month"
+  | "quarterly"
+  | "half_yearly"
   | "month"
   | "year"
   | "date"
@@ -137,6 +141,8 @@ export function SalesAnalyticsModal({
   const [filterMode, setFilterMode] = useState<FilterMode>("today");
   const [specificDate, setSpecificDate] = useState<string>(getTodayString());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedQuarter, setSelectedQuarter] = useState<number>(() => Math.floor(new Date().getMonth() / 3) + 1);
+  const [selectedHalf, setSelectedHalf] = useState<number>(() => (new Date().getMonth() < 6 ? 1 : 2));
 
   const handleViewInvoice = (invoiceId: string) => {
     if (onNavigate) {
@@ -209,6 +215,34 @@ export function SalesAnalyticsModal({
       return { startDateISO: start.toISOString(), endDateISO: end.toISOString() };
     }
 
+    if (filterMode === "this_month") {
+      const start = new Date(curYear, curMonth, 1, 0, 0, 0, 0);
+      const end = new Date(curYear, curMonth + 1, 0, 23, 59, 59, 999);
+      return { startDateISO: start.toISOString(), endDateISO: end.toISOString() };
+    }
+
+    if (filterMode === "last_month") {
+      const start = new Date(curYear, curMonth - 1, 1, 0, 0, 0, 0);
+      const end = new Date(curYear, curMonth, 0, 23, 59, 59, 999);
+      return { startDateISO: start.toISOString(), endDateISO: end.toISOString() };
+    }
+
+    if (filterMode === "quarterly") {
+      const startMonth = (selectedQuarter - 1) * 3;
+      const endMonth = startMonth + 2;
+      const start = new Date(selectedYear, startMonth, 1, 0, 0, 0, 0);
+      const end = new Date(selectedYear, endMonth + 1, 0, 23, 59, 59, 999);
+      return { startDateISO: start.toISOString(), endDateISO: end.toISOString() };
+    }
+
+    if (filterMode === "half_yearly") {
+      const startMonth = (selectedHalf - 1) * 6;
+      const endMonth = startMonth + 5;
+      const start = new Date(selectedYear, startMonth, 1, 0, 0, 0, 0);
+      const end = new Date(selectedYear, endMonth + 1, 0, 23, 59, 59, 999);
+      return { startDateISO: start.toISOString(), endDateISO: end.toISOString() };
+    }
+
     if (filterMode === "month") {
       const start = new Date(selectedYear, selectedMonth, 1, 0, 0, 0, 0);
       const end = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
@@ -246,6 +280,8 @@ export function SalesAnalyticsModal({
     filterMode,
     specificDate,
     selectedMonth,
+    selectedQuarter,
+    selectedHalf,
     selectedYear,
     customStartDate,
     customEndDate,
@@ -433,6 +469,100 @@ export function SalesAnalyticsModal({
       return buckets;
     }
 
+    // Quarterly Mode: 3 Months of Selected Quarter
+    if (filterMode === "quarterly") {
+      const startMonth = (selectedQuarter - 1) * 3;
+      const buckets: TimelineBucket[] = [];
+      for (let i = 0; i < 3; i++) {
+        const m = startMonth + i;
+        const d = new Date(selectedYear, m, 1);
+        const label = d.toLocaleDateString("en-IN", { month: "short" });
+        const fullLabel = d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+        buckets.push({
+          key: `qm-${m}`,
+          label,
+          fullLabel,
+          totalRevenue: 0,
+          onlineRevenue: 0,
+          cashRevenue: 0,
+          totalCount: 0,
+          onlineCount: 0,
+          cashCount: 0,
+        });
+      }
+
+      filteredInvoices.forEach((inv) => {
+        const d = new Date(inv.createdAt);
+        if (d.getFullYear() === selectedYear) {
+          const m = d.getMonth();
+          if (m >= startMonth && m < startMonth + 3) {
+            const bucket = buckets[m - startMonth];
+            if (bucket) {
+              const amt = Number(inv.total) || 0;
+              bucket.totalRevenue += amt;
+              bucket.totalCount += 1;
+              if (inv.paymentMode === "online") {
+                bucket.onlineRevenue += amt;
+                bucket.onlineCount += 1;
+              } else {
+                bucket.cashRevenue += amt;
+                bucket.cashCount += 1;
+              }
+            }
+          }
+        }
+      });
+
+      return buckets;
+    }
+
+    // Half-Yearly Mode: 6 Months of Selected Half
+    if (filterMode === "half_yearly") {
+      const startMonth = (selectedHalf - 1) * 6;
+      const buckets: TimelineBucket[] = [];
+      for (let i = 0; i < 6; i++) {
+        const m = startMonth + i;
+        const d = new Date(selectedYear, m, 1);
+        const label = d.toLocaleDateString("en-IN", { month: "short" });
+        const fullLabel = d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+        buckets.push({
+          key: `hm-${m}`,
+          label,
+          fullLabel,
+          totalRevenue: 0,
+          onlineRevenue: 0,
+          cashRevenue: 0,
+          totalCount: 0,
+          onlineCount: 0,
+          cashCount: 0,
+        });
+      }
+
+      filteredInvoices.forEach((inv) => {
+        const d = new Date(inv.createdAt);
+        if (d.getFullYear() === selectedYear) {
+          const m = d.getMonth();
+          if (m >= startMonth && m < startMonth + 6) {
+            const bucket = buckets[m - startMonth];
+            if (bucket) {
+              const amt = Number(inv.total) || 0;
+              bucket.totalRevenue += amt;
+              bucket.totalCount += 1;
+              if (inv.paymentMode === "online") {
+                bucket.onlineRevenue += amt;
+                bucket.onlineCount += 1;
+              } else {
+                bucket.cashRevenue += amt;
+                bucket.cashCount += 1;
+              }
+            }
+          }
+        }
+      });
+
+      return buckets;
+    }
+
     // 3. Year Mode: 12 Months
     if (filterMode === "year") {
       const buckets: TimelineBucket[] = [];
@@ -560,7 +690,7 @@ export function SalesAnalyticsModal({
     });
 
     return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
-  }, [filteredInvoices, filterMode, selectedYear, selectedMonth]);
+  }, [filteredInvoices, filterMode, selectedYear, selectedMonth, selectedQuarter, selectedHalf]);
 
   // Max value in timeline data for scaling bar heights
   const maxTimelineVal = useMemo(() => {
@@ -704,6 +834,10 @@ export function SalesAnalyticsModal({
               { id: "today", label: "Today" },
               { id: "yesterday", label: "Yesterday" },
               { id: "week", label: "Last 7 Days" },
+              { id: "this_month", label: "This Month" },
+              { id: "last_month", label: "Last Month" },
+              { id: "quarterly", label: "Quarterly" },
+              { id: "half_yearly", label: "Half Yearly" },
               { id: "month", label: "By Month" },
               { id: "year", label: "By Year" },
               { id: "date", label: "Specific Date" },
@@ -738,6 +872,72 @@ export function SalesAnalyticsModal({
                   onChange={(e) => setSpecificDate(e.target.value)}
                   className="bg-transparent font-medium text-ink outline-none cursor-pointer"
                 />
+              </div>
+            )}
+
+            {/* Quarterly Picker */}
+            {filterMode === "quarterly" && (
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-1.5">
+                  <span className="font-semibold text-ink-soft">Quarter:</span>
+                  <select
+                    value={selectedQuarter}
+                    onChange={(e) => setSelectedQuarter(Number(e.target.value))}
+                    className="bg-transparent font-semibold text-ink outline-none cursor-pointer"
+                  >
+                    <option value={1}>Q1 (Jan – Mar)</option>
+                    <option value={2}>Q2 (Apr – Jun)</option>
+                    <option value={3}>Q3 (Jul – Sep)</option>
+                    <option value={4}>Q4 (Oct – Dec)</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-1.5">
+                  <span className="font-semibold text-ink-soft">Year:</span>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                    className="bg-transparent font-semibold text-ink outline-none cursor-pointer"
+                  >
+                    {availableYears.map((yr) => (
+                      <option key={yr} value={yr}>
+                        {yr}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Half-Yearly Picker */}
+            {filterMode === "half_yearly" && (
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-1.5">
+                  <span className="font-semibold text-ink-soft">Half-Year:</span>
+                  <select
+                    value={selectedHalf}
+                    onChange={(e) => setSelectedHalf(Number(e.target.value))}
+                    className="bg-transparent font-semibold text-ink outline-none cursor-pointer"
+                  >
+                    <option value={1}>H1 (1st Half: Jan – Jun)</option>
+                    <option value={2}>H2 (2nd Half: Jul – Dec)</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-1.5">
+                  <span className="font-semibold text-ink-soft">Year:</span>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                    className="bg-transparent font-semibold text-ink outline-none cursor-pointer"
+                  >
+                    {availableYears.map((yr) => (
+                      <option key={yr} value={yr}>
+                        {yr}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             )}
 
