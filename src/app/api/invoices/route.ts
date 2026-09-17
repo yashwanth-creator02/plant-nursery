@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { invoiceItems, invoices, stockItems, businessSettings, users } from "@/db/schema";
-import { requireUser } from "@/lib/session";
+import { requireUser, requireAdmin } from "@/lib/session";
 import { handleApiError } from "@/lib/api-utils";
 import { generateInvoiceNumber, advanceInvoiceSequence } from "@/lib/invoice-number";
 
@@ -12,6 +12,7 @@ const lineItemSchema = z.object({
   name: z.string().trim().optional().default("Item"),
   price: z.coerce.number().min(0).optional().default(0),
   quantity: z.coerce.number().int().min(0).optional().default(1),
+  category: z.string().optional(),
 });
 
 const createSchema = z.object({
@@ -23,6 +24,8 @@ const createSchema = z.object({
   paymentMode: z.enum(["cash", "online"]).optional().default("cash"),
   force: z.boolean().optional().default(false),
   items: z.array(lineItemSchema).optional().default([]),
+  discount: z.coerce.number().min(0).optional(),
+  total: z.coerce.number().min(0).optional(),
   signature: z.string().nullable().optional(),
   isSigned: z.boolean().optional(),
 });
@@ -129,6 +132,9 @@ export async function POST(req: NextRequest) {
 
       const effectiveIsSigned = isSigned !== undefined ? isSigned : true;
 
+      const grossTotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+      const effectiveTotal = parsed.data.total !== undefined ? parsed.data.total : grossTotal;
+
       const headerSnapshot = activeSettings.length > 0
         ? JSON.stringify({
             businessName: activeSettings[0].businessName,
@@ -137,6 +143,9 @@ export async function POST(req: NextRequest) {
             address: activeSettings[0].address,
             mobiles: activeSettings[0].mobiles,
             gstin: activeSettings[0].gstin,
+            cgstRate: activeSettings[0].cgstRate || "2.50",
+            sgstRate: activeSettings[0].sgstRate || "2.50",
+            discount: parsed.data.discount || 0,
             logoData: activeLogo || null,
             signature: effectiveSig,
             isSigned: effectiveIsSigned,
@@ -148,6 +157,9 @@ export async function POST(req: NextRequest) {
             address: "Harige B. H. Road, Shimoga - 577203",
             mobiles: "7353025302, 9448140483, 9606602194",
             gstin: "29ADXPV1295N2Z6",
+            cgstRate: "2.50",
+            sgstRate: "2.50",
+            discount: parsed.data.discount || 0,
             logoData: null,
             signature: effectiveSig,
             isSigned: effectiveIsSigned,
@@ -164,7 +176,7 @@ export async function POST(req: NextRequest) {
           paymentMode,
           version,
           headerSnapshot,
-          total: total.toFixed(2),
+          total: effectiveTotal.toFixed(2),
           createdBy: user.id,
           finalizedAt: status === "final" ? new Date() : null,
         })
@@ -230,4 +242,24 @@ class StockShortageError extends Error {
 import { sql } from "drizzle-orm";
 function sqlDecrement(n: number) {
   return sql`${stockItems.quantity} - ${n}`;
+}
+
+export async function DELETE() {
+  try {
+    await requireAdmin();
+
+    await db.transaction(async (tx) => {
+      // 1. Delete all invoice line items
+      await tx.delete(invoiceItems);
+      // 2. Delete all invoices
+      await tx.delete(invoices);
+    });
+
+    return NextResponse.json({
+      ok: true,
+      message: "All invoices deleted successfully.",
+    });
+  } catch (err) {
+    return handleApiError(err);
+  }
 }

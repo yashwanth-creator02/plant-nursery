@@ -22,6 +22,9 @@ import {
   ArrowRight,
   ChevronRight,
   CheckCircle2,
+  Tag,
+  Percent,
+  IndianRupee,
 } from "lucide-react";
 import {
   formatMoney,
@@ -32,6 +35,9 @@ import {
 } from "@/lib/types";
 import { SmartStockPicker } from "./SmartStockPicker";
 import { useAuth } from "@/lib/auth-context";
+import { useLanguage, Language } from "@/lib/language-context";
+import { PreviewLanguageToggle } from "./LanguageToggle";
+import { numberToKannadaWords } from "@/lib/plant-translations";
 
 const DEFAULT_HEADER = {
   businessName: "SRI VIJAYA LAKSHMI NURSERY",
@@ -40,6 +46,9 @@ const DEFAULT_HEADER = {
   address: "Harige B. H. Road, Shimoga - 577203",
   mobiles: "7353025302, 9448140483, 9606602194",
   gstin: "29ADXPV1295N2Z6",
+  cgstRate: "2.50",
+  sgstRate: "2.50",
+  discount: 0,
   logoData: null as string | null,
 };
 
@@ -70,6 +79,9 @@ export function InvoiceEditor({
 }) {
   const router = useRouter();
   const { user } = useAuth();
+  const { language, t, tLang, translateItem } = useLanguage();
+  const [previewLanguageOverride, setPreviewLanguageOverride] = useState<Language | null>(null);
+  const billLanguage: Language = previewLanguageOverride ?? language;
   const isFinal = initialInvoice?.status === "final";
 
   const [step, setStep] = useState<"edit" | "preview">(isFinal ? "preview" : "edit");
@@ -133,6 +145,7 @@ export function InvoiceEditor({
       name: i.name,
       price: Number(i.price),
       quantity: i.quantity,
+      category: (i as any).category || "plants",
     })) ?? [],
   );
 
@@ -144,6 +157,17 @@ export function InvoiceEditor({
   const [customName, setCustomName] = useState("");
   const [customPrice, setCustomPrice] = useState("");
   const [customQty, setCustomQty] = useState("1");
+  const [customCategory, setCustomCategory] = useState<"plants" | "non-plants">("plants");
+
+  // Step 2 Discount state (supports both % and ₹)
+  const initialDiscount = Number(parsedInitialHeader.discount) || 0;
+  const [discountPercent, setDiscountPercent] = useState<string>("");
+  const [discountMoney, setDiscountMoney] = useState<string>(
+    initialDiscount > 0 ? String(initialDiscount) : ""
+  );
+
+  // Step 2 Billable Amount Highlight Toggle
+  const [showBillableHighlight, setShowBillableHighlight] = useState<boolean>(false);
 
   const [saving, setSaving] = useState<"draft" | "final" | null>(null);
   const [error, setError] = useState("");
@@ -398,10 +422,93 @@ export function InvoiceEditor({
     };
   }, [customerName, effectiveInvoiceNumber, step, initialInvoice]);
 
-  const total = useMemo(
+  // 1. Gross Subtotals
+  const plantsSubtotal = useMemo(
+    () =>
+      items
+        .filter((i) => !i.category || i.category === "plants")
+        .reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0),
+    [items],
+  );
+
+  const nonPlantsSubtotal = useMemo(
+    () =>
+      items
+        .filter((i) => i.category && i.category !== "plants")
+        .reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0),
+    [items],
+  );
+
+  const grossTotal = useMemo(
     () => items.reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0),
     [items],
   );
+
+  // 2. Discount Calculation (supports % or ₹)
+  const discountAmount = useMemo(() => {
+    const moneyVal = parseFloat(discountMoney);
+    if (!isNaN(moneyVal) && moneyVal > 0) {
+      return Math.min(moneyVal, grossTotal);
+    }
+    const pctVal = parseFloat(discountPercent);
+    if (!isNaN(pctVal) && pctVal > 0) {
+      return Math.min(Math.round(((grossTotal * pctVal) / 100) * 100) / 100, grossTotal);
+    }
+    return 0;
+  }, [discountMoney, discountPercent, grossTotal]);
+
+  // Discount proportion applied to non-plants
+  const discountOnNonPlants = useMemo(() => {
+    if (grossTotal <= 0 || nonPlantsSubtotal <= 0 || discountAmount <= 0) return 0;
+    return (discountAmount * nonPlantsSubtotal) / grossTotal;
+  }, [discountAmount, grossTotal, nonPlantsSubtotal]);
+
+  // 3. Taxes (Exclusive to non-plant goods; live plants are 100% tax exempt)
+  const taxableAmount = Math.max(0, nonPlantsSubtotal - discountOnNonPlants);
+
+  const cgstRateNum = parseFloat(String(headerDetails.cgstRate ?? "2.50")) || 0;
+  const sgstRateNum = parseFloat(String(headerDetails.sgstRate ?? "2.50")) || 0;
+
+  const cgstAmount = useMemo(() => {
+    if (taxableAmount <= 0 || cgstRateNum <= 0) return 0;
+    return Math.round(((taxableAmount * cgstRateNum) / 100) * 100) / 100;
+  }, [taxableAmount, cgstRateNum]);
+
+  const sgstAmount = useMemo(() => {
+    if (taxableAmount <= 0 || sgstRateNum <= 0) return 0;
+    return Math.round(((taxableAmount * sgstRateNum) / 100) * 100) / 100;
+  }, [taxableAmount, sgstRateNum]);
+
+  // 4. Net Final Billable Total
+  const finalTotal = useMemo(() => {
+    const raw = grossTotal - discountAmount + cgstAmount + sgstAmount;
+    return Math.max(0, Math.round(raw * 100) / 100);
+  }, [grossTotal, discountAmount, cgstAmount, sgstAmount]);
+
+  // Backward-compatible alias for existing total references
+  const total = finalTotal;
+
+  function handlePercentChange(val: string) {
+    setDiscountPercent(val);
+    const p = parseFloat(val);
+    if (!isNaN(p) && p >= 0 && grossTotal > 0) {
+      const amt = Math.round(((grossTotal * p) / 100) * 100) / 100;
+      setDiscountMoney(amt.toString());
+    } else if (val === "") {
+      setDiscountMoney("");
+    }
+  }
+
+  function handleMoneyChange(val: string) {
+    setDiscountMoney(val);
+    const m = parseFloat(val);
+    if (!isNaN(m) && m >= 0 && grossTotal > 0) {
+      const pct = Math.round(((m / grossTotal) * 100) * 10) / 10;
+      setDiscountPercent(pct.toString());
+    } else if (val === "") {
+      setDiscountPercent("");
+    }
+  }
 
   const invoiceDateObj = new Date(initialInvoice?.createdAt ?? Date.now());
   const dateLabel = invoiceDateObj.toLocaleDateString("en-IN", {
@@ -463,6 +570,7 @@ export function InvoiceEditor({
           name: stockItem.name,
           price: Number(stockItem.price) || 0,
           quantity: qty,
+          category: stockItem.category || "plants",
         },
       ]);
     }
@@ -482,11 +590,13 @@ export function InvoiceEditor({
         name,
         price,
         quantity,
+        category: customCategory,
       },
     ]);
     setCustomName("");
     setCustomPrice("");
     setCustomQty("1");
+    setCustomCategory("plants");
     setCustomMode(false);
   }
 
@@ -533,7 +643,11 @@ export function InvoiceEditor({
     setCustomName("");
     setCustomPrice("");
     setCustomQty("1");
+    setCustomCategory("plants");
     setCustomMode(false);
+    setDiscountPercent("");
+    setDiscountMoney("");
+    setShowBillableHighlight(false);
     setError("");
     setRestoredDraft(false);
     try {
@@ -579,6 +693,8 @@ export function InvoiceEditor({
         notes: notes.trim(),
         force: hasShortage,
         paymentMode: modeToSave,
+        discount: discountAmount,
+        total: finalTotal,
         signature: customSignature,
         isSigned: isSigned,
         items: items.map((i) => ({
@@ -586,6 +702,7 @@ export function InvoiceEditor({
           name: i.name.trim() || "Item",
           price: Number(i.price) || 0,
           quantity: Number(i.quantity) || 0,
+          category: i.category || "plants",
         })),
       };
 
@@ -727,11 +844,11 @@ export function InvoiceEditor({
           {/* Step Progress Pill */}
           <div className="flex items-center justify-between gap-2 p-2.5 rounded-lg border border-line bg-surface text-xs">
             <div className="flex items-center gap-2 font-medium text-pine-deep">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-pine text-surface text-[11px] font-bold">1</span>
-              <span>Enter Bill Details &amp; Items</span>
+              <span className="flex h-5 w-5 items-center justify-center rounded bg-pine text-surface text-[11px] font-bold">1</span>
+              <span>{t("step1Title")}</span>
             </div>
             <div className="text-ink-soft flex items-center gap-1.5 text-[11px]">
-              <span>Next: Preview &amp; Payment</span>
+              <span>{t("nextPreview")}</span>
               <ChevronRight size={13} />
             </div>
           </div>
@@ -739,14 +856,14 @@ export function InvoiceEditor({
           {/* Section 1: Customer & Invoice Details */}
           <div className="rounded-xl border border-line bg-surface p-4 sm:p-5 shadow-xs">
             <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-3.5 flex items-center justify-between">
-              <span>1. Bill &amp; Customer Details</span>
-              <span className="text-[11px] font-normal lowercase tracking-normal text-ink-soft/70">Required for receipt</span>
+              <span>{t("section1Title")}</span>
+              <span className="text-[11px] font-normal lowercase tracking-normal text-ink-soft/70">{t("requiredForReceipt")}</span>
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-3.5">
               {/* Invoice Number */}
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-ink">Bill No.</span>
+                <span className="text-xs font-medium text-ink">{t("billNo")}</span>
                 <input
                   value={invoiceNumber || ""}
                   onChange={(e) => setInvoiceNumber(e.target.value)}
@@ -757,7 +874,7 @@ export function InvoiceEditor({
 
               {/* Date */}
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-ink">Date</span>
+                <span className="text-xs font-medium text-ink">{t("date")}</span>
                 <div className="rounded-md border border-line bg-paper-flat px-3 py-2 text-sm font-mono font-medium text-ink">
                   {dateLabel}
                 </div>
@@ -765,7 +882,7 @@ export function InvoiceEditor({
 
               {/* Payment Type CASH / CREDIT */}
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-ink">Billing Mode</span>
+                <span className="text-xs font-medium text-ink">{t("paymentMode")}</span>
                 <div className="flex items-center rounded-md border border-line-strong bg-paper-flat p-0.5">
                   <button
                     type="button"
@@ -776,7 +893,7 @@ export function InvoiceEditor({
                         : "text-ink-soft hover:text-ink"
                     }`}
                   >
-                    CASH
+                    {t("cash")}
                   </button>
                   <button
                     type="button"
@@ -787,7 +904,7 @@ export function InvoiceEditor({
                         : "text-ink-soft hover:text-ink"
                     }`}
                   >
-                    CREDIT
+                    {t("credit")}
                   </button>
                 </div>
               </div>
@@ -796,22 +913,22 @@ export function InvoiceEditor({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {/* Customer Name */}
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-ink">Customer Name (To)</span>
+                <span className="text-xs font-medium text-ink">{t("customerNameLabel")} ({t("toCustomer").replace(/[,:]/g, "").trim()})</span>
                 <input
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="e.g. Ramesh Kumar"
+                  placeholder={t("customerNamePlaceholder")}
                   className="rounded-md border border-line-strong bg-surface px-3 py-2 text-sm font-medium text-ink outline-none focus:border-pine"
                 />
               </label>
 
               {/* Customer Details / Address / Phone */}
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-ink">Address / Phone / Vehicle</span>
+                <span className="text-xs font-medium text-ink">{t("customerDetailsLabel")}</span>
                 <input
                   value={customerDetails}
                   onChange={(e) => setCustomerDetails(e.target.value)}
-                  placeholder="e.g. Harige, Shimoga - 9845012345"
+                  placeholder={t("customerDetailsPlaceholder")}
                   className="rounded-md border border-line-strong bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-pine"
                 />
               </label>
@@ -822,11 +939,11 @@ export function InvoiceEditor({
           <div className="rounded-xl border border-line bg-surface p-4 sm:p-5 shadow-xs">
             <div className="mb-3.5 flex items-center justify-between">
               <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft">
-                2. Items in Bill ({items.length})
+                {t("section2Title")} ({items.length})
               </h2>
               {items.length > 0 && (
                 <span className="font-mono text-xs font-bold text-pine-deep">
-                  Subtotal: ₹ {formatMoney(total)}
+                  {t("subtotal")} ₹ {formatMoney(grossTotal)}
                 </span>
               )}
             </div>
@@ -836,7 +953,7 @@ export function InvoiceEditor({
               {!customMode ? (
                 <div className="flex flex-col gap-2.5">
                   <div className="w-full flex flex-col gap-1">
-                    <span className="text-xs font-medium text-ink">Select item from stock</span>
+                    <span className="text-xs font-medium text-ink">{t("selectFromStock")}</span>
                     <SmartStockPicker
                       stock={stock}
                       selectedId={pickerStockId}
@@ -852,7 +969,7 @@ export function InvoiceEditor({
 
                   <div className="flex items-end gap-2 w-full">
                     <label className="flex flex-col gap-1 w-20 shrink-0">
-                      <span className="text-xs font-medium text-ink">Qty</span>
+                      <span className="text-xs font-medium text-ink">{t("qty")}</span>
                       <input
                         ref={qtyInputRef}
                         type="number"
@@ -878,7 +995,7 @@ export function InvoiceEditor({
                         title={`Available in stock: ${selectedStockItem?.quantity ?? 0}. Click to force add.`}
                       >
                         <AlertTriangle size={15} className="text-white shrink-0" />
-                        <span>Force Add</span>
+                        <span>{t("forceAdd")}</span>
                       </button>
                     ) : (
                       <button
@@ -888,7 +1005,7 @@ export function InvoiceEditor({
                         className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md bg-pine px-4 py-1.5 text-xs sm:text-sm font-medium text-surface hover:opacity-90 disabled:opacity-50 shadow-sm cursor-pointer whitespace-nowrap h-[38px]"
                       >
                         <Plus size={15} className="shrink-0" />
-                        <span>Add to bill</span>
+                        <span>{t("addToBill")}</span>
                       </button>
                     )}
 
@@ -897,7 +1014,7 @@ export function InvoiceEditor({
                       onClick={() => setCustomMode(true)}
                       className="hidden sm:inline-flex items-center rounded-md px-2.5 py-1.5 text-xs sm:text-sm font-medium text-pine-deep hover:underline cursor-pointer whitespace-nowrap h-[38px]"
                     >
-                      + Custom item
+                      {t("customItemTab")}
                     </button>
                   </div>
 
@@ -908,25 +1025,52 @@ export function InvoiceEditor({
                       onClick={() => setCustomMode(true)}
                       className="text-xs font-semibold text-pine-deep hover:underline cursor-pointer py-0.5"
                     >
-                      + Or add custom item
+                      {t("customItemTab")}
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2.5">
                   <label className="flex flex-col gap-1 w-full">
-                    <span className="text-xs font-medium text-ink">Description</span>
+                    <span className="text-xs font-medium text-ink">{t("customNameLabel")}</span>
                     <input
                       value={customName}
                       onChange={(e) => setCustomName(e.target.value)}
-                      placeholder="Item name (optional, defaults to Item)"
+                      placeholder={t("customerNamePlaceholder")}
                       className="w-full rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine h-[38px]"
                     />
                   </label>
 
+                  {/* Item Tax Category Selector */}
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <span className="text-xs font-semibold text-ink-soft">Type:</span>
+                    <button
+                      type="button"
+                      onClick={() => setCustomCategory("plants")}
+                      className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer border ${
+                        customCategory === "plants"
+                          ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                          : "bg-surface text-ink-soft border-line hover:bg-line/40"
+                      }`}
+                    >
+                      🌱 Plant (0% GST)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCustomCategory("non-plants")}
+                      className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer border ${
+                        customCategory === "non-plants"
+                          ? "bg-amber-600 text-white border-amber-600 shadow-xs"
+                          : "bg-surface text-ink-soft border-line hover:bg-line/40"
+                      }`}
+                    >
+                      📦 Non-Plant (Taxable)
+                    </button>
+                  </div>
+
                   <div className="flex flex-wrap sm:flex-nowrap items-end gap-2">
                     <label className="flex flex-col gap-1 w-20 shrink-0">
-                      <span className="text-xs font-medium text-ink">Qty</span>
+                      <span className="text-xs font-medium text-ink">{t("qty")}</span>
                       <input
                         type="number"
                         min={0}
@@ -938,7 +1082,7 @@ export function InvoiceEditor({
                     </label>
 
                     <label className="flex flex-col gap-1 w-28 shrink-0">
-                      <span className="text-xs font-medium text-ink">Price ₹</span>
+                      <span className="text-xs font-medium text-ink">{t("customPriceLabel")}</span>
                       <input
                         type="number"
                         min={0}
@@ -957,13 +1101,12 @@ export function InvoiceEditor({
                         className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md bg-pine px-4 py-1.5 text-xs sm:text-sm font-medium text-surface hover:opacity-90 shadow-sm cursor-pointer whitespace-nowrap h-[38px]"
                       >
                         <Plus size={15} className="shrink-0" />
-                        <span>Add</span>
+                        <span>{t("addToBill")}</span>
                       </button>
-
                       <button
                         type="button"
                         onClick={() => setCustomMode(false)}
-                        className="px-2.5 py-1.5 text-xs sm:text-sm text-ink-soft hover:underline cursor-pointer whitespace-nowrap h-[38px]"
+                        className="rounded-md px-2.5 py-1.5 text-xs sm:text-sm font-medium text-ink-soft hover:text-ink cursor-pointer whitespace-nowrap h-[38px]"
                       >
                         Cancel
                       </button>
@@ -987,10 +1130,31 @@ export function InvoiceEditor({
                           </span>
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-semibold text-ink break-words leading-tight">
-                              {item.name}
+                              {translateItem(item.name, language)}
+                              {language === "kn" && translateItem(item.name, "kn") !== item.name && (
+                                <span className="block text-xs font-normal text-ink-soft mt-0.5">{item.name}</span>
+                              )}
                             </div>
                             <div className="text-xs text-ink-soft mt-1">
                               ₹ {formatMoney(item.price)} × {item.quantity} = <strong className="font-mono font-bold text-pine-deep text-sm">₹ {formatMoney(item.price * item.quantity)}</strong>
+                            </div>
+                            <div className="mt-1.5 flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateItem(item.key, {
+                                    category: item.category === "non-plants" ? "plants" : "non-plants",
+                                  })
+                                }
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer border ${
+                                  item.category === "non-plants"
+                                    ? "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100"
+                                    : "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
+                                }`}
+                                title="Click to toggle between Plant (0% GST) and Non-Plant (Taxable)"
+                              >
+                                {item.category === "non-plants" ? "📦 Non-Plant (Taxable)" : "🌱 Plant (0% GST)"}
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -998,7 +1162,7 @@ export function InvoiceEditor({
                           type="button"
                           onClick={() => removeItem(item.key)}
                           className="p-1 rounded text-ink-soft hover:text-rust hover:bg-rust-tint/50 transition-colors shrink-0 cursor-pointer"
-                          title="Remove item"
+                          title={t("removeItem")}
                         >
                           <Trash2 size={16} />
                         </button>
@@ -1006,7 +1170,7 @@ export function InvoiceEditor({
 
                       <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-line/40">
                         <label className="flex items-center gap-1.5 text-xs text-ink">
-                          <span className="text-ink-soft shrink-0 font-medium">Qty:</span>
+                          <span className="text-ink-soft shrink-0 font-medium">{t("qty")}:</span>
                           <input
                             type="number"
                             min={0}
@@ -1020,7 +1184,7 @@ export function InvoiceEditor({
                           />
                         </label>
                         <label className="flex items-center gap-1.5 text-xs text-ink">
-                          <span className="text-ink-soft shrink-0 font-medium">Rate ₹:</span>
+                          <span className="text-ink-soft shrink-0 font-medium">{t("rate")}:</span>
                           <input
                             type="number"
                             min={0}
@@ -1045,10 +1209,10 @@ export function InvoiceEditor({
                     <thead className="bg-paper-flat border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-soft">
                       <tr>
                         <th className="py-2 px-2.5 text-center w-10">#</th>
-                        <th className="py-2 px-3">Particulars</th>
-                        <th className="py-2 px-2 text-center w-20">Qty</th>
-                        <th className="py-2 px-2 text-right w-24">Rate (₹)</th>
-                        <th className="py-2 px-3 text-right w-28">Amount</th>
+                        <th className="py-2 px-3">{t("particulars")}</th>
+                        <th className="py-2 px-2 text-center w-20">{t("qty")}</th>
+                        <th className="py-2 px-2 text-right w-24">{t("rate")}</th>
+                        <th className="py-2 px-3 text-right w-28">{t("amount")}</th>
                         <th className="py-2 px-2 text-center w-10"></th>
                       </tr>
                     </thead>
@@ -1059,7 +1223,28 @@ export function InvoiceEditor({
                             {idx + 1}
                           </td>
                           <td className="py-2 px-3 font-medium text-ink">
-                            {item.name}
+                            <div className="flex items-center gap-2">
+                              <span>{translateItem(item.name, language)}</span>
+                              {language === "kn" && translateItem(item.name, "kn") !== item.name && (
+                                <span className="text-xs font-normal text-ink-soft">({item.name})</span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateItem(item.key, {
+                                    category: item.category === "non-plants" ? "plants" : "non-plants",
+                                  })
+                                }
+                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold transition-colors cursor-pointer border ${
+                                  item.category === "non-plants"
+                                    ? "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100"
+                                    : "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
+                                }`}
+                                title="Click to toggle between Plant (0% GST) and Non-Plant (Taxable)"
+                              >
+                                {item.category === "non-plants" ? "📦 Non-Plant" : "🌱 Plant (0%)"}
+                              </button>
+                            </div>
                           </td>
                           <td className="py-2 px-2 text-center">
                             <input
@@ -1111,16 +1296,16 @@ export function InvoiceEditor({
                 <div className="bg-paper-flat border-t border-line px-4 py-3 flex flex-wrap items-center justify-between gap-3">
                   <div className="text-xs text-ink-soft">
                     <span>{items.length} item{items.length !== 1 ? "s" : ""}</span>
-                    {total > 0 && (
+                    {grossTotal > 0 && (
                       <span className="ml-2 font-medium italic text-ink-soft/80">
-                        ({numberToIndianWords(total)})
+                        ({language === "kn" ? numberToKannadaWords(grossTotal) : numberToIndianWords(grossTotal)})
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold text-ink-soft uppercase tracking-wider">Total:</span>
                     <span className="font-mono text-base sm:text-lg font-extrabold text-pine-deep tabular">
-                      ₹ {formatMoney(total)}
+                      ₹ {formatMoney(grossTotal)}
                     </span>
                   </div>
                 </div>
@@ -1212,7 +1397,7 @@ export function InvoiceEditor({
               className="flex items-center justify-center gap-1.5 rounded-md border border-line-strong px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-line/50 disabled:opacity-50 cursor-pointer whitespace-nowrap"
             >
               <Save size={15} />
-              {saving === "draft" ? "Saving…" : "Save as draft"}
+              {saving === "draft" ? t("saving") : t("saveAsDraft")}
             </button>
 
             <button
@@ -1220,7 +1405,7 @@ export function InvoiceEditor({
               onClick={handleProceedToPreview}
               className="flex items-center justify-center gap-2 rounded-md bg-pine px-6 py-2.5 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 cursor-pointer whitespace-nowrap"
             >
-              <span>Proceed to Bill Preview</span>
+              <span>{t("proceedToPreview")}</span>
               <ArrowRight size={16} />
             </button>
           </div>
@@ -1239,29 +1424,180 @@ export function InvoiceEditor({
                 className="flex items-center gap-1.5 rounded-md border border-line-strong bg-surface px-3 py-1.5 text-xs sm:text-sm font-semibold text-ink shadow-xs transition-colors hover:bg-line/50 cursor-pointer whitespace-nowrap"
               >
                 <ArrowLeft size={15} />
-                <span>Back to Edit Bill</span>
+                <span>{t("backToEdit")}</span>
               </button>
             ) : (
               <div className="text-xs font-semibold text-ink-soft">
-                Finalized Bill Preview
+                {t("finalizedBillPreview")}
               </div>
             )}
 
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
               <span className="inline-flex items-center gap-1 text-xs text-ink-soft">
-                <span>Total:</span>
-                <strong className="font-mono text-xs sm:text-sm text-pine-deep font-bold">₹ {formatMoney(total)}</strong>
+                <span>{t("total")}:</span>
+                <strong className="font-mono text-xs sm:text-sm text-pine-deep font-bold">₹ {formatMoney(finalTotal)}</strong>
               </span>
+
+              {/* Show / Highlight Billable Amount Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setShowBillableHighlight((prev) => !prev)}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer border ${
+                  showBillableHighlight
+                    ? "bg-pine text-surface border-pine shadow-xs ring-1 ring-pine/30 font-bold"
+                    : "bg-surface text-ink-soft border-line-strong hover:bg-line/40 hover:text-ink"
+                }`}
+                title="Highlight final billable amount prominently on invoice"
+              >
+                <IndianRupee size={12} />
+                <span>{tLang("billableAmount", billLanguage)}: {showBillableHighlight ? "ON" : "OFF"}</span>
+              </button>
+
+              {/* Bill Preview Language Toggle (Overrides Global Language for Preview & Print) */}
+              <div className="flex items-center gap-1.5 pl-1.5 border-l border-line">
+                <PreviewLanguageToggle
+                  currentLang={billLanguage}
+                  onLanguageChange={setPreviewLanguageOverride}
+                />
+              </div>
+
               <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 text-[#1b365d] border border-blue-200 text-[11px] font-bold whitespace-nowrap">
                 <CheckCircle2 size={12} />
-                <span>Step 2</span>
+                <span>{billLanguage === "kn" ? "ಹಂತ 2" : "Step 2"}</span>
               </div>
             </div>
           </div>
 
+          {/* Step 2 Discount Section (percentage and money enterable) */}
+          {status !== "final" && (
+            <div className="mb-4 rounded-xl border border-line bg-surface p-3.5 sm:p-4 shadow-xs print:hidden">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                <div className="flex items-center gap-2">
+                  <Tag size={15} className="text-pine" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-ink">
+                    {tLang("discount", billLanguage)}
+                  </h3>
+                </div>
+                {discountAmount > 0 && (
+                  <span className="font-mono text-xs font-bold text-rust bg-rust-tint px-2 py-0.5 rounded border border-rust/20">
+                    - ₹ {formatMoney(discountAmount)} {billLanguage === "kn" ? "ಅನ್ವಯಿಸಲಾಗಿದೆ" : "applied"}
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Discount Percentage */}
+                <label className="flex flex-col gap-1 text-xs text-ink-soft">
+                  <span className="font-semibold text-ink">{tLang("discountPercent", billLanguage)}</span>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={discountPercent}
+                      onChange={(e) => handlePercentChange(e.target.value)}
+                      placeholder="0"
+                      className="w-full rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-mono outline-none focus:border-pine pr-8"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-ink-soft pointer-events-none">
+                      %
+                    </span>
+                  </div>
+                </label>
+
+                {/* Discount Money Amount */}
+                <label className="flex flex-col gap-1 text-xs text-ink-soft">
+                  <span className="font-semibold text-ink">{tLang("discountAmount", billLanguage)}</span>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      max={grossTotal}
+                      step="1"
+                      value={discountMoney}
+                      onChange={(e) => handleMoneyChange(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-mono outline-none focus:border-pine pl-7"
+                    />
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-ink-soft pointer-events-none">
+                      ₹
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              {/* Quick Presets */}
+              <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pt-1 border-t border-line/40">
+                <span className="text-[11px] text-ink-soft font-medium mr-1">Quick:</span>
+                {[5, 10, 15, 20].map((pct) => (
+                  <button
+                    key={pct}
+                    type="button"
+                    onClick={() => handlePercentChange(String(pct))}
+                    className="rounded border border-line bg-paper px-2 py-0.5 text-[11px] font-semibold text-ink hover:bg-line/50 cursor-pointer transition-colors"
+                  >
+                    {pct}%
+                  </button>
+                ))}
+                {[50, 100, 200, 500].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => handleMoneyChange(String(amt))}
+                    className="rounded border border-line bg-paper px-2 py-0.5 text-[11px] font-semibold text-ink hover:bg-line/50 cursor-pointer transition-colors"
+                  >
+                    ₹{amt}
+                  </button>
+                ))}
+                {(discountPercent || discountMoney) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDiscountPercent("");
+                      setDiscountMoney("");
+                    }}
+                    className="rounded border border-rust/30 bg-rust-tint px-2 py-0.5 text-[11px] font-semibold text-rust hover:bg-rust/20 cursor-pointer ml-auto"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Prominent Billable Amount Callout Banner (when enabled by user) */}
+          {showBillableHighlight && (
+            <div className="mb-4 rounded-xl border-2 border-pine bg-emerald-50 dark:bg-emerald-950/20 p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-xs print:hidden animate-in fade-in duration-200">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-pine text-surface font-bold text-base shadow-xs">
+                  ₹
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-pine-deep block">
+                    {tLang("billableAmount", billLanguage)}
+                  </span>
+                  <span className="text-xs text-pine/90 font-medium">
+                    {items.length} {items.length === 1 ? "item" : "items"} • {taxableAmount > 0 ? `CGST + SGST applied on non-plants` : `Live Plants 100% Tax Exempt`}
+                  </span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="font-mono text-2xl sm:text-3xl font-black text-pine-deep tracking-tight">
+                  ₹ {formatMoney(finalTotal)}
+                </span>
+                {discountAmount > 0 && (
+                  <span className="block text-xs text-rust font-semibold">
+                    (Saved ₹ {formatMoney(discountAmount)})
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Mobile horizontal scroll helper indicator */}
           <div className="sm:hidden mb-2 text-center text-[11px] font-medium text-ink-soft print:hidden">
-            Scroll horizontally to view complete bill sheet
+            {billLanguage === "kn" ? "ಸಂಪೂರ್ಣ ಬಿಲ್ ಶೀಟ್ ವೀಕ್ಷಿಸಲು ಸಮತಲವಾಗಿ ಸ್ಕ್ರಾಲ್ ಮಾಡಿ" : "Scroll horizontally to view complete bill sheet"}
           </div>
 
           {/* ============================================================ */}
@@ -1274,28 +1610,18 @@ export function InvoiceEditor({
                 style={{ colorScheme: "light" }}
                 className="w-[720px] shrink-0 rounded-lg border border-slate-300 bg-white p-6 sm:p-7 text-[#1b365d] shadow-md print:w-full print:max-w-none print:rounded-none print:border-none print:p-0 print:shadow-none print:shrink"
               >
-            {/* Top GSTIN & Mobiles Row */}
+            {/* Top GSTIN & Mobiles Row (Clean contact info without big version badge) */}
             <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold tracking-tight text-[#1b365d]">
               <span>GSTIN: {headerDetails.gstin}</span>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100/80 text-[#1b365d] border border-blue-200">
-                  Version {invoiceVersion}
-                </span>
-                <span>Mob: {headerDetails.mobiles}</span>
-              </div>
+              <span>Mob: {headerDetails.mobiles}</span>
             </div>
 
-            {/* Nursery Main Title */}
-            <h1 className="mt-2 text-center font-serif text-xl sm:text-2xl md:text-[26px] font-extrabold uppercase tracking-wide text-[#1b365d]">
-              {headerDetails.businessName}
-            </h1>
-
-            {/* Subtitle row with Logo Placeholder */}
-            <div className="relative my-2 flex items-center justify-center min-h-[64px]">
+            {/* Nursery Logo placed right on top of business name, centered */}
+            <div className="mt-3 mb-1.5 flex items-center justify-center">
               <div
                 id="nursery-logo-placeholder"
-                className="sm:absolute left-0 top-1/2 sm:-translate-y-1/2 flex items-center justify-center shrink-0 mb-1 sm:mb-0"
-                title={headerDetails.logoData ? "Sri Vijaya Lakshmi Nursery Logo" : "Logo Placeholder — Swap with your original SVG"}
+                className="flex items-center justify-center shrink-0"
+                title={headerDetails.logoData ? "Sri Vijaya Lakshmi Nursery Logo" : "Logo Placeholder"}
               >
                 {headerDetails.logoData ? (
                   headerDetails.logoData.trim().startsWith("<svg") ? (
@@ -1311,9 +1637,9 @@ export function InvoiceEditor({
                     />
                   )
                 ) : (
-                  <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded border border-dashed border-[#1b365d]/50 bg-blue-50/60 text-[#1b365d]">
+                  <div className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded border border-dashed border-[#1b365d]/50 bg-blue-50/60 text-[#1b365d]">
                     <svg
-                      className="h-8 w-8 opacity-80"
+                      className="h-7 w-7 opacity-80"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -1329,23 +1655,28 @@ export function InvoiceEditor({
                   </div>
                 )}
               </div>
+            </div>
 
-              {/* Centered Government Approval & Address Details */}
-              <div className="text-center text-[11px] sm:text-xs font-semibold text-[#1b365d] leading-tight px-14 sm:px-16">
-                <p>{headerDetails.subheading1}</p>
-                <p>{headerDetails.subheading2}</p>
-                <p className="font-bold">{headerDetails.address}</p>
-              </div>
+            {/* Nursery Main Title */}
+            <h1 className="text-center font-serif text-xl sm:text-2xl md:text-[26px] font-extrabold uppercase tracking-wide text-[#1b365d]">
+              {headerDetails.businessName}
+            </h1>
+
+            {/* Centered Government Approval & Address Details */}
+            <div className="text-center text-[11px] sm:text-xs font-semibold text-[#1b365d] leading-tight px-14 sm:px-16 my-1.5">
+              <p>{headerDetails.subheading1}</p>
+              <p>{headerDetails.subheading2}</p>
+              <p className="font-bold">{headerDetails.address}</p>
             </div>
 
             {/* Document Title: BILL OF SUPPLIERS / CASH/CREDIT */}
             <div className="mt-2 text-center text-[#1b365d]">
               <span className="inline-block border-b border-[#1b365d] pb-0.5 font-bold uppercase tracking-wider text-xs sm:text-sm">
-                BILL OF SUPPLIERS
+                {tLang("billOfSuppliers", billLanguage)}
               </span>
               <div className="mt-0.5 text-[11px] sm:text-xs font-bold tracking-wide">
                 {status === "final" ? (
-                  paymentMode === "CASH" ? "CASH" : "CREDIT"
+                  paymentMode === "CASH" ? tLang("cash", billLanguage) : tLang("credit", billLanguage)
                 ) : (
                   <span className="inline-flex items-center gap-2">
                     <button
@@ -1355,7 +1686,7 @@ export function InvoiceEditor({
                         paymentMode === "CASH" ? "bg-[#1b365d] text-white" : "hover:underline"
                       }`}
                     >
-                      CASH
+                      {tLang("cash", billLanguage)}
                     </button>
                     <span>/</span>
                     <button
@@ -1365,7 +1696,7 @@ export function InvoiceEditor({
                         paymentMode === "CREDIT" ? "bg-[#1b365d] text-white" : "hover:underline"
                       }`}
                     >
-                      CREDIT
+                      {tLang("credit", billLanguage)}
                     </button>
                   </span>
                 )}
@@ -1375,7 +1706,7 @@ export function InvoiceEditor({
             {/* Metadata Lines: No. & Date. */}
             <div className="mt-3 flex items-baseline justify-between text-xs sm:text-sm font-semibold text-[#1b365d]">
               <div className="flex items-baseline gap-1.5 flex-1 max-w-[45%]">
-                <span className="font-bold">No.</span>
+                <span className="font-bold">{tLang("billNo", billLanguage)}</span>
                 {status === "final" ? (
                   <span className="flex-1 font-mono font-bold tracking-wider border-b border-dotted border-[#1b365d] px-2 text-xs sm:text-sm text-[#1b365d]">
                     {invoiceNumber ?? "—"}
@@ -1392,7 +1723,7 @@ export function InvoiceEditor({
                 )}
               </div>
               <div className="flex items-baseline gap-1.5 flex-1 max-w-[50%] justify-end">
-                <span className="font-bold">Date:</span>
+                <span className="font-bold">{tLang("date", billLanguage)}</span>
                 <span className="font-mono font-bold border-b border-dotted border-[#1b365d] px-2 text-xs sm:text-sm text-[#1b365d] min-w-[120px] text-right">
                   {dateLabel} <span className="text-[10px] sm:text-xs font-normal text-[#1b365d]/85 font-sans whitespace-nowrap ml-1">{timeLabel}</span>
                 </span>
@@ -1402,7 +1733,7 @@ export function InvoiceEditor({
             {/* Customer Address Block: "To, ......" */}
             <div className="mt-2 text-xs sm:text-sm text-[#1b365d]">
               <div className="flex items-baseline gap-1.5">
-                <span className="font-bold shrink-0">To,</span>
+                <span className="font-bold shrink-0">{tLang("toCustomer", billLanguage)}</span>
                 {status === "final" ? (
                   <span className="flex-1 border-b border-dotted border-[#1b365d] px-2 font-medium">
                     {customerName || "—"}
@@ -1411,7 +1742,7 @@ export function InvoiceEditor({
                   <input
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Customer name"
+                    placeholder={billLanguage === "kn" ? "ಗ್ರಾಹಕರ ಹೆಸರು" : "Customer name"}
                     style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
                     className="flex-1 border-b border-dotted border-[#1b365d] bg-transparent px-2 py-0.5 text-xs sm:text-sm outline-none font-medium text-[#1b365d] placeholder:text-[#1b365d]/50"
                   />
@@ -1426,7 +1757,7 @@ export function InvoiceEditor({
                   <input
                     value={customerDetails}
                     onChange={(e) => setCustomerDetails(e.target.value)}
-                    placeholder="Address / Phone number / Location"
+                    placeholder={billLanguage === "kn" ? "ವಿಳಾಸ / ಫೋನ್ ಸಂಖ್ಯೆ / ಸ್ಥಳ" : "Address / Phone number / Location"}
                     style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
                     className="w-full border-b border-dotted border-[#1b365d] bg-transparent px-2 py-0.5 text-xs outline-none text-[#1b365d] placeholder:text-[#1b365d]/50"
                   />
@@ -1441,19 +1772,19 @@ export function InvoiceEditor({
               {/* Header Row */}
               <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-b-2 border-[#1b365d] text-center text-[11px] sm:text-xs font-bold bg-white">
                 <div className="py-2 px-1 border-r border-[#1b365d] flex items-center justify-center">
-                  <span>Sl.<br />No.</span>
+                  <span>{billLanguage === "kn" ? "ಕ್ರ.ಸಂ." : <>Sl.<br />No.</>}</span>
                 </div>
                 <div className="py-2 px-2 border-r border-[#1b365d] flex items-center justify-center">
-                  Particulars
+                  {tLang("particulars", billLanguage)}
                 </div>
                 <div className="py-2 px-1 border-r border-[#1b365d] flex items-center justify-center">
-                  Qty.
+                  {tLang("qty", billLanguage)}
                 </div>
                 <div className="py-2 px-1 border-r border-[#1b365d] flex items-center justify-center">
-                  Rate
+                  {tLang("rate", billLanguage)}
                 </div>
                 <div className="py-2 px-1 flex items-center justify-center">
-                  Amount
+                  {tLang("amount", billLanguage)}
                 </div>
               </div>
 
@@ -1482,13 +1813,15 @@ export function InvoiceEditor({
 
                       {/* Particulars */}
                       <div className="py-1.5 px-2 font-medium flex items-center justify-between">
-                        <span className="truncate pr-1">{item.name}</span>
+                        <span className="truncate pr-1">
+                          {translateItem(item.name, billLanguage)}
+                        </span>
                         {status !== "final" && (
                           <button
                             type="button"
                             onClick={() => removeItem(item.key)}
                             className="opacity-0 group-hover:opacity-100 text-rust hover:text-red-700 print:hidden p-0.5 shrink-0"
-                            title="Remove item"
+                            title={tLang("removeItem", billLanguage)}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -1547,38 +1880,115 @@ export function InvoiceEditor({
 
                   {items.length === 0 && (
                     <div className="p-8 text-center text-xs sm:text-sm text-[#1b365d]/60 italic print:hidden">
-                      No items added yet. Click &quot;Back to Edit Bill&quot; above to add items from stock.
+                      {tLang("emptyItemsNotice", billLanguage)}
                     </div>
                   )}
                 </div>
 
-                {/* Bottom Row: Rs ..... (in words) on left, TOTAL box on right */}
+                {/* Bottom Calculation Rows */}
                 <div className="relative z-10">
-                  <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-t-2 border-[#1b365d] bg-white">
+                  {/* If discount or non-plant taxes exist, show Subtotal row */}
+                  {(discountAmount > 0 || taxableAmount > 0) && (
+                    <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-t-2 border-[#1b365d] bg-white text-xs">
+                      <div className="border-r border-[#1b365d] py-1.5" />
+                      <div className="border-r border-[#1b365d] px-2 py-1.5 font-semibold text-[#1b365d]">
+                        {tLang("subtotal", billLanguage)}
+                      </div>
+                      <div className="border-r border-[#1b365d] py-1.5" />
+                      <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-xs uppercase bg-blue-50/10">
+                        {tLang("subtotal", billLanguage)}
+                      </div>
+                      <div className="py-1.5 px-2 text-right font-mono font-bold text-xs sm:text-sm tabular bg-blue-50/10">
+                        {formatMoney(grossTotal)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Discount Row (if discount applied) */}
+                  {discountAmount > 0 && (
+                    <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-t border-[#1b365d]/40 bg-white text-xs">
+                      <div className="border-r border-[#1b365d] py-1.5" />
+                      <div className="border-r border-[#1b365d] px-2 py-1.5 font-medium text-[#1b365d] flex items-center justify-between">
+                        <span>{tLang("discount", billLanguage)} {discountPercent ? `(${discountPercent}%)` : ""}</span>
+                      </div>
+                      <div className="border-r border-[#1b365d] py-1.5" />
+                      <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-xs uppercase text-rust">
+                        {tLang("discount", billLanguage)}
+                      </div>
+                      <div className="py-1.5 px-2 text-right font-mono font-bold text-xs sm:text-sm tabular text-rust">
+                        - {formatMoney(discountAmount)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* CGST & SGST Rows (applied strictly to non-plants) */}
+                  {taxableAmount > 0 && (
+                    <>
+                      {/* CGST */}
+                      <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-t border-[#1b365d]/40 bg-white text-xs">
+                        <div className="border-r border-[#1b365d] py-1.5" />
+                        <div className="border-r border-[#1b365d] px-2 py-1.5 text-[10px] sm:text-xs text-[#1b365d]">
+                          <span>{tLang("cgst", billLanguage)} @ {cgstRateNum}% ({billLanguage === "kn" ? "ಸಸ್ಯೇತರ ಸರಕುಗಳ ಮೇಲೆ" : "on non-plants"} ₹{formatMoney(taxableAmount)})</span>
+                        </div>
+                        <div className="border-r border-[#1b365d] py-1.5" />
+                        <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-[11px] uppercase">
+                          CGST
+                        </div>
+                        <div className="py-1.5 px-2 text-right font-mono font-semibold text-xs sm:text-sm tabular">
+                          + {formatMoney(cgstAmount)}
+                        </div>
+                      </div>
+
+                      {/* SGST */}
+                      <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-t border-[#1b365d]/40 bg-white text-xs">
+                        <div className="border-r border-[#1b365d] py-1.5" />
+                        <div className="border-r border-[#1b365d] px-2 py-1.5 text-[10px] sm:text-xs text-[#1b365d]">
+                          <span>{tLang("sgst", billLanguage)} @ {sgstRateNum}% ({billLanguage === "kn" ? "ಸಸ್ಯೇತರ ಸರಕುಗಳ ಮೇಲೆ" : "on non-plants"} ₹{formatMoney(taxableAmount)})</span>
+                        </div>
+                        <div className="border-r border-[#1b365d] py-1.5" />
+                        <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-[11px] uppercase">
+                          SGST
+                        </div>
+                        <div className="py-1.5 px-2 text-right font-mono font-semibold text-xs sm:text-sm tabular">
+                          + {formatMoney(sgstAmount)}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Final TOTAL Row */}
+                  <div className={`grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] ${discountAmount > 0 || taxableAmount > 0 ? "border-t border-[#1b365d]" : "border-t-2 border-[#1b365d]"} ${showBillableHighlight ? "bg-emerald-50/40" : "bg-white"}`}>
                     {/* Sl. No. blank space */}
                     <div className="border-r border-[#1b365d] py-2" />
 
                     {/* Rs ..................... Amount in words */}
-                    <div className="border-r border-[#1b365d] px-2 py-2 flex items-baseline text-xs sm:text-sm font-semibold">
-                      <span className="font-bold mr-1 shrink-0">Rs</span>
-                      <span className="flex-1 border-b border-dotted border-[#1b365d] pb-0.5 text-[11px] sm:text-xs font-normal text-[#1b365d] truncate px-1">
-                        {total > 0
-                          ? numberToIndianWords(total)
-                          : "......................................................................."}
-                      </span>
+                    <div className="border-r border-[#1b365d] px-2 py-2 flex flex-col justify-center text-xs sm:text-sm font-semibold">
+                      <div className="flex items-baseline">
+                        <span className="font-bold mr-1 shrink-0">{tLang("rsLabel", billLanguage)}</span>
+                        <span className="flex-1 border-b border-dotted border-[#1b365d] pb-0.5 text-[11px] sm:text-xs font-normal text-[#1b365d] truncate px-1">
+                          {finalTotal > 0
+                            ? (billLanguage === "kn" ? numberToKannadaWords(finalTotal) : numberToIndianWords(finalTotal))
+                            : "......................................................................."}
+                        </span>
+                      </div>
+                      {taxableAmount === 0 && (
+                        <span className="text-[9px] text-[#1b365d]/60 font-normal italic mt-0.5">
+                          * {tLang("plantsTaxExempt", billLanguage)}
+                        </span>
+                      )}
                     </div>
 
                     {/* Qty blank space */}
                     <div className="border-r border-[#1b365d] py-2" />
 
                     {/* TOTAL box */}
-                    <div className="border-r border-[#1b365d] py-2 px-1 text-center font-extrabold text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center bg-blue-50/20">
-                      TOTAL
+                    <div className={`border-r border-[#1b365d] py-2 px-1 text-center font-extrabold text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center ${showBillableHighlight ? "bg-emerald-100 text-emerald-950 font-black" : "bg-blue-50/20"}`}>
+                      {tLang("total", billLanguage)}
                     </div>
 
                     {/* Total amount box */}
-                    <div className="py-2 px-2 text-right font-mono font-extrabold text-sm sm:text-base tabular flex items-center justify-end bg-blue-50/20">
-                      {formatMoney(total)}
+                    <div className={`py-2 px-2 text-right font-mono font-extrabold text-sm sm:text-base tabular flex items-center justify-end ${showBillableHighlight ? "bg-emerald-100 text-emerald-950 font-black" : "bg-blue-50/20"}`}>
+                      {formatMoney(finalTotal)}
                     </div>
                   </div>
                 </div>
@@ -1592,46 +2002,47 @@ export function InvoiceEditor({
               {/* Bottom Left: Payment Mode Tag */}
               <div className="flex flex-col items-start gap-1 pb-1">
                 <div className="inline-flex items-center gap-1.5 rounded border border-[#1b365d]/50 bg-blue-50/50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[#1b365d]">
-                  <span className="text-[10px] font-medium text-[#1b365d]/75">Payment:</span>
-                  <span className="font-extrabold">{paymentTag.toUpperCase()}</span>
+                  <span className="text-[10px] font-medium text-[#1b365d]/75">{tLang("paymentMode", billLanguage)}</span>
+                  <span className="font-extrabold">
+                    {billLanguage === "kn"
+                      ? (paymentTag === "cash" ? tLang("cash", "kn") : tLang("onlineUpi", "kn"))
+                      : paymentTag.toUpperCase()}
+                  </span>
                 </div>
                 {status === "draft" && (
                   <span className="text-[10px] text-[#1b365d]/70 print:hidden">
-                    (Click &apos;Pay with Cash&apos; or &apos;Pay Online&apos; below to finalize)
+                    {billLanguage === "kn" ? "(ಅಂತಿಮಗೊಳಿಸಲು ಕೆಳಗಿನ 'ನಗದು' ಅಥವಾ 'ಆನ್‌ಲೈನ್' ಬಟನ್ ಕ್ಲಿಕ್ ಮಾಡಿ)" : "(Click 'Pay with Cash' or 'Pay Online' below to finalize)"}
                   </span>
                 )}
               </div>
 
-              {/* Bottom Right: Version & Signature Block */}
+              {/* Bottom Right: Signature Block */}
               <div className="text-right">
-                <div className="flex items-center justify-end gap-2.5 mb-1 print:hidden">
-                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100/70 text-[#1b365d] border border-blue-200">
-                    Version {invoiceVersion}
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-medium text-[#1b365d]/80">Digital Signature:</span>
-                    {status === "final" ? (
-                      <span className="text-[11px] font-bold text-[#1b365d]">
-                        {isSigned ? "Included (Locked)" : "None"}
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setIsSigned(!isSigned)}
-                        className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
-                          isSigned
-                            ? "bg-[#1b365d] text-white"
-                            : "border border-[#1b365d]/30 text-[#1b365d] hover:bg-blue-50/50"
-                        }`}
-                      >
-                        {isSigned ? "Included" : "None"}
-                      </button>
-                    )}
-                  </div>
+                <div className="flex items-center justify-end gap-2 mb-1 print:hidden">
+                  <span className="text-[11px] font-medium text-[#1b365d]/80">{tLang("digitallySigned", billLanguage)}:</span>
+                  {status === "final" ? (
+                    <span className="text-[11px] font-bold text-[#1b365d]">
+                      {isSigned ? (billLanguage === "kn" ? "ಸೇರಿಸಲಾಗಿದೆ (ಲಾಕ್ ಆಗಿದೆ)" : "Included (Locked)") : (billLanguage === "kn" ? "ಇಲ್ಲ" : "None")}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsSigned(!isSigned)}
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
+                        isSigned
+                          ? "bg-[#1b365d] text-white"
+                          : "border border-[#1b365d]/30 text-[#1b365d] hover:bg-blue-50/50"
+                      }`}
+                    >
+                      {isSigned ? (billLanguage === "kn" ? "ಸೇರಿಸಲಾಗಿದೆ" : "Included") : (billLanguage === "kn" ? "ಇಲ್ಲ" : "None")}
+                    </button>
+                  )}
                 </div>
 
                 <p className="font-bold text-xs sm:text-sm tracking-tight">
-                  For {headerDetails.businessName.includes("NURSERY") ? headerDetails.businessName : "Sri VijayaLakshmi Nursery & Farm"}
+                  {billLanguage === "kn"
+                    ? tLang("forNursery", "kn")
+                    : `For ${headerDetails.businessName.includes("NURSERY") ? headerDetails.businessName : "Sri VijayaLakshmi Nursery & Farm"}`}
                 </p>
 
               <div className="min-h-[56px] sm:min-h-[64px] flex items-center justify-end py-1">
@@ -1664,7 +2075,7 @@ export function InvoiceEditor({
                       </svg>
                     )}
                     <span className="text-[9px] font-sans font-semibold tracking-wider text-[#1b365d]/75 uppercase -mt-0.5">
-                      Digitally Signed
+                      {tLang("digitallySigned", billLanguage)}
                     </span>
                     {status !== "final" && (
                       <button
@@ -1683,17 +2094,40 @@ export function InvoiceEditor({
                       type="button"
                       onClick={() => setIsSigned(true)}
                       className="rounded border border-dashed border-[#1b365d]/40 bg-blue-50/40 px-3 py-1.5 text-xs font-semibold text-[#1b365d] hover:bg-blue-100/60 print:hidden transition-colors cursor-pointer flex items-center gap-1.5"
-                      title="Click to add digital signature"
+                      title={tLang("addDigitalSignature", billLanguage)}
                     >
-                      <PenTool size={12} /> Add Digital Signature
+                      <PenTool size={12} /> {tLang("addDigitalSignature", billLanguage)}
                     </button>
                   ) : null
                 )}
               </div>
 
               <p className="font-bold text-xs sm:text-sm pr-4 sm:pr-6">
-                Proprietor
+                {tLang("proprietor", billLanguage)}
               </p>
+            </div>
+          </div>
+
+          {/* Thank you note */}
+          <div className="mt-3.5 pt-1.5 text-center text-xs sm:text-sm font-serif font-bold italic tracking-wide text-[#1b365d]/90">
+            ~ {tLang("thankYouNote", billLanguage)} ~
+          </div>
+
+          {/* Footer: Left-aligned Disclaimers + Bottom-Left Watermark */}
+          <div className="mt-2.5 pt-2 border-t border-dotted border-[#1b365d]/30 flex items-end justify-between px-1 sm:px-2">
+            <div className="flex items-baseline gap-2.5">
+              {/* Subtle Watermark Version Number in bottom left corner */}
+              <span
+                className="font-mono font-extrabold text-sm sm:text-base text-[#1b365d]/30 select-none tracking-tight shrink-0"
+                title={`Invoice Version ${invoiceVersion}`}
+              >
+                #{invoiceVersion}
+              </span>
+              {/* Disclaimers formatted to the left */}
+              <div className="text-[10px] text-[#1b365d]/75 space-y-0.5 text-left leading-tight">
+                <p>{tLang("term1", billLanguage)}</p>
+                <p>{tLang("term2", billLanguage)}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -1742,7 +2176,7 @@ export function InvoiceEditor({
                     onClick={handleBackToEdit}
                     className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md border border-line-strong px-3.5 py-2 text-xs sm:text-sm font-medium text-ink transition-colors hover:bg-line/50 cursor-pointer whitespace-nowrap"
                   >
-                    <ArrowLeft size={15} /> Back
+                    <ArrowLeft size={15} /> {t("backToEdit")}
                   </button>
                   <button
                     type="button"
@@ -1751,7 +2185,7 @@ export function InvoiceEditor({
                     className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md border border-line-strong px-3.5 py-2 text-xs sm:text-sm font-medium text-ink transition-colors hover:bg-line/50 disabled:opacity-50 cursor-pointer whitespace-nowrap"
                   >
                     <Save size={15} />
-                    {saving === "draft" ? "Saving…" : "Save draft"}
+                    {saving === "draft" ? t("saving") : t("saveAsDraft")}
                   </button>
                 </>
               )}
@@ -1768,7 +2202,7 @@ export function InvoiceEditor({
                     className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md border border-pine bg-surface px-4 py-2.5 text-xs sm:text-sm font-semibold text-pine-deep shadow-xs transition-colors hover:bg-pine-tint/40 disabled:opacity-50 cursor-pointer whitespace-nowrap"
                   >
                     <Banknote size={16} />
-                    {saving === "final" && paymentTag === "cash" ? "Finalizing…" : "Pay with Cash"}
+                    {saving === "final" && paymentTag === "cash" ? t("finalizing") : t("payWithCash")}
                   </button>
 
                   <button
@@ -1781,7 +2215,7 @@ export function InvoiceEditor({
                     className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md bg-pine px-4 py-2.5 text-xs sm:text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer whitespace-nowrap"
                   >
                     <QrCode size={16} />
-                    {saving === "final" && paymentTag === "online" ? "Finalizing…" : "Pay with Online"}
+                    {saving === "final" && paymentTag === "online" ? t("finalizing") : t("payOnline")}
                   </button>
                 </>
               ) : (
@@ -1789,7 +2223,7 @@ export function InvoiceEditor({
                   onClick={() => handlePrint()}
                   className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-md bg-pine px-5 py-2.5 text-sm font-medium text-surface shadow-sm transition-opacity hover:opacity-90 cursor-pointer whitespace-nowrap"
                 >
-                  <Printer size={15} /> Print Bill
+                  <Printer size={15} /> {t("printBill")}
                 </button>
               )}
             </div>
@@ -1807,8 +2241,8 @@ export function InvoiceEditor({
                   <QrCode size={18} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-ink">Scan &amp; Pay Online</h3>
-                  <p className="text-[11px] text-ink-soft">Sri Vijaya Lakshmi Nursery</p>
+                  <h3 className="text-sm font-bold text-ink">{t("scanAndPay")}</h3>
+                  <p className="text-[11px] text-ink-soft">{t("brandFullName")}</p>
                 </div>
               </div>
               <button
@@ -1823,7 +2257,7 @@ export function InvoiceEditor({
             {/* Total Amount Box */}
             <div className="rounded-lg bg-blue-50/70 border border-blue-200/80 p-3 text-center mb-4">
               <div className="text-xs font-semibold text-[#1b365d]/80 uppercase tracking-wide">
-                Amount to Pay
+                {t("amountToPay")}
               </div>
               <div className="text-2xl font-mono font-extrabold text-[#1b365d] mt-0.5">
                 ₹ {formatMoney(total)}

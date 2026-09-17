@@ -44,6 +44,7 @@ export type InvoiceLineItem = {
   name: string;
   price: number;
   quantity: number;
+  category?: "plants" | "non-plants" | string;
 };
 
 export type BusinessSettings = {
@@ -55,6 +56,8 @@ export type BusinessSettings = {
   address: string;
   mobiles: string;
   gstin: string;
+  cgstRate?: string | number;
+  sgstRate?: string | number;
   qrCodeData?: string | null;
   logoData?: string | null;
   updatedAt?: string;

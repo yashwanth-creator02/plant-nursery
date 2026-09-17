@@ -12,6 +12,7 @@ const lineItemSchema = z.object({
   name: z.string().trim().optional().default("Item"),
   price: z.coerce.number().min(0).optional().default(0),
   quantity: z.coerce.number().int().min(0).optional().default(1),
+  category: z.string().optional(),
 });
 
 const updateSchema = z.object({
@@ -23,6 +24,8 @@ const updateSchema = z.object({
   action: z.enum(["save", "finalize"]).default("save"),
   paymentMode: z.enum(["cash", "online"]).optional(),
   force: z.boolean().optional().default(false),
+  discount: z.coerce.number().min(0).optional(),
+  total: z.coerce.number().min(0).optional(),
   signature: z.string().nullable().optional(),
   isSigned: z.boolean().optional(),
 });
@@ -195,12 +198,17 @@ export async function PATCH(
               address: activeSettings.address,
               mobiles: activeSettings.mobiles,
               gstin: activeSettings.gstin,
+              cgstRate: activeSettings.cgstRate || "2.50",
+              sgstRate: activeSettings.sgstRate || "2.50",
+              discount: parsed.data.discount || 0,
               logoData: activeLogo,
               signature: effectiveSig,
               isSigned: effectiveIsSigned,
             });
           }
         }
+
+        const effectiveTotal = parsed.data.total !== undefined ? parsed.data.total : total;
 
         await tx
           .update(invoices)
@@ -209,7 +217,7 @@ export async function PATCH(
             customerName: customerName ?? existing.customerName,
             customerDetails: customerDetails ?? existing.customerDetails,
             notes: notes ?? existing.notes,
-            total: total.toFixed(2),
+            total: effectiveTotal.toFixed(2),
             status: action === "finalize" ? "final" : "draft",
             paymentMode: paymentMode ?? existing.paymentMode ?? "cash",
             headerSnapshot: nextHeaderSnapshot,
