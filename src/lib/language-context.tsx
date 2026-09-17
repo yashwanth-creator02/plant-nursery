@@ -3,9 +3,19 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { translateItemName } from "./plant-translations";
+import {
+  translateItemName,
+  translateCategory,
+  translateSubcategory,
+  translateUnit,
+} from "./plant-translations";
 
-export { translateItemName };
+export {
+  translateItemName,
+  translateCategory,
+  translateSubcategory,
+  translateUnit,
+};
 export const translateItem = (name: string, targetLang: Language = "kn"): string => {
   return translateItemName(name, targetLang);
 };

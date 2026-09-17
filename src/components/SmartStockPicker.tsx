@@ -22,7 +22,7 @@ import {
   Check,
 } from "lucide-react";
 import { formatMoney, StockItem } from "@/lib/types";
-import { useLanguage, Language } from "@/lib/language-context";
+import { useLanguage, Language, translateUnit } from "@/lib/language-context";
 
 interface SmartStockPickerProps {
   stock: StockItem[];
@@ -246,11 +246,13 @@ export function SmartStockPicker({
           {selectedItem && !isOpen ? (
             <div className="flex items-center gap-2 overflow-hidden">
               <span className="truncate font-medium text-ink">
-                {translateItem(selectedItem.name)}
+                {language === "kn"
+                  ? (selectedItem.nameKn || translateItem(selectedItem.name))
+                  : selectedItem.name}
               </span>
               <span className="shrink-0 font-mono text-xs text-ink-soft">
                 — ₹{formatMoney(Number(selectedItem.price))} ({selectedItem.quantity}{" "}
-                {selectedItem.unit || "pcs"})
+                {translateUnit(selectedItem.unit || "pcs", language)})
               </span>
             </div>
           ) : (
@@ -379,7 +381,9 @@ export function SmartStockPicker({
                 const isHighlighted = idx === highlightedIndex;
                 const lowStock = item.quantity > 0 && item.quantity <= 5;
                 const outOfStock = item.quantity <= 0;
-                const displayName = translateItem(item.name);
+                const displayName = language === "kn"
+                  ? (item.nameKn || translateItem(item.name))
+                  : item.name;
 
                 return (
                   <div
@@ -405,7 +409,7 @@ export function SmartStockPicker({
                         )}
                       </div>
 
-                      {displayName !== item.name && (
+                      {language !== "kn" && displayName !== item.name && (
                         <span className="text-[11px] text-ink-soft/80 truncate">
                           {item.name}
                         </span>
@@ -420,7 +424,7 @@ export function SmartStockPicker({
                         </span>
 
                         <span className="text-[11px] text-ink-soft">
-                          {item.unit || "pcs"}
+                          {translateUnit(item.unit || "pcs", language)}
                         </span>
                       </div>
                     </div>
@@ -441,7 +445,7 @@ export function SmartStockPicker({
                         </span>
                       ) : (
                         <span className="font-mono text-[11px] text-ink-soft">
-                          {item.quantity} {t("inStock")}
+                          {item.quantity} {translateUnit(item.unit || "pcs", language)} {t("inStock")}
                         </span>
                       )}
                     </div>

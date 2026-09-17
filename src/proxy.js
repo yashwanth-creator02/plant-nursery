@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 const SUPPORTED_LOCALES = ["en", "kn"];
 const DEFAULT_LOCALE = "en";
 
-export function middleware(request) {
+export function proxy(request) {
   const { pathname, search } = request.nextUrl;
 
   // 1. Skip API routes, Next.js internal assets, and static files

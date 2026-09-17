@@ -13,6 +13,7 @@ import {
   Check,
 } from "lucide-react";
 import { StockItem, GalleryStockItem } from "@/lib/types";
+import { useLanguage, translateItem, translateCategory } from "@/lib/language-context";
 
 interface StockPhotoUploadModalProps {
   open: boolean;
@@ -29,6 +30,7 @@ export function StockPhotoUploadModal({
   stockItems,
   onUploadSuccess,
 }: StockPhotoUploadModalProps) {
+  const { language } = useLanguage();
   const [uploadTargetItemId, setUploadTargetItemId] = useState<string>("");
   const [itemSearchQuery, setItemSearchQuery] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -220,10 +222,12 @@ export function StockPhotoUploadModal({
             </div>
             <div>
               <h2 className="font-serif text-lg font-bold text-pine-deep">
-                Upload Plant Photo
+                {language === "kn" ? "ಸಸ್ಯದ ಫೋಟೋ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ" : "Upload Plant Photo"}
               </h2>
               <p className="text-[11px] text-ink-soft">
-                Add photo via file drop, file browser, or camera capture.
+                {language === "kn"
+                  ? "ಫೈಲ್ ಡ್ರಾಪ್, ಫೈಲ್ ಬ್ರೌಸರ್ ಅಥವಾ ಕ್ಯಾಮೆರಾ ಮೂಲಕ ಫೋಟೋ ಸೇರಿಸಿ."
+                  : "Add photo via file drop, file browser, or camera capture."}
               </p>
             </div>
           </div>
@@ -249,14 +253,14 @@ export function StockPhotoUploadModal({
           {/* 1. Target Stock Item Selector */}
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-ink">
-              Select Stock Item *
+              {language === "kn" ? "ದಾಸ್ತಾನು ವಸ್ತುವನ್ನು ಆಯ್ಕೆಮಾಡಿ *" : "Select Stock Item *"}
             </label>
             <div className="space-y-1.5">
               <input
                 type="text"
                 value={itemSearchQuery}
                 onChange={(e) => setItemSearchQuery(e.target.value)}
-                placeholder="Search plant item..."
+                placeholder={language === "kn" ? "ಸಸ್ಯ ಅಥವಾ ವಸ್ತುವನ್ನು ಹುಡುಕಿ..." : "Search plant item..."}
                 className="h-8 w-full rounded-lg border border-line bg-paper px-3 text-xs text-ink placeholder-ink-soft/60 focus:border-pine focus:outline-none"
               />
               <select
@@ -267,14 +271,19 @@ export function StockPhotoUploadModal({
               >
                 {searchableStockItems.map((item) => (
                   <option key={item.id} value={item.id}>
-                    {item.name} ({item.category}) — ₹{item.price}
+                    {language === "kn" ? (item.nameKn || translateItem(item.name, "kn")) : item.name} ({translateCategory(item.category, language)}) — ₹{item.price}
                   </option>
                 ))}
               </select>
             </div>
             {selectedStockItemObj && (
               <span className="mt-1 block text-[11px] text-ink-soft">
-                Selected: <strong>{selectedStockItemObj.name}</strong>
+                {language === "kn" ? "ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ: " : "Selected: "}
+                <strong>
+                  {language === "kn"
+                    ? (selectedStockItemObj.nameKn || translateItem(selectedStockItemObj.name, "kn"))
+                    : selectedStockItemObj.name}
+                </strong>
               </span>
             )}
           </div>
@@ -282,7 +291,7 @@ export function StockPhotoUploadModal({
           {/* 2. File Upload / Camera Zone */}
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-ink">
-              Image File or Camera Capture *
+              {language === "kn" ? "ಚಿತ್ರ ಫೈಲ್ ಅಥವಾ ಕ್ಯಾಮೆರಾ ಕ್ಯಾಪ್ಚರ್ *" : "Image File or Camera Capture *"}
             </label>
 
             {/* If live camera stream is active */}
@@ -299,7 +308,7 @@ export function StockPhotoUploadModal({
                     type="button"
                     onClick={captureLivePhoto}
                     className="flex h-12 w-12 items-center justify-center rounded-full bg-surface text-pine-deep shadow-lg ring-4 ring-pine/40 transition-transform active:scale-90 cursor-pointer"
-                    title="Snap Photo"
+                    title={language === "kn" ? "ಫೋಟೋ ತೆಗೆಯಿರಿ" : "Snap Photo"}
                   >
                     <Camera size={22} />
                   </button>
@@ -308,7 +317,7 @@ export function StockPhotoUploadModal({
                     onClick={stopCameraStream}
                     className="rounded-lg bg-black/60 px-3 py-1.5 text-xs font-medium text-surface backdrop-blur-xs hover:bg-black cursor-pointer"
                   >
-                    Cancel
+                    {language === "kn" ? "ರದ್ದುಮಾಡಿ" : "Cancel"}
                   </button>
                 </div>
               </div>
@@ -326,7 +335,7 @@ export function StockPhotoUploadModal({
                     onClick={() => fileInputRef.current?.click()}
                     className="rounded-lg bg-ink/80 px-2.5 py-1 text-xs font-medium text-surface backdrop-blur-xs hover:bg-ink cursor-pointer"
                   >
-                    Change Photo
+                    {language === "kn" ? "ಫೋಟೋ ಬದಲಾಯಿಸಿ" : "Change Photo"}
                   </button>
                   <button
                     type="button"
@@ -337,7 +346,7 @@ export function StockPhotoUploadModal({
                     }}
                     className="rounded-lg bg-rust px-2.5 py-1 text-xs font-medium text-surface hover:bg-rust/90 cursor-pointer"
                   >
-                    Remove
+                    {language === "kn" ? "ತೆಗೆದುಹಾಕಿ" : "Remove"}
                   </button>
                 </div>
               </div>
@@ -366,10 +375,14 @@ export function StockPhotoUploadModal({
                   <Upload size={20} />
                 </div>
                 <p className="text-xs font-medium text-ink">
-                  Drag and drop your photo here, or browse files
+                  {language === "kn"
+                    ? "ನಿಮ್ಮ ಫೋಟೋವನ್ನು ಇಲ್ಲಿ ಎಳೆಯಿರಿ ಮತ್ತು ಬಿಡಿ, ಅಥವಾ ಫೈಲ್‌ಗಳನ್ನು ಬ್ರೌಸ್ ಮಾಡಿ"
+                    : "Drag and drop your photo here, or browse files"}
                 </p>
                 <p className="mt-0.5 text-[11px] text-ink-soft">
-                  Supports JPG, PNG, WEBP up to 15MB
+                  {language === "kn"
+                    ? "15MB ವರೆಗಿನ JPG, PNG, WEBP ಬೆಂಬಲಿಸುತ್ತದೆ"
+                    : "Supports JPG, PNG, WEBP up to 15MB"}
                 </p>
 
                 {/* Camera & File Buttons */}
@@ -381,7 +394,7 @@ export function StockPhotoUploadModal({
                     className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-2xs hover:bg-line/40 transition-colors cursor-pointer"
                   >
                     <FolderOpen size={14} />
-                    <span>Browse Files</span>
+                    <span>{language === "kn" ? "ಫೈಲ್‌ಗಳನ್ನು ಬ್ರೌಸ್ ಮಾಡಿ" : "Browse Files"}</span>
                   </button>
 
                   {/* 2. Device Camera Button */}
@@ -391,7 +404,7 @@ export function StockPhotoUploadModal({
                     className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-2xs hover:bg-line/40 transition-colors cursor-pointer"
                   >
                     <Camera size={14} className="text-pine" />
-                    <span>Device Camera</span>
+                    <span>{language === "kn" ? "ಕ್ಯಾಮೆರಾ" : "Device Camera"}</span>
                   </button>
 
                   {/* 3. Live Webcam Stream */}
@@ -402,7 +415,7 @@ export function StockPhotoUploadModal({
                       className="flex items-center gap-1.5 rounded-lg border border-pine/30 bg-pine-tint/50 px-3 py-1.5 text-xs font-semibold text-pine-deep hover:bg-pine-tint transition-colors cursor-pointer"
                     >
                       <Sparkles size={14} />
-                      <span>Webcam Viewfinder</span>
+                      <span>{language === "kn" ? "ವೆಬ್‌ಕ್ಯಾಮ್" : "Webcam Viewfinder"}</span>
                     </button>
                   )}
                 </div>
@@ -442,13 +455,17 @@ export function StockPhotoUploadModal({
           {/* 3. Optional Photo Description */}
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-ink">
-              Photo Description (Optional)
+              {language === "kn" ? "ಫೋಟೋ ವಿವರಣೆ (ಐಚ್ಛಿಕ)" : "Photo Description (Optional)"}
             </label>
             <textarea
               value={uploadDescription}
               onChange={(e) => setUploadDescription(e.target.value)}
               rows={2}
-              placeholder="e.g. Grafted variety in 8-inch nursery bag, blossom state, healthy leaf growth..."
+              placeholder={
+                language === "kn"
+                  ? "ಉದಾ. 8-ಇಂಚಿನ ನರ್ಸರಿ ಚೀಲದಲ್ಲಿ ಕಸಿ ಮಾಡಿದ ತಳಿ, ಹೂವು ಬಿಡುವ ಸ್ಥಿತಿ..."
+                  : "e.g. Grafted variety in 8-inch nursery bag, blossom state, healthy leaf growth..."
+              }
               className="w-full rounded-lg border border-line bg-paper p-2.5 text-xs text-ink placeholder-ink-soft/60 focus:border-pine focus:outline-none"
             />
           </div>
@@ -462,7 +479,9 @@ export function StockPhotoUploadModal({
               className="h-4 w-4 rounded border-line text-pine focus:ring-pine"
             />
             <span className="text-xs font-medium text-ink">
-              Set as primary photo for this plant in gallery
+              {language === "kn"
+                ? "ಗ್ಯಾಲರಿಯಲ್ಲಿ ಈ ಸಸ್ಯಕ್ಕೆ ಮುಖ್ಯ ಮುಖಪುಟ ಫೋಟೋವಾಗಿ ಹೊಂದಿಸಿ"
+                : "Set as primary photo for this plant in gallery"}
             </span>
           </label>
 
@@ -473,7 +492,7 @@ export function StockPhotoUploadModal({
               onClick={onClose}
               className="rounded-lg border border-line px-3.5 py-1.5 text-xs font-medium text-ink hover:bg-line/40 cursor-pointer"
             >
-              Cancel
+              {language === "kn" ? "ರದ್ದುಮಾಡಿ" : "Cancel"}
             </button>
             <button
               type="submit"
@@ -483,12 +502,12 @@ export function StockPhotoUploadModal({
               {isUploading ? (
                 <>
                   <Loader2 size={14} className="animate-spin" />
-                  <span>Uploading to Cloud...</span>
+                  <span>{language === "kn" ? "ಅಪ್‌ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ..." : "Uploading to Cloud..."}</span>
                 </>
               ) : (
                 <>
                   <Check size={14} />
-                  <span>Upload Photo</span>
+                  <span>{language === "kn" ? "ಫೋಟೋ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ" : "Upload Photo"}</span>
                 </>
               )}
             </button>

@@ -12,7 +12,7 @@ import {
 import { GalleryStockItem, StockCategory } from "@/lib/types";
 import { StockItemDetailModal } from "@/components/StockItemDetailModal";
 import { StockPhotoUploadModal } from "@/components/StockPhotoUploadModal";
-import { useLanguage, translateItem } from "@/lib/language-context";
+import { useLanguage, translateItem, translateCategory } from "@/lib/language-context";
 
 export default function GalleryPage() {
   const { language } = useLanguage();
@@ -230,13 +230,7 @@ export default function GalleryPage() {
                 {language === "kn" ? "ಎಲ್ಲಾ ವರ್ಗಗಳು" : "All Categories"}
               </button>
               {categories.map((c) => {
-                const label = language === "kn"
-                  ? c.slug === "plants"
-                    ? "ಗಿಡಗಳು"
-                    : c.slug === "non-plants"
-                    ? "ಇತರ ವಸ್ತುಗಳು"
-                    : c.name
-                  : c.name;
+                const label = translateCategory(c.name, language);
                 return (
                   <button
                     key={c.slug}
@@ -356,12 +350,12 @@ export default function GalleryPage() {
               ? (item.nameKn || translateItem(item.name, "kn"))
               : item.name;
             const secondaryName = language === "kn"
-              ? item.name
+              ? ""
               : (item.nameKn || translateItem(item.name, "kn"));
 
             const descPreview = language === "kn"
-              ? (item.descriptionKn || item.description || primaryImage?.descriptionKn || primaryImage?.description)
-              : (item.description || item.descriptionKn || primaryImage?.description || primaryImage?.descriptionKn);
+              ? (item.descriptionKn || primaryImage?.descriptionKn || "")
+              : (item.description || primaryImage?.description || "");
 
             return (
               <div

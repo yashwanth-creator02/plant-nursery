@@ -21,7 +21,12 @@ import {
   RotateCw,
 } from "lucide-react";
 import { GalleryStockItem, StockItemImage } from "@/lib/types";
-import { useLanguage } from "@/lib/language-context";
+import {
+  useLanguage,
+  translateCategory,
+  translateSubcategory,
+  translateUnit,
+} from "@/lib/language-context";
 import { translateOnTheFly } from "@/lib/translator";
 
 interface StockItemDetailModalProps {
@@ -61,6 +66,8 @@ export function StockItemDetailModal({
   const [activeDescTab, setActiveDescTab] = useState<"kn" | "en">("kn");
   const [editedDescKnText, setEditedDescKnText] = useState("");
   const [translatingImgDescKn, setTranslatingImgDescKn] = useState(false);
+  const [autoTranslatedDescKn, setAutoTranslatedDescKn] = useState("");
+  const [autoTranslatedImgDescKn, setAutoTranslatedImgDescKn] = useState("");
 
   // Reset index and state when item changes
   useEffect(() => {
@@ -79,6 +86,15 @@ export function StockItemDetailModal({
     setEditDescEn(item?.description || "");
     setEditDescKn(item?.descriptionKn || "");
     setActiveDescTab(language === "kn" ? "kn" : "en");
+    setAutoTranslatedDescKn("");
+    setAutoTranslatedImgDescKn("");
+
+    // If active language is Kannada and item has no Kannada description, translate on the fly
+    if (language === "kn" && item && !item.descriptionKn && item.description) {
+      translateOnTheFly(item.description, "kn", "en").then((trans) => {
+        if (trans) setAutoTranslatedDescKn(trans);
+      });
+    }
   }, [item, language]);
 
   if (!item) return null;
@@ -261,20 +277,18 @@ export function StockItemDetailModal({
                   ? item.nameKn || translateItem(item.name, "kn")
                   : item.name}
               </h2>
-              {language === "kn" ? (
-                <span className="text-xs font-normal text-ink-soft">({item.name})</span>
-              ) : item.nameKn ? (
+              {language !== "kn" && item.nameKn ? (
                 <span className="text-xs font-normal text-ink-soft">({item.nameKn})</span>
               ) : null}
             </div>
-            <span className="text-xs capitalize text-ink-soft">
-              {item.category} • {item.subcategory || "General"}
+            <span className="text-xs capitalize text-ink-soft font-sans">
+              {translateCategory(item.category, language)} • {translateSubcategory(item.subcategory || "other", language)}
             </span>
           </div>
           <button
             onClick={onClose}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink-soft hover:bg-line/60 hover:text-ink cursor-pointer"
-            title="Close"
+            title={language === "kn" ? "ಮುಚ್ಚಿ" : "Close"}
           >
             <X size={18} />
           </button>
@@ -372,7 +386,7 @@ export function StockItemDetailModal({
             <div className="rounded-xl border border-line bg-paper p-4">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-pine">
-                  Photo Description / ಫೋಟೋ ವಿವರಣೆ
+                  {language === "kn" ? "ಫೋಟೋ ವಿವರಣೆ" : "Photo Description"}
                 </span>
                 {!editingDesc ? (
                   <button
@@ -384,7 +398,13 @@ export function StockItemDetailModal({
                     className="flex items-center gap-1 text-xs text-ink-soft hover:text-pine cursor-pointer"
                   >
                     <Edit2 size={13} />
-                    <span>{currentImage.description || currentImage.descriptionKn ? "Edit" : "Add Description"}</span>
+                    <span>
+                      {language === "kn"
+                        ? "ವಿವರಣೆ ಸಂಪಾದಿಸಿ"
+                        : currentImage.description || currentImage.descriptionKn
+                        ? "Edit"
+                        : "Add Description"}
+                    </span>
                   </button>
                 ) : (
                   <div className="flex items-center gap-1.5">
@@ -393,7 +413,7 @@ export function StockItemDetailModal({
                       disabled={savingDesc}
                       className="text-xs text-ink-soft hover:text-ink cursor-pointer px-1.5 py-0.5"
                     >
-                      Cancel
+                      {language === "kn" ? "ರದ್ದು" : "Cancel"}
                     </button>
                     <button
                       onClick={handleSaveDescription}
@@ -405,7 +425,7 @@ export function StockItemDetailModal({
                       ) : (
                         <Check size={12} />
                       )}
-                      <span>Save</span>
+                      <span>{language === "kn" ? "ಉಳಿಸಿ" : "Save"}</span>
                     </button>
                   </div>
                 )}
@@ -452,15 +472,12 @@ export function StockItemDetailModal({
               ) : (
                 <div className="text-xs sm:text-sm leading-relaxed text-ink space-y-1">
                   {language === "kn" ? (
-                    currentImage.descriptionKn || currentImage.description ? (
-                      <div>
-                        <p className="font-sans">{currentImage.descriptionKn || currentImage.description}</p>
-                        {currentImage.descriptionKn && currentImage.description && (
-                          <p className="text-[11px] text-ink-soft mt-0.5">{currentImage.description}</p>
-                        )}
-                      </div>
+                    currentImage.descriptionKn || autoTranslatedImgDescKn ? (
+                      <p className="font-sans whitespace-pre-wrap">
+                        {currentImage.descriptionKn || autoTranslatedImgDescKn}
+                      </p>
                     ) : (
-                      <span className="italic text-ink-soft">
+                      <span className="italic text-ink-soft font-sans">
                         ಯಾವುದೇ ಫೋಟೋ ವಿವರಣೆ ನೀಡಿಲ್ಲ. ವಿವರಣೆ ಸೇರಿಸಲು ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡಿ.
                       </span>
                     )
@@ -486,8 +503,8 @@ export function StockItemDetailModal({
             <div className="mb-2 flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-1.5">
                 <Globe size={14} className="text-pine" />
-                <span className="text-xs font-bold uppercase tracking-wider text-pine">
-                  Plant Description &amp; Details
+                <span className="text-xs font-bold uppercase tracking-wider text-pine font-sans">
+                  {language === "kn" ? "ಸಸ್ಯದ ವಿವರಣೆ ಮತ್ತು ಮಾಹಿತಿ" : "Plant Description & Details"}
                 </span>
               </div>
 
@@ -495,11 +512,11 @@ export function StockItemDetailModal({
                 <button
                   type="button"
                   onClick={() => setEditingBilingual(true)}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-pine-deep hover:underline cursor-pointer bg-pine/10 hover:bg-pine/20 px-2 py-1 rounded transition-colors"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-pine-deep hover:underline cursor-pointer bg-pine/10 hover:bg-pine/20 px-2 py-1 rounded transition-colors font-sans"
                   title="Edit details in English & Kannada with Google Translation"
                 >
                   <Sparkles size={13} className="text-pine" />
-                  <span>Edit in English &amp; Kannada</span>
+                  <span>{language === "kn" ? "ವಿವರಣೆ ಸಂಪಾದಿಸಿ" : "Edit in English & Kannada"}</span>
                 </button>
               )}
             </div>
@@ -647,76 +664,100 @@ export function StockItemDetailModal({
             ) : (
               /* Viewing Mode: Tabbed Kannada / English Description Display */
               <div className="space-y-2">
-                <div className="flex items-center gap-2 border-b border-line/60 pb-1.5 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setActiveDescTab("kn")}
-                    className={`inline-flex items-center gap-1 rounded px-2 py-0.5 font-medium transition-colors cursor-pointer ${
-                      activeDescTab === "kn"
-                        ? "bg-pine text-white font-semibold"
-                        : "text-ink-soft hover:text-ink"
-                    }`}
-                  >
-                    <span>ಕನ್ನಡ (Kannada)</span>
-                    {item.descriptionKn && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveDescTab("en")}
-                    className={`inline-flex items-center gap-1 rounded px-2 py-0.5 font-medium transition-colors cursor-pointer ${
-                      activeDescTab === "en"
-                        ? "bg-pine text-white font-semibold"
-                        : "text-ink-soft hover:text-ink"
-                    }`}
-                  >
-                    <span>English</span>
-                    {item.description && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />}
-                  </button>
-                </div>
-
-                <div className="text-xs sm:text-sm leading-relaxed text-ink">
-                  {activeDescTab === "kn" ? (
-                    item.descriptionKn ? (
-                      <p className="font-sans whitespace-pre-wrap">{item.descriptionKn}</p>
+                {language === "kn" ? (
+                  /* Pure Kannada Display */
+                  <div className="text-xs sm:text-sm leading-relaxed text-ink font-sans">
+                    {item.descriptionKn || autoTranslatedDescKn ? (
+                      <p className="whitespace-pre-wrap">{item.descriptionKn || autoTranslatedDescKn}</p>
                     ) : (
                       <p className="italic text-ink-soft">
-                        ಕನ್ನಡದಲ್ಲಿ ಯಾವುದೇ ವಿವರಣೆ ನೀಡಿಲ್ಲ. ವಿವರಣೆ ಸೇರಿಸಲು ಮೇಲೆ &quot;Edit in English &amp; Kannada&quot; ಕ್ಲಿಕ್ ಮಾಡಿ.
+                        ಯಾವುದೇ ವಿವರಣೆ ನೀಡಿಲ್ಲ. ವಿವರಣೆ ಸೇರಿಸಲು ಮೇಲೆ &quot;ವಿವರಣೆ ಸಂಪಾದಿಸಿ&quot; ಕ್ಲಿಕ್ ಮಾಡಿ.
                       </p>
-                    )
-                  ) : item.description ? (
-                    <p className="whitespace-pre-wrap">{item.description}</p>
-                  ) : (
-                    <p className="italic text-ink-soft">
-                      No English description provided yet. Click &quot;Edit in English &amp; Kannada&quot; above to add.
-                    </p>
-                  )}
-                </div>
+                    )}
+                  </div>
+                ) : (
+                  /* English / Multi-tab Display */
+                  <>
+                    <div className="flex items-center gap-2 border-b border-line/60 pb-1.5 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setActiveDescTab("en")}
+                        className={`inline-flex items-center gap-1 rounded px-2 py-0.5 font-medium transition-colors cursor-pointer ${
+                          activeDescTab === "en"
+                            ? "bg-pine text-white font-semibold"
+                            : "text-ink-soft hover:text-ink"
+                        }`}
+                      >
+                        <span>English</span>
+                        {item.description && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveDescTab("kn")}
+                        className={`inline-flex items-center gap-1 rounded px-2 py-0.5 font-medium transition-colors cursor-pointer ${
+                          activeDescTab === "kn"
+                            ? "bg-pine text-white font-semibold"
+                            : "text-ink-soft hover:text-ink"
+                        }`}
+                      >
+                        <span>ಕನ್ನಡ (Kannada)</span>
+                        {item.descriptionKn && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />}
+                      </button>
+                    </div>
+
+                    <div className="text-xs sm:text-sm leading-relaxed text-ink">
+                      {activeDescTab === "en" ? (
+                        item.description ? (
+                          <p className="whitespace-pre-wrap">{item.description}</p>
+                        ) : (
+                          <p className="italic text-ink-soft">
+                            No English description provided yet. Click &quot;Edit in English &amp; Kannada&quot; above to add.
+                          </p>
+                        )
+                      ) : item.descriptionKn ? (
+                        <p className="font-sans whitespace-pre-wrap">{item.descriptionKn}</p>
+                      ) : (
+                        <p className="italic text-ink-soft">
+                          ಕನ್ನಡದಲ್ಲಿ ಯಾವುದೇ ವಿವರಣೆ ನೀಡಿಲ್ಲ.
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
 
           {/* Stock Details Quick Glance */}
-          <div className="grid grid-cols-2 gap-3 rounded-xl border border-line bg-paper p-3 text-xs sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 rounded-xl border border-line bg-paper p-3 text-xs sm:grid-cols-4 font-sans">
             <div>
-              <span className="block text-[11px] text-ink-soft">Price</span>
+              <span className="block text-[11px] text-ink-soft">
+                {language === "kn" ? "ಬೆಲೆ" : "Price"}
+              </span>
               <span className="font-semibold text-ink">₹{item.price}</span>
             </div>
             <div>
-              <span className="block text-[11px] text-ink-soft">Stock In Hand</span>
+              <span className="block text-[11px] text-ink-soft">
+                {language === "kn" ? "ದಾಸ್ತಾನು" : "Stock In Hand"}
+              </span>
               <span className="font-semibold text-ink">
-                {item.quantity} {item.unit || "pcs"}
+                {item.quantity} {translateUnit(item.unit || "pcs", language)}
               </span>
             </div>
             <div>
-              <span className="block text-[11px] text-ink-soft">Category</span>
+              <span className="block text-[11px] text-ink-soft">
+                {language === "kn" ? "ವರ್ಗ" : "Category"}
+              </span>
               <span className="font-medium capitalize text-ink">
-                {item.category}
+                {translateCategory(item.category, language)}
               </span>
             </div>
             <div>
-              <span className="block text-[11px] text-ink-soft">Subcategory</span>
+              <span className="block text-[11px] text-ink-soft">
+                {language === "kn" ? "ಉಪವರ್ಗ" : "Subcategory"}
+              </span>
               <span className="font-medium capitalize text-ink">
-                {item.subcategory || "Other"}
+                {translateSubcategory(item.subcategory || "other", language)}
               </span>
             </div>
           </div>
@@ -735,7 +776,7 @@ export function StockItemDetailModal({
               ) : (
                 <Trash2 size={14} />
               )}
-              <span>Delete Photo</span>
+              <span>{language === "kn" ? "ಫೋಟೋ ಅಳಿಸಿ" : "Delete Photo"}</span>
             </button>
           ) : (
             <div className="hidden sm:block" />
@@ -752,7 +793,7 @@ export function StockItemDetailModal({
                 className="flex flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-medium text-ink transition-colors hover:bg-line/40 text-center"
               >
                 <Boxes size={14} />
-                <span>View in Stock</span>
+                <span>{language === "kn" ? "ದಾಸ್ತಾನಿನಲ್ಲಿ ನೋಡಿ" : "View in Stock"}</span>
               </Link>
             )}
 
@@ -763,7 +804,15 @@ export function StockItemDetailModal({
                 className="flex flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-lg bg-pine px-3.5 py-2 text-xs font-semibold text-surface transition-colors hover:bg-pine-deep cursor-pointer text-center shadow-xs"
               >
                 <Plus size={14} />
-                <span>{hasImages ? "Add Another Photo" : "Add Photo"}</span>
+                <span>
+                  {language === "kn"
+                    ? hasImages
+                      ? "ಇನ್ನೊಂದು ಫೋಟೋ ಸೇರಿಸಿ"
+                      : "ಫೋಟೋ ಸೇರಿಸಿ"
+                    : hasImages
+                    ? "Add Another Photo"
+                    : "Add Photo"}
+                </span>
               </button>
             )}
           </div>

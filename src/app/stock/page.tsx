@@ -31,6 +31,12 @@ import { formatMoney, StockItem, StockCategory, StockSubcategory, GalleryStockIt
 import { useAuth } from "@/lib/auth-context";
 import { StockItemDetailModal } from "@/components/StockItemDetailModal";
 import { StockPhotoUploadModal } from "@/components/StockPhotoUploadModal";
+import {
+  useLanguage,
+  translateCategory,
+  translateSubcategory,
+  translateUnit,
+} from "@/lib/language-context";
 
 const DEFAULT_CATEGORIES: StockCategory[] = [
   { id: "plants", name: "Plants", slug: "plants" },
@@ -86,6 +92,7 @@ function getSubcategoryIcon(slug: string, category: string) {
 
 export default function StockPage() {
   const { user } = useAuth();
+  const { language, translateItem } = useLanguage();
   const isAdmin = user?.role === "admin";
 
   const [items, setItems] = useState<GalleryStockItem[]>([]);
@@ -593,16 +600,18 @@ export default function StockPage() {
 
       // Filter by search query
       if (!q) return true;
-      const nameMatch = item.name.toLowerCase().includes(q);
+      const knName = item.nameKn || translateItem(item.name, "kn");
+      const nameMatch = item.name.toLowerCase().includes(q) || knName.toLowerCase().includes(q);
       const unitMatch = (item.unit || "").toLowerCase().includes(q);
       const priceMatch = item.price.toString().includes(q);
       const qtyMatch = item.quantity.toString().includes(q);
-      const subMatch = itemSub.includes(q);
-      const catMatch = itemCat.includes(q);
+      const subMatch = itemSub.includes(q) || translateSubcategory(itemSub, "kn").toLowerCase().includes(q);
+      const catMatch = itemCat.includes(q) || translateCategory(itemCat, "kn").toLowerCase().includes(q);
+      const descMatch = (item.description || "").toLowerCase().includes(q) || (item.descriptionKn || "").toLowerCase().includes(q);
 
-      return nameMatch || unitMatch || priceMatch || qtyMatch || subMatch || catMatch;
+      return nameMatch || unitMatch || priceMatch || qtyMatch || subMatch || catMatch || descMatch;
     });
-  }, [items, searchQuery, selectedCategory, selectedSubcategory]);
+  }, [items, searchQuery, selectedCategory, selectedSubcategory, translateItem]);
 
   async function addItem(e: React.FormEvent) {
     e.preventDefault();
@@ -698,14 +707,14 @@ export default function StockPage() {
     const foundSub = subcategories.find(
       (s) => s.category.toLowerCase() === currentCat && s.slug.toLowerCase() === currentSub
     );
-    const label =
-      foundSub?.name ||
-      (currentSub.charAt(0).toUpperCase() + currentSub.slice(1));
+    const label = language === "kn"
+      ? translateSubcategory(currentSub, "kn")
+      : foundSub?.name || (currentSub.charAt(0).toUpperCase() + currentSub.slice(1));
     const Icon = getSubcategoryIcon(currentSub, currentCat);
 
     return (
       <span
-        className="inline-flex items-center gap-1 rounded-full border border-line bg-paper px-2 py-0.5 text-[11px] font-medium text-ink-soft shadow-2xs"
+        className="inline-flex items-center gap-1 rounded-full border border-line bg-paper px-2 py-0.5 text-[11px] font-medium text-ink-soft shadow-2xs font-sans"
       >
         <Icon size={11} />
         <span>{label}</span>
@@ -718,9 +727,13 @@ export default function StockPage() {
       {/* Header */}
       <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-serif text-xl font-semibold text-ink">Stock Inventory</h1>
-          <p className="text-sm text-ink-soft">
-            Manage plants, supplies, and stock items available for invoices.
+          <h1 className="font-serif text-xl font-semibold text-ink">
+            {language === "kn" ? "ದಾಸ್ತಾನು ನಿರ್ವಹಣೆ" : "Stock Inventory"}
+          </h1>
+          <p className="text-sm text-ink-soft font-sans">
+            {language === "kn"
+              ? "ಸಸ್ಯಗಳು, ಸಾಮಗ್ರಿಗಳು ಮತ್ತು ದಾಸ್ತಾನು ವಸ್ತುಗಳನ್ನು ನಿರ್ವಹಿಸಿ."
+              : "Manage plants, supplies, and stock items available for invoices."}
           </p>
         </div>
       </div>
@@ -739,13 +752,12 @@ export default function StockPage() {
         className="mb-6 rounded-lg border border-line bg-surface p-4 shadow-xs"
       >
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
-          <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-            Add New Item to Inventory
+          <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft font-sans">
+            {language === "kn" ? "ದಾಸ್ತಾನಿಗೆ ಹೊಸ ವಸ್ತು ಸೇರಿಸಿ" : "Add New Item to Inventory"}
           </span>
 
-          {/* Category Toggle: Side by Side Buttons */}
           {/* Category Toggle: Dynamic Buttons */}
-          <div className="flex flex-wrap items-center gap-1 rounded-md border border-line-strong bg-paper p-0.5 text-xs">
+          <div className="flex flex-wrap items-center gap-1 rounded-md border border-line-strong bg-paper p-0.5 text-xs font-sans">
             {categories.map((c) => {
               const isPlants = c.slug === "plants";
               const Icon = isPlants ? Sprout : Package;
@@ -768,7 +780,7 @@ export default function StockPage() {
                   }`}
                 >
                   <Icon size={13} />
-                  <span>{c.name}</span>
+                  <span>{translateCategory(c.name, language)}</span>
                 </button>
               );
             })}
@@ -792,8 +804,10 @@ export default function StockPage() {
           if (list.length === 0) return null;
 
           return (
-            <div className="mb-3 flex flex-wrap items-center gap-1.5">
-              <span className="text-xs font-medium text-ink-soft mr-1">Type:</span>
+            <div className="mb-3 flex flex-wrap items-center gap-1.5 font-sans">
+              <span className="text-xs font-medium text-ink-soft mr-1">
+                {language === "kn" ? "ಪ್ರಕಾರ:" : "Type:"}
+              </span>
               {list.map((sub) => {
                 const Icon = getSubcategoryIcon(sub.slug, category);
                 const isSelected = subcategory === sub.slug;
@@ -809,7 +823,7 @@ export default function StockPage() {
                     }`}
                   >
                     <Icon size={12} />
-                    <span>{sub.name}</span>
+                    <span>{translateSubcategory(sub.name, language)}</span>
                   </button>
                 );
               })}
@@ -818,16 +832,24 @@ export default function StockPage() {
         })()}
 
         {/* Inputs row */}
-        <div className="flex flex-wrap items-end gap-2.5">
+        <div className="flex flex-wrap items-end gap-2.5 font-sans">
           <label className="flex w-full sm:min-w-[180px] sm:flex-1 flex-col gap-1">
             <span className="text-xs text-ink-soft">
-              {category === "plants" ? "Plant name" : "Item name"}
+              {language === "kn"
+                ? "ವಸ್ತು / ಸಸ್ಯದ ಹೆಸರು"
+                : category === "plants"
+                ? "Plant name"
+                : "Item name"}
             </span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={
-                category === "plants"
+                language === "kn"
+                  ? category === "plants"
+                    ? "ಉದಾ. ಮಾವಿನ ಗಿಡ, ಗುಲಾಬಿ ಗಿಡ..."
+                    : "ಉದಾ. 10-ಇಂಚಿನ ಕುಂಡ, ವರ್ಮಿಕಾಂಪೋಸ್ಟ್..."
+                  : category === "plants"
                   ? "e.g. Alphonso Mango, Kashmiri Rose"
                   : "e.g. 10-inch Clay Pot, Vermicompost"
               }
@@ -837,16 +859,16 @@ export default function StockPage() {
 
           <div className="flex w-full sm:w-auto flex-wrap sm:flex-nowrap items-end gap-2">
             <label className="flex w-20 flex-col gap-1">
-              <span className="text-xs text-ink-soft">Unit</span>
+              <span className="text-xs text-ink-soft">{language === "kn" ? "ಘಟಕ" : "Unit"}</span>
               <input
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                placeholder="pcs"
+                placeholder={language === "kn" ? "ಸಂಖ್ಯೆ" : "pcs"}
                 className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
               />
             </label>
             <label className="flex w-24 flex-col gap-1">
-              <span className="text-xs text-ink-soft">Price (₹)</span>
+              <span className="text-xs text-ink-soft">{language === "kn" ? "ದರ (₹)" : "Price (₹)"}</span>
               <input
                 type="number"
                 min={0}
@@ -858,7 +880,7 @@ export default function StockPage() {
               />
             </label>
             <label className="flex w-20 flex-col gap-1">
-              <span className="text-xs text-ink-soft">Quantity</span>
+              <span className="text-xs text-ink-soft">{language === "kn" ? "ಪ್ರಮಾಣ" : "Quantity"}</span>
               <input
                 type="number"
                 min={0}
@@ -873,7 +895,7 @@ export default function StockPage() {
               disabled={adding}
               className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-1.5 text-sm font-semibold text-surface shadow-sm hover:opacity-90 disabled:opacity-50 cursor-pointer"
             >
-              <Plus size={15} /> Add item
+              <Plus size={15} /> {language === "kn" ? "ವಸ್ತು ಸೇರಿಸಿ" : "Add item"}
             </button>
           </div>
         </div>
@@ -915,14 +937,14 @@ export default function StockPage() {
               setEditingSubId(null);
               setCategoryError("");
             }}
-            className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer font-sans ${
               selectedCategory === "all"
                 ? "border-pine bg-pine text-surface shadow-xs"
                 : "border-line-strong bg-surface text-ink-soft hover:bg-line/40 hover:text-ink"
             }`}
           >
             <Boxes size={15} />
-            <span>All Items</span>
+            <span>{language === "kn" ? "ಎಲ್ಲಾ ವಸ್ತುಗಳು" : "All Items"}</span>
             <span
               className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
                 selectedCategory === "all"
@@ -992,14 +1014,14 @@ export default function StockPage() {
                   setEditingSubId(null);
                   setCategoryError("");
                 }}
-                className={`group inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-all cursor-pointer select-none ${
+                className={`group inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-all cursor-pointer select-none font-sans ${
                   isSelected
                     ? "border-pine bg-pine text-surface shadow-xs"
                     : "border-line-strong bg-surface text-ink-soft hover:bg-line/40 hover:text-ink"
                 }`}
               >
                 <CatIcon size={15} />
-                <span>{cat.name}</span>
+                <span>{translateCategory(cat.name, language)}</span>
                 <span
                   className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
                     isSelected
@@ -1100,20 +1122,22 @@ export default function StockPage() {
                 setNewCategoryName("");
                 setCategoryError("");
               }}
-              className="flex items-center gap-1 rounded-lg border border-dashed border-pine/50 bg-surface/80 px-3 py-2 text-xs font-semibold text-pine-deep hover:border-pine hover:bg-pine-tint/40 transition-all cursor-pointer shadow-2xs"
+              className="flex items-center gap-1 rounded-lg border border-dashed border-pine/50 bg-surface/80 px-3 py-2 text-xs font-semibold text-pine-deep hover:border-pine hover:bg-pine-tint/40 transition-all cursor-pointer shadow-2xs font-sans"
               title="Add new major category"
             >
               <Plus size={14} />
-              <span>Add Category</span>
+              <span>{language === "kn" ? "ವರ್ಗ ಸೇರಿಸಿ" : "Add Category"}</span>
             </button>
           )}
         </div>
 
         {/* Dynamic Subcategories / Types Row */}
         {selectedCategory !== "all" && (
-          <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-pine/20 bg-pine-tint/25 p-2 animate-in fade-in duration-150">
+          <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-pine/20 bg-pine-tint/25 p-2 animate-in fade-in duration-150 font-sans">
             <span className="mr-1 text-[11px] font-bold uppercase tracking-wider text-pine-deep">
-              {currentCatObj?.name || selectedCategory} Types:
+              {language === "kn"
+                ? `${translateCategory(selectedCategory, "kn")} ಪ್ರಕಾರಗಳು:`
+                : `${currentCatObj?.name || selectedCategory} Types:`}
             </span>
 
             {/* "All [Category]" pill */}
@@ -1127,7 +1151,11 @@ export default function StockPage() {
               }`}
             >
               {selectedCategory === "plants" ? <Sprout size={13} /> : <Package size={13} />}
-              <span>All {currentCatObj?.name || "Items"}</span>
+              <span>
+                {language === "kn"
+                  ? `ಎಲ್ಲಾ ${translateCategory(selectedCategory, "kn")}`
+                  : `All ${currentCatObj?.name || "Items"}`}
+              </span>
               <span
                 className={`rounded-full px-1.5 py-0.1 text-[10px] ${
                   selectedSubcategory === "all"
@@ -1198,7 +1226,7 @@ export default function StockPage() {
                   }`}
                 >
                   <Icon size={13} />
-                  <span>{sub.name}</span>
+                  <span>{translateSubcategory(sub.name, language)}</span>
                   <span
                     className={`rounded-full px-1.5 py-0.1 text-[10px] ${
                       active ? "bg-white/25 text-surface font-bold" : "text-ink-soft/70"
@@ -1301,7 +1329,7 @@ export default function StockPage() {
                 title={`Add new type under ${currentCatObj?.name || selectedCategory}`}
               >
                 <Plus size={13} />
-                <span>Add Type</span>
+                <span>{language === "kn" ? "ಪ್ರಕಾರ ಸೇರಿಸಿ" : "Add Type"}</span>
               </button>
             )}
           </div>
@@ -1316,13 +1344,30 @@ export default function StockPage() {
           <div className="text-xs text-ink-soft">
             {searchQuery || selectedCategory !== "all" || selectedSubcategory !== "all" ? (
               <span>
-                Showing <strong className="text-ink">{filteredItems.length}</strong> of{" "}
-                {items.length} {items.length === 1 ? "item" : "items"}
+                {language === "kn" ? (
+                  <>
+                    ತೋರಿಸಲಾಗುತ್ತಿದೆ <strong className="text-ink">{filteredItems.length}</strong> /{" "}
+                    {items.length} ವಸ್ತುಗಳು
+                  </>
+                ) : (
+                  <>
+                    Showing <strong className="text-ink">{filteredItems.length}</strong> of{" "}
+                    {items.length} {items.length === 1 ? "item" : "items"}
+                  </>
+                )}
               </span>
             ) : (
               <span>
-                Total inventory: <strong className="text-ink">{items.length}</strong>{" "}
-                {items.length === 1 ? "item" : "items"}
+                {language === "kn" ? (
+                  <>
+                    ಒಟ್ಟು ದಾಸ್ತಾನು: <strong className="text-ink">{items.length}</strong> ವಸ್ತುಗಳು
+                  </>
+                ) : (
+                  <>
+                    Total inventory: <strong className="text-ink">{items.length}</strong>{" "}
+                    {items.length === 1 ? "item" : "items"}
+                  </>
+                )}
               </span>
             )}
           </div>
@@ -1336,7 +1381,7 @@ export default function StockPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name, type, price..."
+              placeholder={language === "kn" ? "ಹೆಸರು, ಪ್ರಕಾರ, ಬೆಲೆಯ ಮೂಲಕ ಹುಡುಕಿ..." : "Search by name, type, price..."}
               className="w-full rounded-md border border-line-strong bg-surface py-1.5 pl-9 pr-8 text-sm outline-none placeholder:text-ink-soft/70 focus:border-pine"
             />
             {searchQuery && (
@@ -1344,7 +1389,7 @@ export default function StockPage() {
                 type="button"
                 onClick={() => setSearchQuery("")}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-ink-soft hover:text-ink cursor-pointer"
-                aria-label="Clear search"
+                aria-label={language === "kn" ? "ಹುಡುಕಾಟ ತೆರವುಗೊಳಿಸಿ" : "Clear search"}
               >
                 <X size={14} />
               </button>
@@ -1357,12 +1402,16 @@ export default function StockPage() {
       {/* STOCK ITEMS TABLE / LIST                                     */}
       {/* ============================================================ */}
       {loading ? (
-        <p className="text-sm text-ink-soft">Loading stock…</p>
+        <p className="text-sm text-ink-soft">
+          {language === "kn" ? "ದಾಸ್ತಾನು ಲೋಡ್ ಆಗುತ್ತಿದೆ…" : "Loading stock…"}
+        </p>
       ) : items.length === 0 ? (
         <div className="rounded-lg border border-dashed border-line-strong bg-surface px-6 py-12 text-center">
           <Boxes className="mx-auto mb-2 text-ink-soft" size={22} />
           <p className="text-sm text-ink-soft">
-            No stock items yet — add your first plant or item above.
+            {language === "kn"
+              ? "ಇನ್ನೂ ಯಾವುದೇ ದಾಸ್ತಾನು ವಸ್ತುಗಳಿಲ್ಲ — ಮೇಲೆ ನಿಮ್ಮ ಮೊದಲ ಸಸ್ಯ ಅಥವಾ ವಸ್ತುವನ್ನು ಸೇರಿಸಿ."
+              : "No stock items yet — add your first plant or item above."}
           </p>
         </div>
       ) : filteredItems.length === 0 ? (
@@ -1370,8 +1419,12 @@ export default function StockPage() {
           <Boxes className="mx-auto mb-2 text-ink-soft" size={22} />
           <p className="text-sm text-ink-soft">
             {searchQuery
-              ? `No stock items match "${searchQuery}".`
-              : "No stock items match this category filter."}
+              ? (language === "kn"
+                  ? `"${searchQuery}" ಗೆ ಹೊಂದಿಕೆಯಾಗುವ ಯಾವುದೇ ದಾಸ್ತಾನು ವಸ್ತುಗಳು ಕಂಡುಬಂದಿಲ್ಲ.`
+                  : `No stock items match "${searchQuery}".`)
+              : (language === "kn"
+                  ? "ಈ ವರ್ಗ ಫಿಲ್ಟರ್‌ಗೆ ಹೊಂದಿಕೆಯಾಗುವ ಯಾವುದೇ ದಾಸ್ತಾನು ವಸ್ತುಗಳಿಲ್ಲ."
+                  : "No stock items match this category filter.")}
           </p>
           <button
             type="button"
@@ -1383,7 +1436,7 @@ export default function StockPage() {
             }}
             className="mt-3 inline-block text-xs font-medium text-pine-deep underline hover:opacity-80 cursor-pointer"
           >
-            Reset all filters
+            {language === "kn" ? "ಎಲ್ಲಾ ಫಿಲ್ಟರ್‌ಗಳನ್ನು ಮರುಹೊಂದಿಸಿ" : "Reset all filters"}
           </button>
         </div>
       ) : (
@@ -1391,12 +1444,12 @@ export default function StockPage() {
           <table className="w-full min-w-[560px] text-sm">
             <thead>
               <tr className="border-b border-line bg-paper-flat text-left text-xs uppercase tracking-wide text-ink-soft">
-                <th className="px-4 py-2.5 font-medium">Item</th>
-                <th className="px-4 py-2.5 font-medium">Category</th>
-                <th className="px-4 py-2.5 font-medium">Unit</th>
-                <th className="px-4 py-2.5 text-right font-medium">Price</th>
-                <th className="px-4 py-2.5 text-right font-medium">Quantity</th>
-                <th className="w-20 px-4 py-2.5"></th>
+                <th className="px-4 py-2.5 font-medium">{language === "kn" ? "ವಸ್ತು / ಸಸ್ಯದ ಹೆಸರು" : "Item"}</th>
+                <th className="px-4 py-2.5 font-medium">{language === "kn" ? "ವರ್ಗ" : "Category"}</th>
+                <th className="px-4 py-2.5 font-medium">{language === "kn" ? "ಘಟಕ" : "Unit"}</th>
+                <th className="px-4 py-2.5 text-right font-medium">{language === "kn" ? "ದರ" : "Price"}</th>
+                <th className="px-4 py-2.5 text-right font-medium">{language === "kn" ? "ಪ್ರಮಾಣ" : "Quantity"}</th>
+                <th className="w-20 px-4 py-2.5">{language === "kn" ? "ಕ್ರಮಗಳು" : ""}</th>
               </tr>
             </thead>
             <tbody>
@@ -1425,9 +1478,11 @@ export default function StockPage() {
                           type="button"
                           onClick={() => openDetailModal(item)}
                           className="group inline-flex items-center gap-2 text-left font-semibold text-ink hover:text-pine transition-colors cursor-pointer"
-                          title="Click to view photos and details"
+                          title={language === "kn" ? "ವಿವರಗಳು ಮತ್ತು ಫೋಟೋಗಳನ್ನು ವೀಕ್ಷಿಸಿ" : "Click to view photos and details"}
                         >
-                          <span className="group-hover:underline">{item.name}</span>
+                          <span className="group-hover:underline">
+                            {language === "kn" ? (item.nameKn || translateItem(item.name, "kn")) : item.name}
+                          </span>
                           {item.images && item.images.length > 0 && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-pine-tint px-1.5 py-0.5 text-[10px] font-bold text-pine-deep shrink-0 shadow-2xs">
                               <ImageIcon size={10} />
@@ -1463,7 +1518,7 @@ export default function StockPage() {
                           >
                             {categories.map((c) => (
                               <option key={c.slug} value={c.slug}>
-                                {c.name}
+                                {translateCategory(c.name, language)}
                               </option>
                             ))}
                           </select>
@@ -1494,11 +1549,13 @@ export default function StockPage() {
                               >
                                 {list.map((s) => (
                                   <option key={s.slug} value={s.slug}>
-                                    {s.name}
+                                    {translateSubcategory(s.name, language)}
                                   </option>
                                 ))}
                                 {!list.some((s) => s.slug === "other") && (
-                                  <option value="other">Other</option>
+                                  <option value="other">
+                                    {language === "kn" ? "ಇತರ" : "Other"}
+                                  </option>
                                 )}
                               </select>
                             );
@@ -1522,7 +1579,7 @@ export default function StockPage() {
                           className="w-16 rounded-md border border-line-strong bg-surface px-2 py-1 text-sm outline-none focus:border-pine"
                         />
                       ) : (
-                        item.unit || "pcs"
+                        translateUnit(item.unit || "pcs", language)
                       )}
                     </td>
 
@@ -1580,7 +1637,7 @@ export default function StockPage() {
                               onClick={() => saveEdit(item.id)}
                               className="rounded p-1.5 text-pine hover:bg-pine-tint cursor-pointer"
                               aria-label="Save"
-                              title="Save changes"
+                              title={language === "kn" ? "ಉಳಿಸಿ" : "Save changes"}
                             >
                               <Check size={15} />
                             </button>
@@ -1591,7 +1648,7 @@ export default function StockPage() {
                               }}
                               className="rounded p-1.5 text-ink-soft hover:bg-line/60 cursor-pointer"
                               aria-label="Cancel"
-                              title="Cancel edit"
+                              title={language === "kn" ? "ರದ್ದುಮಾಡಿ" : "Cancel edit"}
                             >
                               <X size={15} />
                             </button>
@@ -1602,7 +1659,7 @@ export default function StockPage() {
                               onClick={() => startEdit(item)}
                               className="rounded p-1.5 text-ink-soft hover:bg-line/60 hover:text-ink cursor-pointer"
                               aria-label="Edit"
-                              title="Edit item"
+                              title={language === "kn" ? "ತಿದ್ದುಪಡಿ ಮಾಡಿ" : "Edit item"}
                             >
                               <Pencil size={15} />
                             </button>
@@ -1610,7 +1667,7 @@ export default function StockPage() {
                               onClick={() => removeItem(item.id)}
                               className="rounded p-1.5 text-ink-soft hover:bg-rust-tint hover:text-rust cursor-pointer"
                               aria-label="Remove"
-                              title="Delete item"
+                              title={language === "kn" ? "ದಾಸ್ತಾನಿನಿಂದ ಅಳಿಸಿ" : "Delete item"}
                             >
                               <Trash2 size={15} />
                             </button>
@@ -1655,27 +1712,41 @@ export default function StockPage() {
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-ink sm:text-base">
-                  Active Stock Items Detected
+                  {language === "kn" ? "ಸಕ್ರಿಯ ದಾಸ್ತಾನು ವಸ್ತುಗಳು ಕಂಡುಬಂದಿವೆ" : "Active Stock Items Detected"}
                 </h3>
                 <p className="text-xs text-ink-soft">
-                  {reassignModal.type === "subcategory" ? "Subcategory" : "Major Category"}:{" "}
-                  <strong className="text-ink">{reassignModal.name}</strong>
+                  {reassignModal.type === "subcategory"
+                    ? (language === "kn" ? "ಉಪವರ್ಗ" : "Subcategory")
+                    : (language === "kn" ? "ಮುಖ್ಯ ವರ್ಗ" : "Major Category")}
+                  : <strong className="text-ink">{reassignModal.name}</strong>
                 </p>
               </div>
             </div>
 
             <p className="mb-4 text-xs leading-relaxed text-ink-soft">
-              There {reassignModal.itemCount === 1 ? "is" : "are"}{" "}
-              <strong className="font-semibold text-pine-deep">
-                {reassignModal.itemCount} active stock item{reassignModal.itemCount === 1 ? "" : "s"}
-              </strong>{" "}
-              assigned to <strong className="text-ink">"{reassignModal.name}"</strong>.
-              Before deleting, choose which tag to reassign these items to:
+              {language === "kn" ? (
+                <>
+                  <strong className="text-ink">"{reassignModal.name}"</strong> ಗೆ ನಿಯೋಜಿಸಲಾದ{" "}
+                  <strong className="font-semibold text-pine-deep">
+                    {reassignModal.itemCount} ಸಕ್ರಿಯ ದಾಸ್ತಾನು ವಸ್ತುಗಳು
+                  </strong>{" "}
+                  ಇವೆ. ಅಳಿಸುವ ಮುನ್ನ, ಈ ವಸ್ತುಗಳನ್ನು ಯಾವ ವರ್ಗಕ್ಕೆ ಮರುನಿಯೋಜಿಸಬೇಕೆಂದು ಆಯ್ಕೆಮಾಡಿ:
+                </>
+              ) : (
+                <>
+                  There {reassignModal.itemCount === 1 ? "is" : "are"}{" "}
+                  <strong className="font-semibold text-pine-deep">
+                    {reassignModal.itemCount} active stock item{reassignModal.itemCount === 1 ? "" : "s"}
+                  </strong>{" "}
+                  assigned to <strong className="text-ink">"{reassignModal.name}"</strong>.
+                  Before deleting, choose which tag to reassign these items to:
+                </>
+              )}
             </p>
 
             <div className="mb-5">
               <label className="mb-1.5 block text-xs font-semibold text-ink">
-                Reassign Items To:
+                {language === "kn" ? "ವಸ್ತುಗಳನ್ನು ಮರುನಿಯೋಜಿಸಿ:" : "Reassign Items To:"}
               </label>
               <select
                 value={reassignTarget}
@@ -1687,7 +1758,9 @@ export default function StockPage() {
                   <>
                     {reassignModal.slug.toLowerCase() !== "other" &&
                       reassignModal.slug.toLowerCase() !== "others" && (
-                        <option value="other">Others ("other" - auto-created if needed)</option>
+                        <option value="other">
+                          {language === "kn" ? "ಇತರ (ಅಗತ್ಯವಿದ್ದರೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ರಚಿಸಲಾಗುತ್ತದೆ)" : "Others (\"other\" - auto-created if needed)"}
+                        </option>
                       )}
                     {subcategories
                       .filter(
@@ -1700,7 +1773,7 @@ export default function StockPage() {
                       )
                       .map((s) => (
                         <option key={s.slug} value={s.slug}>
-                          {s.name}
+                          {translateSubcategory(s.name, language)}
                         </option>
                       ))}
                   </>
@@ -1709,7 +1782,7 @@ export default function StockPage() {
                     {reassignModal.slug.toLowerCase() !== "others" &&
                       reassignModal.slug.toLowerCase() !== "other" && (
                         <option value="others">
-                          Others ("others" - auto-created if needed)
+                          {language === "kn" ? "ಇತರ (ಅಗತ್ಯವಿದ್ದರೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ರಚಿಸಲಾಗುತ್ತದೆ)" : "Others (\"others\" - auto-created if needed)"}
                         </option>
                       )}
                     {categories
@@ -1721,14 +1794,17 @@ export default function StockPage() {
                       )
                       .map((c) => (
                         <option key={c.slug} value={c.slug}>
-                          {c.name} (Subcategory will default to "other")
+                          {translateCategory(c.name, language)}{" "}
+                          {language === "kn" ? "(ಉಪವರ್ಗವು 'ಇತರ' ಆಗಿರುತ್ತದೆ)" : "(Subcategory will default to \"other\")"}
                         </option>
                       ))}
                   </>
                 )}
               </select>
               <p className="mt-1.5 text-[11px] text-ink-soft/80">
-                All {reassignModal.itemCount} item{reassignModal.itemCount === 1 ? "" : "s"} will be safely reassigned before deletion.
+                {language === "kn"
+                  ? `ಅಳಿಸುವ ಮೊದಲು ಎಲ್ಲಾ ${reassignModal.itemCount} ವಸ್ತುಗಳನ್ನು ಸುರಕ್ಷಿತವಾಗಿ ಮರುನಿಯೋಜಿಸಲಾಗುತ್ತದೆ.`
+                  : `All ${reassignModal.itemCount} item${reassignModal.itemCount === 1 ? "" : "s"} will be safely reassigned before deletion.`}
               </p>
             </div>
 
@@ -1739,7 +1815,7 @@ export default function StockPage() {
                 disabled={reassigning}
                 className="rounded-lg border border-line px-3.5 py-2 text-xs font-medium text-ink-soft hover:bg-paper hover:text-ink transition-colors cursor-pointer"
               >
-                Cancel
+                {language === "kn" ? "ರದ್ದುಮಾಡಿ" : "Cancel"}
               </button>
               <button
                 type="button"
@@ -1750,12 +1826,12 @@ export default function StockPage() {
                 {reassigning ? (
                   <>
                     <Loader2 size={13} className="animate-spin" />
-                    <span>Reassigning & Deleting...</span>
+                    <span>{language === "kn" ? "ಮರುನಿಯೋಜಿಸಿ ಅಳಿಸಲಾಗುತ್ತಿದೆ..." : "Reassigning & Deleting..."}</span>
                   </>
                 ) : (
                   <>
                     <Trash2 size={13} />
-                    <span>Reassign & Delete</span>
+                    <span>{language === "kn" ? "ಮರುನಿಯೋಜಿಸಿ ಮತ್ತು ಅಳಿಸಿ" : "Reassign & Delete"}</span>
                   </>
                 )}
               </button>
