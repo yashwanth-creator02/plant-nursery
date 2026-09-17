@@ -285,6 +285,123 @@ export const PLANT_DICTIONARY: PlantMapping[] = [
     aliases: ["Bougainvillea", "Bouganvilla", "Paper Flower"],
   },
 
+  // Herbal & Medicinal Plants
+  {
+    kannada: "ಅಮೃತಬಳ್ಳಿ",
+    english: "Amruthaballi (Giloy / Guduchi)",
+    aliases: ["Amruthaballi", "Amrutha Balli", "Amruthavalli", "Giloy", "Guduchi", "Tinospora cordifolia"],
+  },
+  {
+    kannada: "ತುಳಸಿ ಗಿಡ",
+    english: "Tulasi Plant (Holy Basil)",
+    aliases: ["Tulasi", "Tulsi", "Krishna Tulasi", "Rama Tulasi", "Holy Basil"],
+  },
+  {
+    kannada: "ದೊಡ್ಡಪತ್ರೆ ಗಿಡ",
+    english: "Doddapatre (Mexican Mint / Ajwain Leaves)",
+    aliases: ["Doddapatre", "Dodda Pathre", "Ajwain Leaf", "Mexican Mint", "Coleus amboinicus"],
+  },
+  {
+    kannada: "ಕರಿಬೇವು ಗಿಡ",
+    english: "Curry Leaves Plant (Karibevu)",
+    aliases: ["Curry Leaves", "Karibevu", "Karivepaku", "Curry Leaf Plant"],
+  },
+  {
+    kannada: "ಲೆಮನ್ ಗ್ರಾಸ್ ಗಿಡ",
+    english: "Lemon Grass (Nimbe Hullu)",
+    aliases: ["Lemon Grass", "Lemongrass", "Nimbe Hullu"],
+  },
+  {
+    kannada: "ಬ್ರಾಹ್ಮಿ / ಒಂದೆಲಗ ಗಿಡ",
+    english: "Brahmi / Ondelaga Plant",
+    aliases: ["Brahmi", "Ondelaga", "Gotu Kola", "Centella asiatica"],
+  },
+  {
+    kannada: "ಇನ್ಸುಲಿನ್ ಗಿಡ",
+    english: "Insulin Plant (Costus Igneus)",
+    aliases: ["Insulin Plant", "Insulin Gida", "Costus Igneus"],
+  },
+  {
+    kannada: "ಅಶ್ವಗಂಧ ಗಿಡ",
+    english: "Ashwagandha Plant (Indian Ginseng)",
+    aliases: ["Ashwagandha", "Indian Ginseng", "Withania somnifera"],
+  },
+  {
+    kannada: "ಶತಾವರಿ ಗಿಡ",
+    english: "Shatavari Plant (Asparagus racemosus)",
+    aliases: ["Shatavari", "Shathavari", "Asparagus racemosus"],
+  },
+  {
+    kannada: "ಲೋಳೆಸರ ಗಿಡ",
+    english: "Aloe Vera Plant (Lolesara)",
+    aliases: ["Aloe Vera", "Aloevera", "Lolesara", "Lole Sara"],
+  },
+  {
+    kannada: "ವೀಳ್ಯದೆಲೆ ಗಿಡ",
+    english: "Betel Leaf Vine (Vilyadele)",
+    aliases: ["Betel Leaf", "Vilyadele", "Veelyadele", "Paan Leaf"],
+  },
+  {
+    kannada: "ನುಗ್ಗೆ ಗಿಡ",
+    english: "Drumstick Plant (Nugge / Moringa PKM)",
+    aliases: ["Drumstick", "Nugge", "Moringa", "Nuggekai"],
+  },
+  {
+    kannada: "ಬೇವಿನ ಗಿಡ",
+    english: "Neem Sapling (Bevu)",
+    aliases: ["Neem", "Bevu", "Neem Tree", "Azadirachta indica"],
+  },
+  {
+    kannada: "ಅಂಜೂರ ಗಿಡ",
+    english: "Fig Plant (Anjura)",
+    aliases: ["Fig", "Anjura", "Anjeer", "Fig Plant"],
+  },
+  {
+    kannada: "ಡ್ರ್ಯಾಗನ್ ಫ್ರೂಟ್ ಗಿಡ",
+    english: "Dragon Fruit Cutting / Plant",
+    aliases: ["Dragon Fruit", "Dragonfruit", "Pitaya"],
+  },
+  {
+    kannada: "ಪಾರಿಜಾತ ಗಿಡ",
+    english: "Parijatha Plant (Night Flowering Jasmine)",
+    aliases: ["Parijatha", "Parijat", "Night Flowering Jasmine"],
+  },
+  {
+    kannada: "ಕನಕಾಂಬರ ಗಿಡ",
+    english: "Kanakambara Plant (Crossandra)",
+    aliases: ["Kanakambara", "Crossandra", "Firecracker Flower"],
+  },
+  {
+    kannada: "ಸೇವಂತಿಗೆ ಗಿಡ",
+    english: "Chrysanthemum (Sevanthige)",
+    aliases: ["Chrysanthemum", "Sevanthige", "Shevanthi"],
+  },
+  {
+    kannada: "ಚೆಂಡು ಹೂವು ಗಿಡ",
+    english: "Marigold Plant (Chendu Hoovu)",
+    aliases: ["Marigold", "Chendu Hoovu", "Genda"],
+  },
+  {
+    kannada: "ಸುಗಂಧರಾಜ ಗಿಡ",
+    english: "Tuberose (Sugandharaja)",
+    aliases: ["Tuberose", "Sugandharaja", "Rajnigandha"],
+  },
+  {
+    kannada: "ಸಿಲ್ವರ್ ಓಕ್ ಗಿಡ",
+    english: "Silver Oak Sapling",
+    aliases: ["Silver Oak", "Silver Oak Tree"],
+  },
+  {
+    kannada: "ಬೀಟೆ / ರೋಸ್‌ವುಡ್ ಗಿಡ",
+    english: "Rosewood Sapling (Beete)",
+    aliases: ["Rosewood", "Beete", "Dalbergia latifolia"],
+  },
+  {
+    kannada: "ಬಿದಿರು ಸಸಿ",
+    english: "Bamboo Sapling (Bidiru / Giant Bamboo)",
+    aliases: ["Bamboo", "Bidiru", "Giant Bamboo"],
+  },
+
   // Nursery Supplies & Non-Plants
   {
     kannada: "ಎರೆಹುಳು ಗೊಬ್ಬರ (ವರ್ಮಿಕಂಪೋಸ್ಟ್)",
@@ -332,13 +449,36 @@ export function translateItemName(name: string, targetLang: Language): string {
   if (!trimmed) return trimmed;
 
   const lower = trimmed.toLowerCase();
+  const cleanName = lower.replace(/\(.*?\)/g, "").trim();
 
   for (const item of PLANT_DICTIONARY) {
-    const kanMatch = item.kannada === trimmed || trimmed.includes(item.kannada);
-    const engMatch = item.english.toLowerCase() === lower || lower.includes(item.english.toLowerCase());
-    const aliasMatch = item.aliases?.some(
-      (a) => a.toLowerCase() === lower || lower.includes(a.toLowerCase()) || lower.startsWith(a.toLowerCase())
-    );
+    const kanMatch =
+      item.kannada === trimmed ||
+      trimmed.includes(item.kannada) ||
+      item.kannada.includes(trimmed);
+
+    const engLower = item.english.toLowerCase();
+    const cleanEng = engLower.replace(/\(.*?\)/g, "").trim();
+
+    const engMatch =
+      engLower === lower ||
+      cleanEng === cleanName ||
+      lower.includes(cleanEng) ||
+      cleanEng.includes(lower) ||
+      engLower.includes(lower) ||
+      lower.startsWith(cleanEng);
+
+    const aliasMatch = item.aliases?.some((a) => {
+      const aLower = a.toLowerCase();
+      return (
+        aLower === lower ||
+        lower.includes(aLower) ||
+        aLower.includes(lower) ||
+        cleanName.includes(aLower) ||
+        lower.startsWith(aLower) ||
+        aLower.startsWith(lower)
+      );
+    });
 
     if (kanMatch || engMatch || aliasMatch) {
       if (targetLang === "kn") {
