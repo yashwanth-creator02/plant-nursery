@@ -17,12 +17,14 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { useLanguage, Translations } from "@/lib/language-context";
+import { LanguageToggle, CompactLanguageToggle } from "@/components/LanguageToggle";
 
-const navItems = [
-  { href: "/invoice", label: "New Invoice", icon: FilePlus2 },
-  { href: "/invoices", label: "Invoices", icon: Receipt },
-  { href: "/stock", label: "Stock", icon: Boxes },
-  { href: "/gallery", label: "Gallery", icon: Images },
+const navItems: { href: string; key: keyof Translations; icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }> }[] = [
+  { href: "/invoice", key: "navNewInvoice", icon: FilePlus2 },
+  { href: "/invoices", key: "navInvoices", icon: Receipt },
+  { href: "/stock", key: "navStock", icon: Boxes },
+  { href: "/gallery", key: "navGallery", icon: Images },
 ];
 
 interface SidebarProps {
@@ -42,6 +44,7 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -67,13 +70,14 @@ export function Sidebar({
         const active =
           pathname === item.href || pathname.startsWith(item.href + "/");
         const Icon = item.icon;
+        const label = t(item.key);
 
         if (collapsed && !isMobile) {
           return (
             <Link
               key={item.href}
               href={item.href}
-              title={item.label}
+              title={label}
               className={`group relative flex h-10 w-10 mx-auto items-center justify-center rounded-lg transition-all ${
                 active
                   ? "bg-pine text-surface font-medium shadow-xs"
@@ -81,7 +85,7 @@ export function Sidebar({
               }`}
             >
               <Icon size={19} strokeWidth={active ? 2.2 : 1.8} />
-              <span className="sr-only">{item.label}</span>
+              <span className="sr-only">{label}</span>
             </Link>
           );
         }
@@ -100,7 +104,7 @@ export function Sidebar({
             }`}
           >
             <Icon size={17} strokeWidth={active ? 2.2 : 1.8} className="shrink-0" />
-            <span className="truncate">{item.label}</span>
+            <span className="truncate">{label}</span>
           </Link>
         );
       })}
@@ -166,7 +170,7 @@ export function Sidebar({
             }`}
           >
             <Sun size={13} />
-            <span>Light</span>
+            <span>{t("light")}</span>
           </button>
           <button
             type="button"
@@ -178,7 +182,7 @@ export function Sidebar({
             }`}
           >
             <Moon size={13} />
-            <span>Dark</span>
+            <span>{t("dark")}</span>
           </button>
         </div>
       </div>
@@ -190,10 +194,9 @@ export function Sidebar({
       {/* Desktop sidebar */}
       <aside
         className={`hidden md:flex shrink-0 flex-col justify-between border-r border-line bg-paper-flat transition-all duration-300 ease-in-out ${
-          collapsed ? "w-16 px-2 py-4" : "w-56 px-3 py-4"
+          collapsed ? "w-16 px-2 py-4" : "w-60 px-3 py-4"
         }`}
       >
-
         <div>
           {collapsed ? (
             <div className="mb-6 flex flex-col items-center gap-2.5">
@@ -206,6 +209,10 @@ export function Sidebar({
                 <path d="M 128 134 C 162 126, 188 102, 182 72 C 152 80, 130 102, 128 134 Z" fill="#86efac" />
                 <path d="M 128 88 C 117 68, 120 48, 128 34 C 136 48, 139 68, 128 88 Z" fill="#bbf7d0" />
               </svg>
+
+              {/* Compact Language Toggle for collapsed view */}
+              <CompactLanguageToggle />
+
               {onToggleCollapse && (
                 <button
                   type="button"
@@ -219,8 +226,8 @@ export function Sidebar({
               )}
             </div>
           ) : (
-            <div className="mb-6 px-1 flex items-center justify-between">
-              <div className="flex items-center gap-2.5 min-w-0">
+            <div className="mb-6 px-1 flex items-center justify-between gap-1.5">
+              <div className="flex items-center gap-2 min-w-0">
                 <svg className="h-6 w-6 shrink-0" viewBox="0 0 256 256" fill="none">
                   <circle cx="128" cy="128" r="116" fill="#0284c7" />
                   <path d="M 0 196 Q 48 180, 96 190 T 192 188 T 256 196 L 256 256 L 0 256 Z" fill="#0369a1" opacity="0.6" />
@@ -230,24 +237,31 @@ export function Sidebar({
                   <path d="M 128 134 C 162 126, 188 102, 182 72 C 152 80, 130 102, 128 134 Z" fill="#86efac" />
                   <path d="M 128 88 C 117 68, 120 48, 128 34 C 136 48, 139 68, 128 88 Z" fill="#bbf7d0" />
                 </svg>
-                <span className="font-serif text-sm font-semibold leading-tight tracking-tight text-pine-deep truncate">
-                  Sri Vijaya Lakshmi
-                  <span className="block text-[11px] font-sans font-normal text-ink-soft truncate">
-                    Nursery & Farm
+                <div className="min-w-0">
+                  <span className="font-serif text-sm font-semibold leading-tight tracking-tight text-pine-deep truncate block">
+                    {t("brandName")}
                   </span>
-                </span>
+                  <span className="block text-[11px] font-sans font-normal text-ink-soft truncate">
+                    {t("brandSubtitle")}
+                  </span>
+                </div>
               </div>
-              {onToggleCollapse && (
-                <button
-                  type="button"
-                  onClick={onToggleCollapse}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-soft hover:text-ink hover:bg-line/60 transition-colors cursor-pointer"
-                  title="Collapse sidebar (Ctrl+B)"
-                  aria-label="Collapse sidebar"
-                >
-                  <PanelLeftClose size={16} />
-                </button>
-              )}
+
+              {/* Language Switch Toggle placed right beside the Nursery Name on desktop */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <LanguageToggle size="sm" />
+                {onToggleCollapse && (
+                  <button
+                    type="button"
+                    onClick={onToggleCollapse}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-soft hover:text-ink hover:bg-line/60 transition-colors cursor-pointer"
+                    title="Collapse sidebar (Ctrl+B)"
+                    aria-label="Collapse sidebar"
+                  >
+                    <PanelLeftClose size={16} />
+                  </button>
+                )}
+              </div>
             </div>
           )}
           {renderNavLinks(false)}
@@ -265,8 +279,8 @@ export function Sidebar({
           />
           <aside className="relative flex h-full w-64 max-w-[85vw] flex-col justify-between border-r border-line bg-paper-flat px-4 py-4 shadow-xl">
             <div>
-              <div className="mb-6 flex items-center justify-between px-1">
-                <div className="flex items-center gap-2">
+              <div className="mb-6 flex items-center justify-between px-1 gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                   <svg className="h-6 w-6 shrink-0" viewBox="0 0 256 256" fill="none">
                     <circle cx="128" cy="128" r="116" fill="#0284c7" />
                     <path d="M 0 196 Q 48 180, 96 190 T 192 188 T 256 196 L 256 256 L 0 256 Z" fill="#0369a1" opacity="0.6" />
@@ -276,21 +290,27 @@ export function Sidebar({
                     <path d="M 128 134 C 162 126, 188 102, 182 72 C 152 80, 130 102, 128 134 Z" fill="#86efac" />
                     <path d="M 128 88 C 117 68, 120 48, 128 34 C 136 48, 139 68, 128 88 Z" fill="#bbf7d0" />
                   </svg>
-                  <span className="font-serif text-sm font-semibold leading-tight tracking-tight text-pine-deep">
-                    Sri Vijaya Lakshmi
-                    <span className="block text-[11px] font-sans font-normal text-ink-soft">
-                      Nursery & Farm
+                  <div className="min-w-0">
+                    <span className="font-serif text-sm font-semibold leading-tight tracking-tight text-pine-deep truncate block">
+                      {t("brandName")}
                     </span>
-                  </span>
+                    <span className="block text-[11px] font-sans font-normal text-ink-soft truncate">
+                      {t("brandSubtitle")}
+                    </span>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={onMobileClose}
-                  className="rounded p-1.5 text-ink-soft hover:bg-line/60 hover:text-ink cursor-pointer"
-                  aria-label="Close menu"
-                >
-                  <X size={18} />
-                </button>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <LanguageToggle size="sm" />
+                  <button
+                    type="button"
+                    onClick={onMobileClose}
+                    className="rounded p-1.5 text-ink-soft hover:bg-line/60 hover:text-ink cursor-pointer"
+                    aria-label="Close menu"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
               </div>
               {renderNavLinks(true)}
             </div>
