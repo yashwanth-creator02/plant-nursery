@@ -22,6 +22,9 @@ import {
   ArrowRight,
   ChevronRight,
   CheckCircle2,
+  Tag,
+  Percent,
+  IndianRupee,
 } from "lucide-react";
 import {
   formatMoney,
@@ -43,6 +46,9 @@ const DEFAULT_HEADER = {
   address: "Harige B. H. Road, Shimoga - 577203",
   mobiles: "7353025302, 9448140483, 9606602194",
   gstin: "29ADXPV1295N2Z6",
+  cgstRate: "2.50",
+  sgstRate: "2.50",
+  discount: 0,
   logoData: null as string | null,
 };
 
@@ -139,6 +145,7 @@ export function InvoiceEditor({
       name: i.name,
       price: Number(i.price),
       quantity: i.quantity,
+      category: (i as any).category || "plants",
     })) ?? [],
   );
 
@@ -150,6 +157,17 @@ export function InvoiceEditor({
   const [customName, setCustomName] = useState("");
   const [customPrice, setCustomPrice] = useState("");
   const [customQty, setCustomQty] = useState("1");
+  const [customCategory, setCustomCategory] = useState<"plants" | "non-plants">("plants");
+
+  // Step 2 Discount state (supports both % and ₹)
+  const initialDiscount = Number(parsedInitialHeader.discount) || 0;
+  const [discountPercent, setDiscountPercent] = useState<string>("");
+  const [discountMoney, setDiscountMoney] = useState<string>(
+    initialDiscount > 0 ? String(initialDiscount) : ""
+  );
+
+  // Step 2 Billable Amount Highlight Toggle
+  const [showBillableHighlight, setShowBillableHighlight] = useState<boolean>(false);
 
   const [saving, setSaving] = useState<"draft" | "final" | null>(null);
   const [error, setError] = useState("");
@@ -404,10 +422,93 @@ export function InvoiceEditor({
     };
   }, [customerName, effectiveInvoiceNumber, step, initialInvoice]);
 
-  const total = useMemo(
+  // 1. Gross Subtotals
+  const plantsSubtotal = useMemo(
+    () =>
+      items
+        .filter((i) => !i.category || i.category === "plants")
+        .reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0),
+    [items],
+  );
+
+  const nonPlantsSubtotal = useMemo(
+    () =>
+      items
+        .filter((i) => i.category && i.category !== "plants")
+        .reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0),
+    [items],
+  );
+
+  const grossTotal = useMemo(
     () => items.reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0),
     [items],
   );
+
+  // 2. Discount Calculation (supports % or ₹)
+  const discountAmount = useMemo(() => {
+    const moneyVal = parseFloat(discountMoney);
+    if (!isNaN(moneyVal) && moneyVal > 0) {
+      return Math.min(moneyVal, grossTotal);
+    }
+    const pctVal = parseFloat(discountPercent);
+    if (!isNaN(pctVal) && pctVal > 0) {
+      return Math.min(Math.round(((grossTotal * pctVal) / 100) * 100) / 100, grossTotal);
+    }
+    return 0;
+  }, [discountMoney, discountPercent, grossTotal]);
+
+  // Discount proportion applied to non-plants
+  const discountOnNonPlants = useMemo(() => {
+    if (grossTotal <= 0 || nonPlantsSubtotal <= 0 || discountAmount <= 0) return 0;
+    return (discountAmount * nonPlantsSubtotal) / grossTotal;
+  }, [discountAmount, grossTotal, nonPlantsSubtotal]);
+
+  // 3. Taxes (Exclusive to non-plant goods; live plants are 100% tax exempt)
+  const taxableAmount = Math.max(0, nonPlantsSubtotal - discountOnNonPlants);
+
+  const cgstRateNum = parseFloat(String(headerDetails.cgstRate ?? "2.50")) || 0;
+  const sgstRateNum = parseFloat(String(headerDetails.sgstRate ?? "2.50")) || 0;
+
+  const cgstAmount = useMemo(() => {
+    if (taxableAmount <= 0 || cgstRateNum <= 0) return 0;
+    return Math.round(((taxableAmount * cgstRateNum) / 100) * 100) / 100;
+  }, [taxableAmount, cgstRateNum]);
+
+  const sgstAmount = useMemo(() => {
+    if (taxableAmount <= 0 || sgstRateNum <= 0) return 0;
+    return Math.round(((taxableAmount * sgstRateNum) / 100) * 100) / 100;
+  }, [taxableAmount, sgstRateNum]);
+
+  // 4. Net Final Billable Total
+  const finalTotal = useMemo(() => {
+    const raw = grossTotal - discountAmount + cgstAmount + sgstAmount;
+    return Math.max(0, Math.round(raw * 100) / 100);
+  }, [grossTotal, discountAmount, cgstAmount, sgstAmount]);
+
+  // Backward-compatible alias for existing total references
+  const total = finalTotal;
+
+  function handlePercentChange(val: string) {
+    setDiscountPercent(val);
+    const p = parseFloat(val);
+    if (!isNaN(p) && p >= 0 && grossTotal > 0) {
+      const amt = Math.round(((grossTotal * p) / 100) * 100) / 100;
+      setDiscountMoney(amt.toString());
+    } else if (val === "") {
+      setDiscountMoney("");
+    }
+  }
+
+  function handleMoneyChange(val: string) {
+    setDiscountMoney(val);
+    const m = parseFloat(val);
+    if (!isNaN(m) && m >= 0 && grossTotal > 0) {
+      const pct = Math.round(((m / grossTotal) * 100) * 10) / 10;
+      setDiscountPercent(pct.toString());
+    } else if (val === "") {
+      setDiscountPercent("");
+    }
+  }
 
   const invoiceDateObj = new Date(initialInvoice?.createdAt ?? Date.now());
   const dateLabel = invoiceDateObj.toLocaleDateString("en-IN", {
@@ -469,6 +570,7 @@ export function InvoiceEditor({
           name: stockItem.name,
           price: Number(stockItem.price) || 0,
           quantity: qty,
+          category: stockItem.category || "plants",
         },
       ]);
     }
@@ -488,11 +590,13 @@ export function InvoiceEditor({
         name,
         price,
         quantity,
+        category: customCategory,
       },
     ]);
     setCustomName("");
     setCustomPrice("");
     setCustomQty("1");
+    setCustomCategory("plants");
     setCustomMode(false);
   }
 
@@ -539,7 +643,11 @@ export function InvoiceEditor({
     setCustomName("");
     setCustomPrice("");
     setCustomQty("1");
+    setCustomCategory("plants");
     setCustomMode(false);
+    setDiscountPercent("");
+    setDiscountMoney("");
+    setShowBillableHighlight(false);
     setError("");
     setRestoredDraft(false);
     try {
@@ -585,6 +693,8 @@ export function InvoiceEditor({
         notes: notes.trim(),
         force: hasShortage,
         paymentMode: modeToSave,
+        discount: discountAmount,
+        total: finalTotal,
         signature: customSignature,
         isSigned: isSigned,
         items: items.map((i) => ({
@@ -592,6 +702,7 @@ export function InvoiceEditor({
           name: i.name.trim() || "Item",
           price: Number(i.price) || 0,
           quantity: Number(i.quantity) || 0,
+          category: i.category || "plants",
         })),
       };
 
@@ -930,6 +1041,33 @@ export function InvoiceEditor({
                     />
                   </label>
 
+                  {/* Item Tax Category Selector */}
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <span className="text-xs font-semibold text-ink-soft">Type:</span>
+                    <button
+                      type="button"
+                      onClick={() => setCustomCategory("plants")}
+                      className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer border ${
+                        customCategory === "plants"
+                          ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                          : "bg-surface text-ink-soft border-line hover:bg-line/40"
+                      }`}
+                    >
+                      🌱 Plant (0% GST)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCustomCategory("non-plants")}
+                      className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer border ${
+                        customCategory === "non-plants"
+                          ? "bg-amber-600 text-white border-amber-600 shadow-xs"
+                          : "bg-surface text-ink-soft border-line hover:bg-line/40"
+                      }`}
+                    >
+                      📦 Non-Plant (Taxable)
+                    </button>
+                  </div>
+
                   <div className="flex flex-wrap sm:flex-nowrap items-end gap-2">
                     <label className="flex flex-col gap-1 w-20 shrink-0">
                       <span className="text-xs font-medium text-ink">{t("qty")}</span>
@@ -1000,6 +1138,24 @@ export function InvoiceEditor({
                             <div className="text-xs text-ink-soft mt-1">
                               ₹ {formatMoney(item.price)} × {item.quantity} = <strong className="font-mono font-bold text-pine-deep text-sm">₹ {formatMoney(item.price * item.quantity)}</strong>
                             </div>
+                            <div className="mt-1.5 flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateItem(item.key, {
+                                    category: item.category === "non-plants" ? "plants" : "non-plants",
+                                  })
+                                }
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer border ${
+                                  item.category === "non-plants"
+                                    ? "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100"
+                                    : "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
+                                }`}
+                                title="Click to toggle between Plant (0% GST) and Non-Plant (Taxable)"
+                              >
+                                {item.category === "non-plants" ? "📦 Non-Plant (Taxable)" : "🌱 Plant (0% GST)"}
+                              </button>
+                            </div>
                           </div>
                         </div>
                         <button
@@ -1067,10 +1223,28 @@ export function InvoiceEditor({
                             {idx + 1}
                           </td>
                           <td className="py-2 px-3 font-medium text-ink">
-                            <span>{translateItem(item.name, language)}</span>
-                            {language === "kn" && translateItem(item.name, "kn") !== item.name && (
-                              <span className="ml-1.5 text-xs font-normal text-ink-soft">({item.name})</span>
-                            )}
+                            <div className="flex items-center gap-2">
+                              <span>{translateItem(item.name, language)}</span>
+                              {language === "kn" && translateItem(item.name, "kn") !== item.name && (
+                                <span className="text-xs font-normal text-ink-soft">({item.name})</span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateItem(item.key, {
+                                    category: item.category === "non-plants" ? "plants" : "non-plants",
+                                  })
+                                }
+                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold transition-colors cursor-pointer border ${
+                                  item.category === "non-plants"
+                                    ? "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100"
+                                    : "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
+                                }`}
+                                title="Click to toggle between Plant (0% GST) and Non-Plant (Taxable)"
+                              >
+                                {item.category === "non-plants" ? "📦 Non-Plant" : "🌱 Plant (0%)"}
+                              </button>
+                            </div>
                           </td>
                           <td className="py-2 px-2 text-center">
                             <input
@@ -1258,11 +1432,26 @@ export function InvoiceEditor({
               </div>
             )}
 
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
               <span className="inline-flex items-center gap-1 text-xs text-ink-soft">
                 <span>{t("total")}:</span>
-                <strong className="font-mono text-xs sm:text-sm text-pine-deep font-bold">₹ {formatMoney(total)}</strong>
+                <strong className="font-mono text-xs sm:text-sm text-pine-deep font-bold">₹ {formatMoney(finalTotal)}</strong>
               </span>
+
+              {/* Show / Highlight Billable Amount Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setShowBillableHighlight((prev) => !prev)}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer border ${
+                  showBillableHighlight
+                    ? "bg-pine text-surface border-pine shadow-xs ring-1 ring-pine/30 font-bold"
+                    : "bg-surface text-ink-soft border-line-strong hover:bg-line/40 hover:text-ink"
+                }`}
+                title="Highlight final billable amount prominently on invoice"
+              >
+                <IndianRupee size={12} />
+                <span>{tLang("billableAmount", billLanguage)}: {showBillableHighlight ? "ON" : "OFF"}</span>
+              </button>
 
               {/* Bill Preview Language Toggle (Overrides Global Language for Preview & Print) */}
               <div className="flex items-center gap-1.5 pl-1.5 border-l border-line">
@@ -1278,6 +1467,133 @@ export function InvoiceEditor({
               </div>
             </div>
           </div>
+
+          {/* Step 2 Discount Section (percentage and money enterable) */}
+          {status !== "final" && (
+            <div className="mb-4 rounded-xl border border-line bg-surface p-3.5 sm:p-4 shadow-xs print:hidden">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                <div className="flex items-center gap-2">
+                  <Tag size={15} className="text-pine" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-ink">
+                    {tLang("discount", billLanguage)}
+                  </h3>
+                </div>
+                {discountAmount > 0 && (
+                  <span className="font-mono text-xs font-bold text-rust bg-rust-tint px-2 py-0.5 rounded border border-rust/20">
+                    - ₹ {formatMoney(discountAmount)} {billLanguage === "kn" ? "ಅನ್ವಯಿಸಲಾಗಿದೆ" : "applied"}
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Discount Percentage */}
+                <label className="flex flex-col gap-1 text-xs text-ink-soft">
+                  <span className="font-semibold text-ink">{tLang("discountPercent", billLanguage)}</span>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={discountPercent}
+                      onChange={(e) => handlePercentChange(e.target.value)}
+                      placeholder="0"
+                      className="w-full rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-mono outline-none focus:border-pine pr-8"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-ink-soft pointer-events-none">
+                      %
+                    </span>
+                  </div>
+                </label>
+
+                {/* Discount Money Amount */}
+                <label className="flex flex-col gap-1 text-xs text-ink-soft">
+                  <span className="font-semibold text-ink">{tLang("discountAmount", billLanguage)}</span>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      max={grossTotal}
+                      step="1"
+                      value={discountMoney}
+                      onChange={(e) => handleMoneyChange(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-mono outline-none focus:border-pine pl-7"
+                    />
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-ink-soft pointer-events-none">
+                      ₹
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              {/* Quick Presets */}
+              <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pt-1 border-t border-line/40">
+                <span className="text-[11px] text-ink-soft font-medium mr-1">Quick:</span>
+                {[5, 10, 15, 20].map((pct) => (
+                  <button
+                    key={pct}
+                    type="button"
+                    onClick={() => handlePercentChange(String(pct))}
+                    className="rounded border border-line bg-paper px-2 py-0.5 text-[11px] font-semibold text-ink hover:bg-line/50 cursor-pointer transition-colors"
+                  >
+                    {pct}%
+                  </button>
+                ))}
+                {[50, 100, 200, 500].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => handleMoneyChange(String(amt))}
+                    className="rounded border border-line bg-paper px-2 py-0.5 text-[11px] font-semibold text-ink hover:bg-line/50 cursor-pointer transition-colors"
+                  >
+                    ₹{amt}
+                  </button>
+                ))}
+                {(discountPercent || discountMoney) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDiscountPercent("");
+                      setDiscountMoney("");
+                    }}
+                    className="rounded border border-rust/30 bg-rust-tint px-2 py-0.5 text-[11px] font-semibold text-rust hover:bg-rust/20 cursor-pointer ml-auto"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Prominent Billable Amount Callout Banner (when enabled by user) */}
+          {showBillableHighlight && (
+            <div className="mb-4 rounded-xl border-2 border-pine bg-emerald-50 dark:bg-emerald-950/20 p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-xs print:hidden animate-in fade-in duration-200">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-pine text-surface font-bold text-base shadow-xs">
+                  ₹
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-pine-deep block">
+                    {tLang("billableAmount", billLanguage)}
+                  </span>
+                  <span className="text-xs text-pine/90 font-medium">
+                    {items.length} {items.length === 1 ? "item" : "items"} • {taxableAmount > 0 ? `CGST + SGST applied on non-plants` : `Live Plants 100% Tax Exempt`}
+                  </span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="font-mono text-2xl sm:text-3xl font-black text-pine-deep tracking-tight">
+                  ₹ {formatMoney(finalTotal)}
+                </span>
+                {discountAmount > 0 && (
+                  <span className="block text-xs text-rust font-semibold">
+                    (Saved ₹ {formatMoney(discountAmount)})
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Mobile horizontal scroll helper indicator */}
           <div className="sm:hidden mb-2 text-center text-[11px] font-medium text-ink-soft print:hidden">
@@ -1569,33 +1885,110 @@ export function InvoiceEditor({
                   )}
                 </div>
 
-                {/* Bottom Row: Rs ..... (in words) on left, TOTAL box on right */}
+                {/* Bottom Calculation Rows */}
                 <div className="relative z-10">
-                  <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-t-2 border-[#1b365d] bg-white">
+                  {/* If discount or non-plant taxes exist, show Subtotal row */}
+                  {(discountAmount > 0 || taxableAmount > 0) && (
+                    <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-t-2 border-[#1b365d] bg-white text-xs">
+                      <div className="border-r border-[#1b365d] py-1.5" />
+                      <div className="border-r border-[#1b365d] px-2 py-1.5 font-semibold text-[#1b365d]">
+                        {tLang("subtotal", billLanguage)}
+                      </div>
+                      <div className="border-r border-[#1b365d] py-1.5" />
+                      <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-xs uppercase bg-blue-50/10">
+                        {tLang("subtotal", billLanguage)}
+                      </div>
+                      <div className="py-1.5 px-2 text-right font-mono font-bold text-xs sm:text-sm tabular bg-blue-50/10">
+                        {formatMoney(grossTotal)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Discount Row (if discount applied) */}
+                  {discountAmount > 0 && (
+                    <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-t border-[#1b365d]/40 bg-white text-xs">
+                      <div className="border-r border-[#1b365d] py-1.5" />
+                      <div className="border-r border-[#1b365d] px-2 py-1.5 font-medium text-[#1b365d] flex items-center justify-between">
+                        <span>{tLang("discount", billLanguage)} {discountPercent ? `(${discountPercent}%)` : ""}</span>
+                      </div>
+                      <div className="border-r border-[#1b365d] py-1.5" />
+                      <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-xs uppercase text-rust">
+                        {tLang("discount", billLanguage)}
+                      </div>
+                      <div className="py-1.5 px-2 text-right font-mono font-bold text-xs sm:text-sm tabular text-rust">
+                        - {formatMoney(discountAmount)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* CGST & SGST Rows (applied strictly to non-plants) */}
+                  {taxableAmount > 0 && (
+                    <>
+                      {/* CGST */}
+                      <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-t border-[#1b365d]/40 bg-white text-xs">
+                        <div className="border-r border-[#1b365d] py-1.5" />
+                        <div className="border-r border-[#1b365d] px-2 py-1.5 text-[10px] sm:text-xs text-[#1b365d]">
+                          <span>{tLang("cgst", billLanguage)} @ {cgstRateNum}% ({billLanguage === "kn" ? "ಸಸ್ಯೇತರ ಸರಕುಗಳ ಮೇಲೆ" : "on non-plants"} ₹{formatMoney(taxableAmount)})</span>
+                        </div>
+                        <div className="border-r border-[#1b365d] py-1.5" />
+                        <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-[11px] uppercase">
+                          CGST
+                        </div>
+                        <div className="py-1.5 px-2 text-right font-mono font-semibold text-xs sm:text-sm tabular">
+                          + {formatMoney(cgstAmount)}
+                        </div>
+                      </div>
+
+                      {/* SGST */}
+                      <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-t border-[#1b365d]/40 bg-white text-xs">
+                        <div className="border-r border-[#1b365d] py-1.5" />
+                        <div className="border-r border-[#1b365d] px-2 py-1.5 text-[10px] sm:text-xs text-[#1b365d]">
+                          <span>{tLang("sgst", billLanguage)} @ {sgstRateNum}% ({billLanguage === "kn" ? "ಸಸ್ಯೇತರ ಸರಕುಗಳ ಮೇಲೆ" : "on non-plants"} ₹{formatMoney(taxableAmount)})</span>
+                        </div>
+                        <div className="border-r border-[#1b365d] py-1.5" />
+                        <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-[11px] uppercase">
+                          SGST
+                        </div>
+                        <div className="py-1.5 px-2 text-right font-mono font-semibold text-xs sm:text-sm tabular">
+                          + {formatMoney(sgstAmount)}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Final TOTAL Row */}
+                  <div className={`grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] ${discountAmount > 0 || taxableAmount > 0 ? "border-t border-[#1b365d]" : "border-t-2 border-[#1b365d]"} ${showBillableHighlight ? "bg-emerald-50/40" : "bg-white"}`}>
                     {/* Sl. No. blank space */}
                     <div className="border-r border-[#1b365d] py-2" />
 
                     {/* Rs ..................... Amount in words */}
-                    <div className="border-r border-[#1b365d] px-2 py-2 flex items-baseline text-xs sm:text-sm font-semibold">
-                      <span className="font-bold mr-1 shrink-0">{tLang("rsLabel", billLanguage)}</span>
-                      <span className="flex-1 border-b border-dotted border-[#1b365d] pb-0.5 text-[11px] sm:text-xs font-normal text-[#1b365d] truncate px-1">
-                        {total > 0
-                          ? (billLanguage === "kn" ? numberToKannadaWords(total) : numberToIndianWords(total))
-                          : "......................................................................."}
-                      </span>
+                    <div className="border-r border-[#1b365d] px-2 py-2 flex flex-col justify-center text-xs sm:text-sm font-semibold">
+                      <div className="flex items-baseline">
+                        <span className="font-bold mr-1 shrink-0">{tLang("rsLabel", billLanguage)}</span>
+                        <span className="flex-1 border-b border-dotted border-[#1b365d] pb-0.5 text-[11px] sm:text-xs font-normal text-[#1b365d] truncate px-1">
+                          {finalTotal > 0
+                            ? (billLanguage === "kn" ? numberToKannadaWords(finalTotal) : numberToIndianWords(finalTotal))
+                            : "......................................................................."}
+                        </span>
+                      </div>
+                      {taxableAmount === 0 && (
+                        <span className="text-[9px] text-[#1b365d]/60 font-normal italic mt-0.5">
+                          * {tLang("plantsTaxExempt", billLanguage)}
+                        </span>
+                      )}
                     </div>
 
                     {/* Qty blank space */}
                     <div className="border-r border-[#1b365d] py-2" />
 
                     {/* TOTAL box */}
-                    <div className="border-r border-[#1b365d] py-2 px-1 text-center font-extrabold text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center bg-blue-50/20">
+                    <div className={`border-r border-[#1b365d] py-2 px-1 text-center font-extrabold text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center ${showBillableHighlight ? "bg-emerald-100 text-emerald-950 font-black" : "bg-blue-50/20"}`}>
                       {tLang("total", billLanguage)}
                     </div>
 
                     {/* Total amount box */}
-                    <div className="py-2 px-2 text-right font-mono font-extrabold text-sm sm:text-base tabular flex items-center justify-end bg-blue-50/20">
-                      {formatMoney(total)}
+                    <div className={`py-2 px-2 text-right font-mono font-extrabold text-sm sm:text-base tabular flex items-center justify-end ${showBillableHighlight ? "bg-emerald-100 text-emerald-950 font-black" : "bg-blue-50/20"}`}>
+                      {formatMoney(finalTotal)}
                     </div>
                   </div>
                 </div>
