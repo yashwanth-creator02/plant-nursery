@@ -155,6 +155,36 @@ async function main() {
     ADD COLUMN IF NOT EXISTS description TEXT;
   `;
 
+  await sql`
+    ALTER TABLE stock_items
+    ADD COLUMN IF NOT EXISTS name_kn TEXT;
+  `;
+
+  await sql`
+    ALTER TABLE stock_items
+    ADD COLUMN IF NOT EXISTS description_kn TEXT;
+  `;
+
+  await sql`
+    ALTER TABLE stock_item_images
+    ADD COLUMN IF NOT EXISTS description_kn TEXT;
+  `;
+
+  // Backfill existing stock_items with Kannada names if null
+  try {
+    const { translateItemName } = await import("../src/lib/plant-translations");
+    const allItems = await sql`SELECT id, name, name_kn FROM stock_items WHERE name_kn IS NULL OR name_kn = ''`;
+    for (const item of allItems) {
+      const kn = translateItemName(item.name, "kn");
+      if (kn && kn !== item.name) {
+        await sql`UPDATE stock_items SET name_kn = ${kn} WHERE id = ${item.id}`;
+      }
+    }
+    console.log(`Backfilled Kannada names for ${allItems.length} stock items.`);
+  } catch (err) {
+    console.warn("Backfill note:", err);
+  }
+
   console.log("Database migrations applied successfully.");
   await sql.end();
   process.exit(0);

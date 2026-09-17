@@ -7,12 +7,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FileText, Search, X, Banknote, QrCode } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { useLanguage } from "@/lib/language-context";
 import { formatMoney, InvoiceRecord } from "@/lib/types";
 
 type Filter = "all" | "draft" | "final" | "cash" | "online";
 
 function InvoicesContent() {
   const { user } = useAuth();
+  const { language } = useLanguage();
   const searchParams = useSearchParams();
   const [invoices, setInvoices] = useState<InvoiceRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,10 +90,14 @@ function InvoicesContent() {
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-serif text-xl font-semibold text-ink">
-            Invoices
+            {language === "kn" ? "ರಶೀದಿಗಳು" : "Invoices"}
           </h1>
           <p className="text-sm text-ink-soft">
-            {user?.role === "admin"
+            {language === "kn"
+              ? user?.role === "admin"
+                ? "ನಿಮ್ಮ ತಂಡದ ಎಲ್ಲಾ ರಶೀದಿಗಳು."
+                : "ನೀವು ರಚಿಸಿದ ರಶೀದಿಗಳು."
+              : user?.role === "admin"
               ? "All invoices across your team."
               : "Invoices you've created."}
           </p>
@@ -106,15 +112,15 @@ function InvoicesContent() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search invoices..."
+              placeholder={language === "kn" ? "ರಶೀದಿಗಳನ್ನು ಹುಡುಕಿ..." : "Search invoices..."}
               className="w-full rounded-md border border-line-strong bg-surface py-1.5 pl-9 pr-8 text-sm outline-none placeholder:text-ink-soft/70 focus:border-pine"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-ink-soft hover:text-ink"
-                aria-label="Clear search"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-ink-soft hover:text-ink cursor-pointer"
+                aria-label={language === "kn" ? "ಹುಡುಕಾಟ ತೆರವುಗೊಳಿಸಿ" : "Clear search"}
               >
                 <X size={14} />
               </button>
@@ -129,7 +135,7 @@ function InvoicesContent() {
                   : "text-ink-soft hover:bg-line/50"
               }`}
             >
-              All
+              {language === "kn" ? "ಎಲ್ಲಾ" : "All"}
             </button>
             <button
               onClick={() => setFilter("draft")}
@@ -139,7 +145,7 @@ function InvoicesContent() {
                   : "text-ink-soft hover:bg-line/50"
               }`}
             >
-              Draft
+              {language === "kn" ? "ಕರಡು" : "Draft"}
             </button>
             <button
               onClick={() => setFilter("final")}
@@ -149,7 +155,7 @@ function InvoicesContent() {
                   : "text-ink-soft hover:bg-line/50"
               }`}
             >
-              Final
+              {language === "kn" ? "ಅಂತಿಮ" : "Final"}
             </button>
 
             <span className="mx-0.5 h-3.5 w-px bg-line-strong" aria-hidden="true" />
@@ -161,10 +167,10 @@ function InvoicesContent() {
                   ? "bg-pine text-surface font-semibold shadow-xs"
                   : "text-ink-soft hover:bg-line/50"
               }`}
-              title="Filter by Cash payment"
+              title={language === "kn" ? "ನಗದು ಪಾವತಿಯ ಪ್ರಕಾರ ಫಿಲ್ಟರ್ ಮಾಡಿ" : "Filter by Cash payment"}
             >
               <Banknote size={13} />
-              <span>Cash</span>
+              <span>{language === "kn" ? "ನಗದು" : "Cash"}</span>
             </button>
             <button
               onClick={() => setFilter("online")}
@@ -173,10 +179,10 @@ function InvoicesContent() {
                   ? "bg-pine text-surface font-semibold shadow-xs"
                   : "text-ink-soft hover:bg-line/50"
               }`}
-              title="Filter by Online payment"
+              title={language === "kn" ? "ಆನ್‌ಲೈನ್ ಪಾವತಿಯ ಪ್ರಕಾರ ಫಿಲ್ಟರ್ ಮಾಡಿ" : "Filter by Online payment"}
             >
               <QrCode size={13} />
-              <span>Online</span>
+              <span>{language === "kn" ? "ಆನ್‌ಲೈನ್" : "Online"}</span>
             </button>
 
             {availableVersions.length > 1 && (
@@ -188,10 +194,10 @@ function InvoicesContent() {
                   className="rounded px-2 py-0.5 text-xs font-medium text-ink bg-transparent outline-none cursor-pointer"
                   title="Filter by invoice header version"
                 >
-                  <option value="all">All Versions</option>
+                  <option value="all">{language === "kn" ? "ಎಲ್ಲಾ ಆವೃತ್ತಿಗಳು" : "All Versions"}</option>
                   {availableVersions.map((v) => (
                     <option key={v} value={String(v)}>
-                      Version {v}
+                      {language === "kn" ? `ಆವೃತ್ತಿ ${v}` : `Version ${v}`}
                     </option>
                   ))}
                 </select>
@@ -208,16 +214,24 @@ function InvoicesContent() {
       )}
 
       {loading ? (
-        <p className="text-sm text-ink-soft">Loading…</p>
+        <p className="text-sm text-ink-soft">
+          {language === "kn" ? "ರಶೀದಿಗಳು ಲೋಡ್ ಆಗುತ್ತಿವೆ…" : "Loading…"}
+        </p>
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border border-dashed border-line-strong bg-surface px-6 py-12 text-center">
           <FileText className="mx-auto mb-2 text-ink-soft" size={22} />
           <p className="text-sm text-ink-soft">
             {invoices.length === 0
-              ? "No invoices yet — create your first one."
+              ? (language === "kn"
+                  ? "ಇನ್ನೂ ಯಾವುದೇ ರಶೀದಿಗಳಿಲ್ಲ — ನಿಮ್ಮ ಮೊದಲ ರಶೀದಿಯನ್ನು ರಚಿಸಿ."
+                  : "No invoices yet — create your first one.")
               : searchQuery || versionFilter !== "all"
-              ? `No invoices match this search/version.`
-              : "No invoices match this filter."}
+              ? (language === "kn"
+                  ? "ಈ ಹುಡುಕಾಟಕ್ಕೆ ಯಾವುದೇ ರಶೀದಿಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ."
+                  : "No invoices match this search/version.")
+              : (language === "kn"
+                  ? "ಈ ಫಿಲ್ಟರ್‌ಗೆ ಯಾವುದೇ ರಶೀದಿಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ."
+                  : "No invoices match this filter.")}
           </p>
           {(searchQuery || versionFilter !== "all") && (
             <button
@@ -225,9 +239,9 @@ function InvoicesContent() {
                 setSearchQuery("");
                 setVersionFilter("all");
               }}
-              className="mt-3 inline-block text-xs font-medium text-pine-deep underline hover:opacity-80"
+              className="mt-3 inline-block text-xs font-medium text-pine-deep underline hover:opacity-80 cursor-pointer"
             >
-              Reset filters
+              {language === "kn" ? "ಫಿಲ್ಟರ್‌ಗಳನ್ನು ಮರುಹೊಂದಿಸಿ" : "Reset filters"}
             </button>
           )}
           {invoices.length === 0 && (
@@ -235,7 +249,7 @@ function InvoicesContent() {
               href="/invoice"
               className="mt-3 inline-block text-sm font-medium text-pine-deep underline"
             >
-              New invoice
+              {language === "kn" ? "ಹೊಸ ರಶೀದಿ" : "New invoice"}
             </Link>
           )}
         </div>
@@ -244,15 +258,15 @@ function InvoicesContent() {
           <table className="w-full min-w-[560px] text-sm">
             <thead>
               <tr className="border-b border-line bg-paper-flat text-left text-xs uppercase tracking-wide text-ink-soft">
-                <th className="px-4 py-2.5 font-medium">Invoice</th>
-                <th className="px-4 py-2.5 font-medium">Version</th>
-                <th className="px-4 py-2.5 font-medium">Customer</th>
-                <th className="px-4 py-2.5 font-medium">Date &amp; Time</th>
+                <th className="px-4 py-2.5 font-medium">{language === "kn" ? "ರಶೀದಿ ಸಂಖ್ಯೆ" : "Invoice"}</th>
+                <th className="px-4 py-2.5 font-medium">{language === "kn" ? "ಆವೃತ್ತಿ" : "Version"}</th>
+                <th className="px-4 py-2.5 font-medium">{language === "kn" ? "ಗ್ರಾಹಕರು" : "Customer"}</th>
+                <th className="px-4 py-2.5 font-medium">{language === "kn" ? "ದಿನಾಂಕ ಮತ್ತು ಸಮಯ" : "Date & Time"}</th>
                 {user?.role === "admin" && (
-                  <th className="px-4 py-2.5 font-medium">Created by</th>
+                  <th className="px-4 py-2.5 font-medium">{language === "kn" ? "ರಚಿಸಿದವರು" : "Created by"}</th>
                 )}
-                <th className="px-4 py-2.5 font-medium">Status</th>
-                <th className="px-4 py-2.5 text-right font-medium">Total</th>
+                <th className="px-4 py-2.5 font-medium">{language === "kn" ? "ಸ್ಥಿತಿ" : "Status"}</th>
+                <th className="px-4 py-2.5 text-right font-medium">{language === "kn" ? "ಒಟ್ಟು ಮೊತ್ತ" : "Total"}</th>
               </tr>
             </thead>
             <tbody>
@@ -271,7 +285,7 @@ function InvoicesContent() {
                   </td>
                   <td className="px-4 py-2.5">
                     <span className="inline-flex items-center rounded border border-line-strong/60 bg-paper-flat px-2 py-0.5 font-mono text-xs font-medium text-ink-soft">
-                      Version {inv.version || 1}
+                      {language === "kn" ? `ಆವೃತ್ತಿ ${inv.version || 1}` : `Version ${inv.version || 1}`}
                     </span>
                   </td>
                   <td className="px-4 py-2.5 text-ink">
@@ -281,14 +295,14 @@ function InvoicesContent() {
                   </td>
                   <td className="px-4 py-2.5 text-ink-soft whitespace-nowrap">
                     <div className="font-medium text-ink">
-                      {new Date(inv.createdAt).toLocaleDateString("en-IN", {
+                      {new Date(inv.createdAt).toLocaleDateString(language === "kn" ? "kn-IN" : "en-IN", {
                         day: "numeric",
                         month: "short",
                         year: "numeric",
                       })}
                     </div>
                     <div className="text-[11px] text-ink-soft/80 font-mono">
-                      {new Date(inv.createdAt).toLocaleTimeString("en-IN", {
+                      {new Date(inv.createdAt).toLocaleTimeString(language === "kn" ? "kn-IN" : "en-IN", {
                         hour: "2-digit",
                         minute: "2-digit",
                         hour12: true,
@@ -309,11 +323,21 @@ function InvoicesContent() {
                             : "bg-rust-tint text-rust"
                         }`}
                       >
-                        {inv.status}
+                        {language === "kn"
+                          ? inv.status === "final"
+                            ? "ಅಂತಿಮ"
+                            : "ಕರಡು"
+                          : inv.status}
                       </span>
                       {inv.paymentMode && (
                         <span className="rounded bg-blue-50 border border-blue-200/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#1b365d]">
-                          {inv.paymentMode}
+                          {language === "kn"
+                            ? inv.paymentMode === "cash"
+                              ? "ನಗದು"
+                              : inv.paymentMode === "online"
+                              ? "ಆನ್‌ಲೈನ್"
+                              : inv.paymentMode
+                            : inv.paymentMode}
                         </span>
                       )}
                     </div>

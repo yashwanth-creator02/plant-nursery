@@ -1,12 +1,14 @@
 export type StockItem = {
   id: string;
   name: string;
+  nameKn?: string | null;
   unit: string | null;
   price: string;
   quantity: number;
   category?: "plants" | "non-plants" | string;
   subcategory?: string | null;
   description?: string | null;
+  descriptionKn?: string | null;
 };
 
 export type StockItemImage = {
@@ -15,6 +17,7 @@ export type StockItemImage = {
   imageUrl: string;
   storagePath: string;
   description: string | null;
+  descriptionKn?: string | null;
   isPrimary: boolean;
   createdAt: string;
 };

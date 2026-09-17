@@ -1131,9 +1131,6 @@ export function InvoiceEditor({
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-semibold text-ink break-words leading-tight">
                               {translateItem(item.name, language)}
-                              {language === "kn" && translateItem(item.name, "kn") !== item.name && (
-                                <span className="block text-xs font-normal text-ink-soft mt-0.5">{item.name}</span>
-                              )}
                             </div>
                             <div className="text-xs text-ink-soft mt-1">
                               ₹ {formatMoney(item.price)} × {item.quantity} = <strong className="font-mono font-bold text-pine-deep text-sm">₹ {formatMoney(item.price * item.quantity)}</strong>
@@ -1153,7 +1150,9 @@ export function InvoiceEditor({
                                 }`}
                                 title="Click to toggle between Plant (0% GST) and Non-Plant (Taxable)"
                               >
-                                {item.category === "non-plants" ? "📦 Non-Plant (Taxable)" : "🌱 Plant (0% GST)"}
+                                {item.category === "non-plants"
+                                  ? (language === "kn" ? "📦 ಸಸ್ಯೇತರ (ತೆರಿಗೆ)" : "📦 Non-Plant (Taxable)")
+                                  : (language === "kn" ? "🌱 ಸಸ್ಯ (0% ಜಿಎಸ್‌ಟಿ)" : "🌱 Plant (0% GST)")}
                               </button>
                             </div>
                           </div>
@@ -1225,9 +1224,6 @@ export function InvoiceEditor({
                           <td className="py-2 px-3 font-medium text-ink">
                             <div className="flex items-center gap-2">
                               <span>{translateItem(item.name, language)}</span>
-                              {language === "kn" && translateItem(item.name, "kn") !== item.name && (
-                                <span className="text-xs font-normal text-ink-soft">({item.name})</span>
-                              )}
                               <button
                                 type="button"
                                 onClick={() =>
@@ -1242,7 +1238,9 @@ export function InvoiceEditor({
                                 }`}
                                 title="Click to toggle between Plant (0% GST) and Non-Plant (Taxable)"
                               >
-                                {item.category === "non-plants" ? "📦 Non-Plant" : "🌱 Plant (0%)"}
+                                {item.category === "non-plants"
+                                  ? (language === "kn" ? "📦 ಸಸ್ಯೇತರ" : "📦 Non-Plant")
+                                  : (language === "kn" ? "🌱 ಸಸ್ಯ (0%)" : "🌱 Plant (0%)")}
                               </button>
                             </div>
                           </td>
@@ -1612,8 +1610,8 @@ export function InvoiceEditor({
               >
             {/* Top GSTIN & Mobiles Row (Clean contact info without big version badge) */}
             <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold tracking-tight text-[#1b365d]">
-              <span>GSTIN: {headerDetails.gstin}</span>
-              <span>Mob: {headerDetails.mobiles}</span>
+              <span>{tLang("gstinLabel", billLanguage)} {headerDetails.gstin}</span>
+              <span>{tLang("mobilesLabel", billLanguage)} {headerDetails.mobiles}</span>
             </div>
 
             {/* Nursery Logo placed right on top of business name, centered */}
@@ -1621,7 +1619,7 @@ export function InvoiceEditor({
               <div
                 id="nursery-logo-placeholder"
                 className="flex items-center justify-center shrink-0"
-                title={headerDetails.logoData ? "Sri Vijaya Lakshmi Nursery Logo" : "Logo Placeholder"}
+                title={headerDetails.logoData ? (billLanguage === "kn" ? "ಶ್ರೀ ವಿಜಯಲಕ್ಷ್ಮಿ ನರ್ಸರಿ ಲಾಂಛನ" : "Sri Vijaya Lakshmi Nursery Logo") : "Logo Placeholder"}
               >
                 {headerDetails.logoData ? (
                   headerDetails.logoData.trim().startsWith("<svg") ? (
@@ -1659,14 +1657,16 @@ export function InvoiceEditor({
 
             {/* Nursery Main Title */}
             <h1 className="text-center font-serif text-xl sm:text-2xl md:text-[26px] font-extrabold uppercase tracking-wide text-[#1b365d]">
-              {headerDetails.businessName}
+              {billLanguage === "kn"
+                ? (tLang("brandFullName", "kn") || "ಶ್ರೀ ವಿಜಯಲಕ್ಷ್ಮಿ ನರ್ಸರಿ")
+                : headerDetails.businessName}
             </h1>
 
             {/* Centered Government Approval & Address Details */}
             <div className="text-center text-[11px] sm:text-xs font-semibold text-[#1b365d] leading-tight px-14 sm:px-16 my-1.5">
-              <p>{headerDetails.subheading1}</p>
-              <p>{headerDetails.subheading2}</p>
-              <p className="font-bold">{headerDetails.address}</p>
+              <p>{billLanguage === "kn" ? tLang("subheading1", "kn") : headerDetails.subheading1}</p>
+              <p>{billLanguage === "kn" ? tLang("subheading2", "kn") : headerDetails.subheading2}</p>
+              <p className="font-bold">{billLanguage === "kn" ? tLang("nurseryAddress", "kn") : headerDetails.address}</p>
             </div>
 
             {/* Document Title: BILL OF SUPPLIERS / CASH/CREDIT */}

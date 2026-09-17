@@ -3,7 +3,22 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { translateItemName } from "./plant-translations";
+import {
+  translateItemName,
+  translateCategory,
+  translateSubcategory,
+  translateUnit,
+} from "./plant-translations";
+
+export {
+  translateItemName,
+  translateCategory,
+  translateSubcategory,
+  translateUnit,
+};
+export const translateItem = (name: string, targetLang: Language = "kn"): string => {
+  return translateItemName(name, targetLang);
+};
 
 export type Language = "en" | "kn";
 
@@ -358,10 +373,34 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved === "en" || saved === "kn") {
-        setLanguageState(saved);
-        document.documentElement.lang = saved;
+      // 1. Check URL path prefix first (/kn or /en)
+      const path = window.location.pathname;
+      let detected: Language | null = null;
+      if (path.startsWith("/kn/") || path === "/kn") {
+        detected = "kn";
+      } else if (path.startsWith("/en/") || path === "/en") {
+        detected = "en";
+      }
+
+      // 2. Check localStorage
+      if (!detected) {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved === "en" || saved === "kn") {
+          detected = saved;
+        }
+      }
+
+      // 3. Check Cookie
+      if (!detected) {
+        const match = document.cookie.match(/svl_language=(en|kn)/);
+        if (match) {
+          detected = match[1] as Language;
+        }
+      }
+
+      if (detected) {
+        setLanguageState(detected);
+        document.documentElement.lang = detected;
       }
     } catch {}
     setMounted(true);
@@ -371,7 +410,17 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     setLanguageState(lang);
     try {
       localStorage.setItem(STORAGE_KEY, lang);
+      document.cookie = `svl_language=${lang}; path=/; max-age=31536000; SameSite=Lax`;
       document.documentElement.lang = lang;
+
+      // Update URL prefix without reloading if on /en or /kn
+      const currentPath = window.location.pathname;
+      const search = window.location.search;
+      if (currentPath.startsWith("/en") || currentPath.startsWith("/kn")) {
+        const remaining = currentPath.replace(/^\/(en|kn)/, "") || "/";
+        const newPath = `/${lang}${remaining === "/" ? "" : remaining}${search}`;
+        window.history.pushState(null, "", newPath);
+      }
     } catch {}
   };
 

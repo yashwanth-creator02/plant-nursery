@@ -640,3 +640,115 @@ export function numberToKannadaWords(n: number): string {
   }
   return result + " ಮಾತ್ರ";
 }
+
+/**
+ * Translates nursery stock category names to Kannada
+ */
+export function translateCategory(cat?: string | null, lang: Language = "kn"): string {
+  if (!cat) return "";
+  if (lang !== "kn") return cat;
+  const c = cat.toLowerCase().trim();
+  if (c === "plants" || c === "plant") return "ಗಿಡಗಳು";
+  if (c === "non-plants" || c === "non-plant" || c === "nonplants") return "ಇತರ ವಸ್ತುಗಳು";
+  return translateItemName(cat, "kn");
+}
+
+/**
+ * Translates nursery stock subcategory names to Kannada
+ */
+export function translateSubcategory(sub?: string | null, lang: Language = "kn"): string {
+  if (!sub) return "";
+  if (lang !== "kn") return sub;
+  const s = sub.toLowerCase().trim();
+  switch (s) {
+    case "fruit":
+    case "fruit plants":
+    case "fruits":
+      return "ಹಣ್ಣಿನ ಗಿಡಗಳು";
+    case "flower":
+    case "flower plants":
+    case "flowers":
+      return "ಹೂವಿನ ಗಿಡಗಳು";
+    case "ornamental":
+    case "ornamental plants":
+      return "ಅಲಂಕಾರಿಕ ಗಿಡಗಳು";
+    case "medicinal":
+    case "medicinal plants":
+      return "ಔಷಧೀಯ ಗಿಡಗಳು";
+    case "other":
+    case "others":
+    case "other plants":
+      return "ಇತರ ಗಿಡಗಳು";
+    case "pots":
+    case "pots & planters":
+    case "planters":
+      return "ಕುಂಡಗಳು";
+    case "fertilizers":
+    case "fertilizers & manure":
+    case "manure":
+      return "ಗೊಬ್ಬರಗಳು";
+    case "soil":
+    case "soil & substrates":
+    case "substrates":
+      return "ಮಣ್ಣು ಮತ್ತು ಮಿಶ್ರಣ";
+    case "tools":
+    case "gardening tools":
+      return "ತೋಟಗಾರಿಕೆ ಉಪಕರಣಗಳು";
+    case "general":
+    case "general supplies":
+    case "supplies":
+      return "ಸಾಮಾನ್ಯ ಸಾಮಗ್ರಿಗಳು";
+    default:
+      return translateItemName(sub, "kn");
+  }
+}
+
+/**
+ * Translates item measurement units to Kannada
+ */
+export function translateUnit(unit?: string | null, lang: Language = "kn"): string {
+  if (!unit) return "";
+  if (lang !== "kn") return unit;
+  const u = unit.toLowerCase().trim();
+  switch (u) {
+    case "pcs":
+    case "pc":
+    case "piece":
+    case "pieces":
+    case "no":
+    case "nos":
+      return "ಸಂಖ್ಯೆ";
+    case "kg":
+    case "kgs":
+    case "kilo":
+    case "kilogram":
+      return "ಕೆಜಿ";
+    case "gm":
+    case "gms":
+    case "gram":
+    case "grams":
+      return "ಗ್ರಾಂ";
+    case "bag":
+    case "bags":
+      return "ಚೀಲ";
+    case "pot":
+    case "pots":
+      return "ಕುಂಡ";
+    case "bunch":
+    case "bunches":
+      return "ಕಟ್ಟು";
+    case "packet":
+    case "packets":
+    case "pkt":
+    case "pkts":
+      return "ಪ್ಯಾಕೆಟ್";
+    case "box":
+    case "boxes":
+      return "ಪೆಟ್ಟಿಗೆ";
+    case "sqft":
+    case "sq.ft":
+      return "ಚ.ಅಡಿ";
+    default:
+      return unit;
+  }
+}
