@@ -7,7 +7,6 @@ import { useEffect, useState } from "react";
 import { Menu } from "lucide-react";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { LanguageProvider, useLanguage } from "@/lib/language-context";
-import { LanguageToggle } from "@/components/LanguageToggle";
 import { Sidebar } from "@/components/Sidebar";
 import { ProfilePanel } from "@/components/ProfilePanel";
 
@@ -94,10 +93,9 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         </span>
 
         <div className="flex items-center gap-2 shrink-0">
-          <LanguageToggle size="sm" />
           <button
             onClick={() => setProfileOpen(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-pine text-sm font-semibold text-surface shadow-sm transition-transform active:scale-95"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-pine text-sm font-semibold text-surface shadow-sm transition-transform active:scale-95 cursor-pointer"
             aria-label="Open account profile"
           >
             {user?.username?.slice(0, 1).toUpperCase()}

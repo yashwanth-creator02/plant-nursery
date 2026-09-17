@@ -119,11 +119,11 @@ export function PreviewLanguageToggle({
         onKeyDown={handleKeyDown}
         title={isKn ? "Switch bill receipt to English" : "Switch bill receipt to Kannada (ಕನ್ನಡ)"}
         aria-label="Toggle bill preview receipt language"
-        className="relative inline-flex items-center select-none rounded-md border border-[#1b365d]/40 bg-surface p-0.5 h-7 text-[11px] shadow-2xs hover:border-[#1b365d] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1b365d]/40 cursor-pointer"
+        className="relative inline-flex items-center select-none rounded-md border border-line-strong bg-paper-flat p-0.5 h-7 text-[11px] shadow-xs ring-1 ring-black/10 dark:ring-white/20 dark:bg-surface dark:border-line-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-pine cursor-pointer"
       >
         {/* Sliding background indicator */}
         <div
-          className={`absolute top-0.5 bottom-0.5 rounded-[4px] bg-[#1b365d] shadow-xs transition-all duration-200 ease-out ${
+          className={`absolute top-0.5 bottom-0.5 rounded-[4px] bg-pine shadow-xs transition-all duration-200 ease-out ${
             isKn ? "left-1/2 right-0.5" : "left-0.5 right-1/2"
           }`}
           aria-hidden="true"
@@ -137,7 +137,7 @@ export function PreviewLanguageToggle({
             onLanguageChange("en");
           }}
           className={`relative z-10 flex flex-1 items-center justify-center rounded-[4px] px-2.5 py-0.5 font-bold transition-colors duration-150 cursor-pointer ${
-            !isKn ? "text-white" : "text-[#1b365d]/70 hover:text-[#1b365d]"
+            !isKn ? "text-surface" : "text-ink-soft hover:text-ink"
           }`}
         >
           ENG
@@ -151,7 +151,7 @@ export function PreviewLanguageToggle({
             onLanguageChange("kn");
           }}
           className={`relative z-10 flex flex-1 items-center justify-center rounded-[4px] px-2.5 py-0.5 font-bold transition-colors duration-150 cursor-pointer ${
-            isKn ? "text-white" : "text-[#1b365d]/70 hover:text-[#1b365d]"
+            isKn ? "text-surface" : "text-ink-soft hover:text-ink"
           }`}
         >
           ಕನ್ನಡ

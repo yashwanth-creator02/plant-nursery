@@ -159,6 +159,12 @@ export function Sidebar({
           </span>
         </button>
 
+        {/* Language Switch Toggle placed directly on top of Light/Dark mode */}
+        <div className="flex items-center justify-between gap-2 px-1 py-1">
+          <span className="text-xs font-medium text-ink-soft">{t("language")}</span>
+          <LanguageToggle size="sm" />
+        </div>
+
         <div className="flex items-center rounded-md border border-line bg-paper p-0.5 text-xs">
           <button
             type="button"
@@ -247,21 +253,17 @@ export function Sidebar({
                 </div>
               </div>
 
-              {/* Language Switch Toggle placed right beside the Nursery Name on desktop */}
-              <div className="flex items-center gap-1.5 shrink-0">
-                <LanguageToggle size="sm" />
-                {onToggleCollapse && (
-                  <button
-                    type="button"
-                    onClick={onToggleCollapse}
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-soft hover:text-ink hover:bg-line/60 transition-colors cursor-pointer"
-                    title="Collapse sidebar (Ctrl+B)"
-                    aria-label="Collapse sidebar"
-                  >
-                    <PanelLeftClose size={16} />
-                  </button>
-                )}
-              </div>
+              {onToggleCollapse && (
+                <button
+                  type="button"
+                  onClick={onToggleCollapse}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-soft hover:text-ink hover:bg-line/60 transition-colors cursor-pointer"
+                  title="Collapse sidebar (Ctrl+B)"
+                  aria-label="Collapse sidebar"
+                >
+                  <PanelLeftClose size={16} />
+                </button>
+              )}
             </div>
           )}
           {renderNavLinks(false)}
