@@ -22,6 +22,7 @@ import {
   Check,
 } from "lucide-react";
 import { formatMoney, StockItem } from "@/lib/types";
+import { useLanguage, Language } from "@/lib/language-context";
 
 interface SmartStockPickerProps {
   stock: StockItem[];
@@ -31,22 +32,23 @@ interface SmartStockPickerProps {
   disabled?: boolean;
 }
 
-function getSubcategoryInfo(item: StockItem) {
+function getSubcategoryInfo(item: StockItem, lang: Language = "en") {
   const isPlant = (item.category || "plants") === "plants";
   const sub = (item.subcategory || (isPlant ? "other" : "general")).toLowerCase();
+  const isKn = lang === "kn";
 
   if (isPlant) {
     switch (sub) {
       case "fruit":
-        return { label: "Fruit Plant", icon: Apple, color: "bg-amber-50 text-amber-800 border-amber-200" };
+        return { label: isKn ? "ಹಣ್ಣಿನ ಗಿಡ" : "Fruit Plant", icon: Apple, color: "bg-amber-50 text-amber-800 border-amber-200" };
       case "flower":
-        return { label: "Flower Plant", icon: Flower2, color: "bg-pink-50 text-pink-700 border-pink-200" };
+        return { label: isKn ? "ಹೂವಿನ ಗಿಡ" : "Flower Plant", icon: Flower2, color: "bg-pink-50 text-pink-700 border-pink-200" };
       case "ornamental":
-        return { label: "Ornamental", icon: Trees, color: "bg-emerald-50 text-emerald-800 border-emerald-200" };
+        return { label: isKn ? "ಅಲಂಕಾರಿಕ ಗಿಡ" : "Ornamental", icon: Trees, color: "bg-emerald-50 text-emerald-800 border-emerald-200" };
       case "medicinal":
-        return { label: "Medicinal", icon: ShieldPlus, color: "bg-teal-50 text-teal-800 border-teal-200" };
+        return { label: isKn ? "ಔಷಧೀಯ ಸಸ್ಯ" : "Medicinal", icon: ShieldPlus, color: "bg-teal-50 text-teal-800 border-teal-200" };
       case "other":
-        return { label: "Other Plant", icon: Sparkles, color: "bg-pine-tint text-pine-deep border-pine/20" };
+        return { label: isKn ? "ಇತರ ಗಿಡ" : "Other Plant", icon: Sparkles, color: "bg-pine-tint text-pine-deep border-pine/20" };
       default:
         return {
           label: sub.charAt(0).toUpperCase() + sub.slice(1),
@@ -57,16 +59,16 @@ function getSubcategoryInfo(item: StockItem) {
   } else {
     switch (sub) {
       case "pots":
-        return { label: "Pots & Planters", icon: Layers, color: "bg-amber-50 text-amber-800 border-amber-200" };
+        return { label: isKn ? "ಪಾಟ್‌ಗಳು" : "Pots & Planters", icon: Layers, color: "bg-amber-50 text-amber-800 border-amber-200" };
       case "fertilizers":
-        return { label: "Fertilizers", icon: FlaskConical, color: "bg-blue-50 text-blue-800 border-blue-200" };
+        return { label: isKn ? "ಗೊಬ್ಬರಗಳು" : "Fertilizers", icon: FlaskConical, color: "bg-blue-50 text-blue-800 border-blue-200" };
       case "soil":
-        return { label: "Soil & Substrates", icon: Shovel, color: "bg-stone-100 text-stone-800 border-stone-200" };
+        return { label: isKn ? "ಮಣ್ಣು ಮತ್ತು ಕಾಂಪೋಸ್ಟ್" : "Soil & Substrates", icon: Shovel, color: "bg-stone-100 text-stone-800 border-stone-200" };
       case "tools":
-        return { label: "Tools", icon: Wrench, color: "bg-violet-50 text-violet-800 border-violet-200" };
+        return { label: isKn ? "ಉಪಕರಣಗಳು" : "Tools", icon: Wrench, color: "bg-violet-50 text-violet-800 border-violet-200" };
       default:
         return {
-          label: sub === "general" ? "General Supplies" : sub.charAt(0).toUpperCase() + sub.slice(1),
+          label: sub === "general" ? (isKn ? "ಸಾಮಾನ್ಯ ಸಾಮಗ್ರಿಗಳು" : "General Supplies") : sub.charAt(0).toUpperCase() + sub.slice(1),
           icon: Package,
           color: "bg-slate-100 text-slate-700 border-slate-200",
         };
@@ -81,6 +83,7 @@ export function SmartStockPicker({
   onEnterSubmit,
   disabled = false,
 }: SmartStockPickerProps) {
+  const { language, translateItem, t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategoryTab, setActiveCategoryTab] = useState<"all" | "plants" | "non-plants">("all");
@@ -126,7 +129,10 @@ export function SmartStockPicker({
       // Filter by query
       if (!q) return true;
 
-      const nameMatch = item.name.toLowerCase().includes(q);
+      const translatedName = translateItem(item.name);
+      const nameMatch =
+        item.name.toLowerCase().includes(q) ||
+        translatedName.toLowerCase().includes(q);
       const subMatch = (item.subcategory || "").toLowerCase().includes(q);
       const catMatch = (item.category || "plants").toLowerCase().includes(q);
       const priceMatch = item.price.toString().includes(q);
@@ -137,12 +143,11 @@ export function SmartStockPicker({
       if (!q) return 0;
       const aName = a.name.toLowerCase();
       const bName = b.name.toLowerCase();
-      // Prioritize items whose name starts with query
       if (aName.startsWith(q) && !bName.startsWith(q)) return -1;
       if (!aName.startsWith(q) && bName.startsWith(q)) return 1;
       return 0;
     });
-  }, [stock, searchQuery, activeCategoryTab]);
+  }, [stock, searchQuery, activeCategoryTab, translateItem]);
 
   // Keep highlighted index in range
   useEffect(() => {
@@ -171,7 +176,7 @@ export function SmartStockPicker({
 
   function handleSelect(item: StockItem) {
     onSelect(item);
-    setSearchQuery(item.name);
+    setSearchQuery(translateItem(item.name));
     setIsOpen(false);
   }
 
@@ -241,7 +246,7 @@ export function SmartStockPicker({
           {selectedItem && !isOpen ? (
             <div className="flex items-center gap-2 overflow-hidden">
               <span className="truncate font-medium text-ink">
-                {selectedItem.name}
+                {translateItem(selectedItem.name)}
               </span>
               <span className="shrink-0 font-mono text-xs text-ink-soft">
                 — ₹{formatMoney(Number(selectedItem.price))} ({selectedItem.quantity}{" "}
@@ -260,7 +265,7 @@ export function SmartStockPicker({
               onFocus={() => setIsOpen(true)}
               onKeyDown={handleKeyDown}
               disabled={disabled}
-              placeholder="Search by plant name, type (e.g. fruit, rose), or supply..."
+              placeholder={t("searchPlantPlaceholder")}
               className="w-full bg-transparent text-sm text-ink placeholder:text-ink-soft/70 outline-none"
             />
           )}
@@ -301,8 +306,8 @@ export function SmartStockPicker({
                   : "text-ink-soft hover:text-ink hover:bg-surface/50"
               }`}
             >
-              <span>All</span>
-              <span className="rounded-full bg-line/60 px-1.5 py-0.1 text-[10px]">
+              <span>{language === "kn" ? "ಎಲ್ಲಾ" : "All"}</span>
+              <span className="rounded bg-line/60 px-1.5 py-0.1 text-[10px]">
                 {stock.length}
               </span>
             </button>
@@ -317,8 +322,8 @@ export function SmartStockPicker({
               }`}
             >
               <Sprout size={12} className="text-pine" />
-              <span>Plants</span>
-              <span className="rounded-full bg-pine-tint px-1.5 py-0.1 text-[10px] text-pine-deep font-semibold">
+              <span>{language === "kn" ? "ಸಸ್ಯಗಳು" : "Plants"}</span>
+              <span className="rounded bg-pine-tint px-1.5 py-0.1 text-[10px] text-pine-deep font-semibold">
                 {plantCount}
               </span>
             </button>
@@ -333,15 +338,15 @@ export function SmartStockPicker({
               }`}
             >
               <Package size={12} className="text-slate-600" />
-              <span>Non-Plants</span>
-              <span className="rounded-full bg-slate-200/70 px-1.5 py-0.1 text-[10px] text-slate-700 font-semibold">
+              <span>{language === "kn" ? "ಇತರ ಸಾಮಗ್ರಿಗಳು" : "Non-Plants"}</span>
+              <span className="rounded bg-slate-200/70 px-1.5 py-0.1 text-[10px] text-slate-700 font-semibold">
                 {nonPlantCount}
               </span>
             </button>
 
             {searchQuery && (
               <span className="ml-auto pr-1 text-[11px] text-ink-soft">
-                {filteredItems.length} found
+                {filteredItems.length} {language === "kn" ? "ದೊರೆತಿದೆ" : "found"}
               </span>
             )}
           </div>
@@ -351,25 +356,30 @@ export function SmartStockPicker({
             {filteredItems.length === 0 ? (
               <div className="px-4 py-8 text-center text-xs text-ink-soft">
                 <Search size={18} className="mx-auto mb-1.5 opacity-40" />
-                <p>No stock items match &ldquo;{searchQuery}&rdquo;</p>
+                <p>
+                  {language === "kn"
+                    ? `ಯಾವುದೇ ಸಸ್ಯಗಳು "${searchQuery}" ಗೆ ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ`
+                    : `No stock items match "${searchQuery}"`}
+                </p>
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery("")}
                     className="mt-2 text-[11px] font-medium text-pine-deep underline hover:opacity-80 cursor-pointer"
                   >
-                    Clear search filter
+                    {language === "kn" ? "ಹುಡುಕಾಟ ಫಿಲ್ಟರ್ ತೆರವುಗೊಳಿಸಿ" : "Clear search filter"}
                   </button>
                 )}
               </div>
             ) : (
               filteredItems.map((item, idx) => {
-                const info = getSubcategoryInfo(item);
+                const info = getSubcategoryInfo(item, language);
                 const Icon = info.icon;
                 const isSelected = selectedId === item.id;
                 const isHighlighted = idx === highlightedIndex;
                 const lowStock = item.quantity > 0 && item.quantity <= 5;
                 const outOfStock = item.quantity <= 0;
+                const displayName = translateItem(item.name);
 
                 return (
                   <div
@@ -388,12 +398,18 @@ export function SmartStockPicker({
                     <div className="flex flex-col gap-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="font-semibold text-sm truncate text-ink">
-                          {item.name}
+                          {displayName}
                         </span>
                         {isSelected && (
                           <Check size={14} className="shrink-0 text-pine stroke-[2.5]" />
                         )}
                       </div>
+
+                      {displayName !== item.name && (
+                        <span className="text-[11px] text-ink-soft/80 truncate">
+                          {item.name}
+                        </span>
+                      )}
 
                       <div className="flex items-center gap-1.5">
                         <span
@@ -404,7 +420,7 @@ export function SmartStockPicker({
                         </span>
 
                         <span className="text-[11px] text-ink-soft">
-                          Unit: {item.unit || "pcs"}
+                          {item.unit || "pcs"}
                         </span>
                       </div>
                     </div>
@@ -417,15 +433,15 @@ export function SmartStockPicker({
 
                       {outOfStock ? (
                         <span className="rounded border border-red-200 bg-red-50 px-1.5 py-0.2 font-mono text-[10px] font-bold text-red-700">
-                          Out of stock
+                          {t("outOfStock")}
                         </span>
                       ) : lowStock ? (
                         <span className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.2 font-mono text-[10px] font-semibold text-amber-900">
-                          Only {item.quantity} left
+                          {language === "kn" ? `${item.quantity} ಮಾತ್ರ ಲಭ್ಯವಿದೆ` : `Only ${item.quantity} left`}
                         </span>
                       ) : (
                         <span className="font-mono text-[11px] text-ink-soft">
-                          {item.quantity} in stock
+                          {item.quantity} {t("inStock")}
                         </span>
                       )}
                     </div>

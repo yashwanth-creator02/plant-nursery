@@ -32,6 +32,9 @@ import {
 } from "@/lib/types";
 import { SmartStockPicker } from "./SmartStockPicker";
 import { useAuth } from "@/lib/auth-context";
+import { useLanguage, Language } from "@/lib/language-context";
+import { PreviewLanguageToggle } from "./LanguageToggle";
+import { numberToKannadaWords } from "@/lib/plant-translations";
 
 const DEFAULT_HEADER = {
   businessName: "SRI VIJAYA LAKSHMI NURSERY",
@@ -70,6 +73,9 @@ export function InvoiceEditor({
 }) {
   const router = useRouter();
   const { user } = useAuth();
+  const { language, t, tLang, translateItem } = useLanguage();
+  const [previewLanguageOverride, setPreviewLanguageOverride] = useState<Language | null>(null);
+  const billLanguage: Language = previewLanguageOverride ?? language;
   const isFinal = initialInvoice?.status === "final";
 
   const [step, setStep] = useState<"edit" | "preview">(isFinal ? "preview" : "edit");
@@ -727,11 +733,11 @@ export function InvoiceEditor({
           {/* Step Progress Pill */}
           <div className="flex items-center justify-between gap-2 p-2.5 rounded-lg border border-line bg-surface text-xs">
             <div className="flex items-center gap-2 font-medium text-pine-deep">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-pine text-surface text-[11px] font-bold">1</span>
-              <span>Enter Bill Details &amp; Items</span>
+              <span className="flex h-5 w-5 items-center justify-center rounded bg-pine text-surface text-[11px] font-bold">1</span>
+              <span>{t("step1Title")}</span>
             </div>
             <div className="text-ink-soft flex items-center gap-1.5 text-[11px]">
-              <span>Next: Preview &amp; Payment</span>
+              <span>{t("nextPreview")}</span>
               <ChevronRight size={13} />
             </div>
           </div>
@@ -739,14 +745,14 @@ export function InvoiceEditor({
           {/* Section 1: Customer & Invoice Details */}
           <div className="rounded-xl border border-line bg-surface p-4 sm:p-5 shadow-xs">
             <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-3.5 flex items-center justify-between">
-              <span>1. Bill &amp; Customer Details</span>
-              <span className="text-[11px] font-normal lowercase tracking-normal text-ink-soft/70">Required for receipt</span>
+              <span>{t("section1Title")}</span>
+              <span className="text-[11px] font-normal lowercase tracking-normal text-ink-soft/70">{t("requiredForReceipt")}</span>
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-3.5">
               {/* Invoice Number */}
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-ink">Bill No.</span>
+                <span className="text-xs font-medium text-ink">{t("billNo")}</span>
                 <input
                   value={invoiceNumber || ""}
                   onChange={(e) => setInvoiceNumber(e.target.value)}
@@ -757,7 +763,7 @@ export function InvoiceEditor({
 
               {/* Date */}
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-ink">Date</span>
+                <span className="text-xs font-medium text-ink">{t("date")}</span>
                 <div className="rounded-md border border-line bg-paper-flat px-3 py-2 text-sm font-mono font-medium text-ink">
                   {dateLabel}
                 </div>
@@ -765,7 +771,7 @@ export function InvoiceEditor({
 
               {/* Payment Type CASH / CREDIT */}
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-ink">Billing Mode</span>
+                <span className="text-xs font-medium text-ink">{t("paymentMode")}</span>
                 <div className="flex items-center rounded-md border border-line-strong bg-paper-flat p-0.5">
                   <button
                     type="button"
@@ -776,7 +782,7 @@ export function InvoiceEditor({
                         : "text-ink-soft hover:text-ink"
                     }`}
                   >
-                    CASH
+                    {t("cash")}
                   </button>
                   <button
                     type="button"
@@ -787,7 +793,7 @@ export function InvoiceEditor({
                         : "text-ink-soft hover:text-ink"
                     }`}
                   >
-                    CREDIT
+                    {t("credit")}
                   </button>
                 </div>
               </div>
@@ -796,22 +802,22 @@ export function InvoiceEditor({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {/* Customer Name */}
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-ink">Customer Name (To)</span>
+                <span className="text-xs font-medium text-ink">{t("customerNameLabel")} ({t("toCustomer").replace(/[,:]/g, "").trim()})</span>
                 <input
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="e.g. Ramesh Kumar"
+                  placeholder={t("customerNamePlaceholder")}
                   className="rounded-md border border-line-strong bg-surface px-3 py-2 text-sm font-medium text-ink outline-none focus:border-pine"
                 />
               </label>
 
               {/* Customer Details / Address / Phone */}
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-ink">Address / Phone / Vehicle</span>
+                <span className="text-xs font-medium text-ink">{t("customerDetailsLabel")}</span>
                 <input
                   value={customerDetails}
                   onChange={(e) => setCustomerDetails(e.target.value)}
-                  placeholder="e.g. Harige, Shimoga - 9845012345"
+                  placeholder={t("customerDetailsPlaceholder")}
                   className="rounded-md border border-line-strong bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-pine"
                 />
               </label>
@@ -822,11 +828,11 @@ export function InvoiceEditor({
           <div className="rounded-xl border border-line bg-surface p-4 sm:p-5 shadow-xs">
             <div className="mb-3.5 flex items-center justify-between">
               <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft">
-                2. Items in Bill ({items.length})
+                {t("section2Title")} ({items.length})
               </h2>
               {items.length > 0 && (
                 <span className="font-mono text-xs font-bold text-pine-deep">
-                  Subtotal: ₹ {formatMoney(total)}
+                  {t("subtotal")} ₹ {formatMoney(total)}
                 </span>
               )}
             </div>
@@ -836,7 +842,7 @@ export function InvoiceEditor({
               {!customMode ? (
                 <div className="flex flex-col gap-2.5">
                   <div className="w-full flex flex-col gap-1">
-                    <span className="text-xs font-medium text-ink">Select item from stock</span>
+                    <span className="text-xs font-medium text-ink">{t("selectFromStock")}</span>
                     <SmartStockPicker
                       stock={stock}
                       selectedId={pickerStockId}
@@ -852,7 +858,7 @@ export function InvoiceEditor({
 
                   <div className="flex items-end gap-2 w-full">
                     <label className="flex flex-col gap-1 w-20 shrink-0">
-                      <span className="text-xs font-medium text-ink">Qty</span>
+                      <span className="text-xs font-medium text-ink">{t("qty")}</span>
                       <input
                         ref={qtyInputRef}
                         type="number"
@@ -878,7 +884,7 @@ export function InvoiceEditor({
                         title={`Available in stock: ${selectedStockItem?.quantity ?? 0}. Click to force add.`}
                       >
                         <AlertTriangle size={15} className="text-white shrink-0" />
-                        <span>Force Add</span>
+                        <span>{t("forceAdd")}</span>
                       </button>
                     ) : (
                       <button
@@ -888,7 +894,7 @@ export function InvoiceEditor({
                         className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md bg-pine px-4 py-1.5 text-xs sm:text-sm font-medium text-surface hover:opacity-90 disabled:opacity-50 shadow-sm cursor-pointer whitespace-nowrap h-[38px]"
                       >
                         <Plus size={15} className="shrink-0" />
-                        <span>Add to bill</span>
+                        <span>{t("addToBill")}</span>
                       </button>
                     )}
 
@@ -897,7 +903,7 @@ export function InvoiceEditor({
                       onClick={() => setCustomMode(true)}
                       className="hidden sm:inline-flex items-center rounded-md px-2.5 py-1.5 text-xs sm:text-sm font-medium text-pine-deep hover:underline cursor-pointer whitespace-nowrap h-[38px]"
                     >
-                      + Custom item
+                      {t("customItemTab")}
                     </button>
                   </div>
 
@@ -908,25 +914,25 @@ export function InvoiceEditor({
                       onClick={() => setCustomMode(true)}
                       className="text-xs font-semibold text-pine-deep hover:underline cursor-pointer py-0.5"
                     >
-                      + Or add custom item
+                      {t("customItemTab")}
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2.5">
                   <label className="flex flex-col gap-1 w-full">
-                    <span className="text-xs font-medium text-ink">Description</span>
+                    <span className="text-xs font-medium text-ink">{t("customNameLabel")}</span>
                     <input
                       value={customName}
                       onChange={(e) => setCustomName(e.target.value)}
-                      placeholder="Item name (optional, defaults to Item)"
+                      placeholder={t("customerNamePlaceholder")}
                       className="w-full rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine h-[38px]"
                     />
                   </label>
 
                   <div className="flex flex-wrap sm:flex-nowrap items-end gap-2">
                     <label className="flex flex-col gap-1 w-20 shrink-0">
-                      <span className="text-xs font-medium text-ink">Qty</span>
+                      <span className="text-xs font-medium text-ink">{t("qty")}</span>
                       <input
                         type="number"
                         min={0}
@@ -938,7 +944,7 @@ export function InvoiceEditor({
                     </label>
 
                     <label className="flex flex-col gap-1 w-28 shrink-0">
-                      <span className="text-xs font-medium text-ink">Price ₹</span>
+                      <span className="text-xs font-medium text-ink">{t("customPriceLabel")}</span>
                       <input
                         type="number"
                         min={0}
@@ -957,13 +963,12 @@ export function InvoiceEditor({
                         className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md bg-pine px-4 py-1.5 text-xs sm:text-sm font-medium text-surface hover:opacity-90 shadow-sm cursor-pointer whitespace-nowrap h-[38px]"
                       >
                         <Plus size={15} className="shrink-0" />
-                        <span>Add</span>
+                        <span>{t("addToBill")}</span>
                       </button>
-
                       <button
                         type="button"
                         onClick={() => setCustomMode(false)}
-                        className="px-2.5 py-1.5 text-xs sm:text-sm text-ink-soft hover:underline cursor-pointer whitespace-nowrap h-[38px]"
+                        className="rounded-md px-2.5 py-1.5 text-xs sm:text-sm font-medium text-ink-soft hover:text-ink cursor-pointer whitespace-nowrap h-[38px]"
                       >
                         Cancel
                       </button>
@@ -987,7 +992,10 @@ export function InvoiceEditor({
                           </span>
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-semibold text-ink break-words leading-tight">
-                              {item.name}
+                              {translateItem(item.name, language)}
+                              {language === "kn" && translateItem(item.name, "kn") !== item.name && (
+                                <span className="block text-xs font-normal text-ink-soft mt-0.5">{item.name}</span>
+                              )}
                             </div>
                             <div className="text-xs text-ink-soft mt-1">
                               ₹ {formatMoney(item.price)} × {item.quantity} = <strong className="font-mono font-bold text-pine-deep text-sm">₹ {formatMoney(item.price * item.quantity)}</strong>
@@ -998,7 +1006,7 @@ export function InvoiceEditor({
                           type="button"
                           onClick={() => removeItem(item.key)}
                           className="p-1 rounded text-ink-soft hover:text-rust hover:bg-rust-tint/50 transition-colors shrink-0 cursor-pointer"
-                          title="Remove item"
+                          title={t("removeItem")}
                         >
                           <Trash2 size={16} />
                         </button>
@@ -1006,7 +1014,7 @@ export function InvoiceEditor({
 
                       <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-line/40">
                         <label className="flex items-center gap-1.5 text-xs text-ink">
-                          <span className="text-ink-soft shrink-0 font-medium">Qty:</span>
+                          <span className="text-ink-soft shrink-0 font-medium">{t("qty")}:</span>
                           <input
                             type="number"
                             min={0}
@@ -1020,7 +1028,7 @@ export function InvoiceEditor({
                           />
                         </label>
                         <label className="flex items-center gap-1.5 text-xs text-ink">
-                          <span className="text-ink-soft shrink-0 font-medium">Rate ₹:</span>
+                          <span className="text-ink-soft shrink-0 font-medium">{t("rate")}:</span>
                           <input
                             type="number"
                             min={0}
@@ -1045,10 +1053,10 @@ export function InvoiceEditor({
                     <thead className="bg-paper-flat border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-soft">
                       <tr>
                         <th className="py-2 px-2.5 text-center w-10">#</th>
-                        <th className="py-2 px-3">Particulars</th>
-                        <th className="py-2 px-2 text-center w-20">Qty</th>
-                        <th className="py-2 px-2 text-right w-24">Rate (₹)</th>
-                        <th className="py-2 px-3 text-right w-28">Amount</th>
+                        <th className="py-2 px-3">{t("particulars")}</th>
+                        <th className="py-2 px-2 text-center w-20">{t("qty")}</th>
+                        <th className="py-2 px-2 text-right w-24">{t("rate")}</th>
+                        <th className="py-2 px-3 text-right w-28">{t("amount")}</th>
                         <th className="py-2 px-2 text-center w-10"></th>
                       </tr>
                     </thead>
@@ -1059,7 +1067,10 @@ export function InvoiceEditor({
                             {idx + 1}
                           </td>
                           <td className="py-2 px-3 font-medium text-ink">
-                            {item.name}
+                            <span>{translateItem(item.name, language)}</span>
+                            {language === "kn" && translateItem(item.name, "kn") !== item.name && (
+                              <span className="ml-1.5 text-xs font-normal text-ink-soft">({item.name})</span>
+                            )}
                           </td>
                           <td className="py-2 px-2 text-center">
                             <input
@@ -1212,7 +1223,7 @@ export function InvoiceEditor({
               className="flex items-center justify-center gap-1.5 rounded-md border border-line-strong px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-line/50 disabled:opacity-50 cursor-pointer whitespace-nowrap"
             >
               <Save size={15} />
-              {saving === "draft" ? "Saving…" : "Save as draft"}
+              {saving === "draft" ? t("saving") : t("saveAsDraft")}
             </button>
 
             <button
@@ -1220,7 +1231,7 @@ export function InvoiceEditor({
               onClick={handleProceedToPreview}
               className="flex items-center justify-center gap-2 rounded-md bg-pine px-6 py-2.5 text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 cursor-pointer whitespace-nowrap"
             >
-              <span>Proceed to Bill Preview</span>
+              <span>{t("proceedToPreview")}</span>
               <ArrowRight size={16} />
             </button>
           </div>
@@ -1239,29 +1250,38 @@ export function InvoiceEditor({
                 className="flex items-center gap-1.5 rounded-md border border-line-strong bg-surface px-3 py-1.5 text-xs sm:text-sm font-semibold text-ink shadow-xs transition-colors hover:bg-line/50 cursor-pointer whitespace-nowrap"
               >
                 <ArrowLeft size={15} />
-                <span>Back to Edit Bill</span>
+                <span>{t("backToEdit")}</span>
               </button>
             ) : (
               <div className="text-xs font-semibold text-ink-soft">
-                Finalized Bill Preview
+                {t("finalizedBillPreview")}
               </div>
             )}
 
             <div className="flex items-center gap-2 sm:gap-3">
               <span className="inline-flex items-center gap-1 text-xs text-ink-soft">
-                <span>Total:</span>
+                <span>{t("total")}:</span>
                 <strong className="font-mono text-xs sm:text-sm text-pine-deep font-bold">₹ {formatMoney(total)}</strong>
               </span>
+
+              {/* Bill Preview Language Toggle (Overrides Global Language for Preview & Print) */}
+              <div className="flex items-center gap-1.5 pl-1.5 border-l border-line">
+                <PreviewLanguageToggle
+                  currentLang={billLanguage}
+                  onLanguageChange={setPreviewLanguageOverride}
+                />
+              </div>
+
               <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 text-[#1b365d] border border-blue-200 text-[11px] font-bold whitespace-nowrap">
                 <CheckCircle2 size={12} />
-                <span>Step 2</span>
+                <span>{billLanguage === "kn" ? "ಹಂತ 2" : "Step 2"}</span>
               </div>
             </div>
           </div>
 
           {/* Mobile horizontal scroll helper indicator */}
           <div className="sm:hidden mb-2 text-center text-[11px] font-medium text-ink-soft print:hidden">
-            Scroll horizontally to view complete bill sheet
+            {billLanguage === "kn" ? "ಸಂಪೂರ್ಣ ಬಿಲ್ ಶೀಟ್ ವೀಕ್ಷಿಸಲು ಸಮತಲವಾಗಿ ಸ್ಕ್ರಾಲ್ ಮಾಡಿ" : "Scroll horizontally to view complete bill sheet"}
           </div>
 
           {/* ============================================================ */}
@@ -1276,18 +1296,20 @@ export function InvoiceEditor({
               >
             {/* Top GSTIN & Mobiles Row */}
             <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold tracking-tight text-[#1b365d]">
-              <span>GSTIN: {headerDetails.gstin}</span>
+              <span>{tLang("gstinLabel", billLanguage)} {headerDetails.gstin}</span>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100/80 text-[#1b365d] border border-blue-200">
-                  Version {invoiceVersion}
+                  {tLang("versionLabel", billLanguage)} {invoiceVersion}
                 </span>
-                <span>Mob: {headerDetails.mobiles}</span>
+                <span>{tLang("mobilesLabel", billLanguage)} {headerDetails.mobiles}</span>
               </div>
             </div>
 
             {/* Nursery Main Title */}
             <h1 className="mt-2 text-center font-serif text-xl sm:text-2xl md:text-[26px] font-extrabold uppercase tracking-wide text-[#1b365d]">
-              {headerDetails.businessName}
+              {billLanguage === "kn" && (headerDetails.businessName === DEFAULT_HEADER.businessName || !headerDetails.businessName)
+                ? tLang("brandFullName", "kn")
+                : headerDetails.businessName}
             </h1>
 
             {/* Subtitle row with Logo Placeholder */}
@@ -1332,20 +1354,32 @@ export function InvoiceEditor({
 
               {/* Centered Government Approval & Address Details */}
               <div className="text-center text-[11px] sm:text-xs font-semibold text-[#1b365d] leading-tight px-14 sm:px-16">
-                <p>{headerDetails.subheading1}</p>
-                <p>{headerDetails.subheading2}</p>
-                <p className="font-bold">{headerDetails.address}</p>
+                <p>
+                  {billLanguage === "kn" && headerDetails.subheading1 === DEFAULT_HEADER.subheading1
+                    ? tLang("subheading1", "kn")
+                    : headerDetails.subheading1}
+                </p>
+                <p>
+                  {billLanguage === "kn" && headerDetails.subheading2 === DEFAULT_HEADER.subheading2
+                    ? tLang("subheading2", "kn")
+                    : headerDetails.subheading2}
+                </p>
+                <p className="font-bold">
+                  {billLanguage === "kn" && headerDetails.address === DEFAULT_HEADER.address
+                    ? tLang("nurseryAddress", "kn")
+                    : headerDetails.address}
+                </p>
               </div>
             </div>
 
             {/* Document Title: BILL OF SUPPLIERS / CASH/CREDIT */}
             <div className="mt-2 text-center text-[#1b365d]">
               <span className="inline-block border-b border-[#1b365d] pb-0.5 font-bold uppercase tracking-wider text-xs sm:text-sm">
-                BILL OF SUPPLIERS
+                {tLang("billOfSuppliers", billLanguage)}
               </span>
               <div className="mt-0.5 text-[11px] sm:text-xs font-bold tracking-wide">
                 {status === "final" ? (
-                  paymentMode === "CASH" ? "CASH" : "CREDIT"
+                  paymentMode === "CASH" ? tLang("cash", billLanguage) : tLang("credit", billLanguage)
                 ) : (
                   <span className="inline-flex items-center gap-2">
                     <button
@@ -1355,7 +1389,7 @@ export function InvoiceEditor({
                         paymentMode === "CASH" ? "bg-[#1b365d] text-white" : "hover:underline"
                       }`}
                     >
-                      CASH
+                      {tLang("cash", billLanguage)}
                     </button>
                     <span>/</span>
                     <button
@@ -1365,7 +1399,7 @@ export function InvoiceEditor({
                         paymentMode === "CREDIT" ? "bg-[#1b365d] text-white" : "hover:underline"
                       }`}
                     >
-                      CREDIT
+                      {tLang("credit", billLanguage)}
                     </button>
                   </span>
                 )}
@@ -1375,7 +1409,7 @@ export function InvoiceEditor({
             {/* Metadata Lines: No. & Date. */}
             <div className="mt-3 flex items-baseline justify-between text-xs sm:text-sm font-semibold text-[#1b365d]">
               <div className="flex items-baseline gap-1.5 flex-1 max-w-[45%]">
-                <span className="font-bold">No.</span>
+                <span className="font-bold">{tLang("billNo", billLanguage)}</span>
                 {status === "final" ? (
                   <span className="flex-1 font-mono font-bold tracking-wider border-b border-dotted border-[#1b365d] px-2 text-xs sm:text-sm text-[#1b365d]">
                     {invoiceNumber ?? "—"}
@@ -1392,7 +1426,7 @@ export function InvoiceEditor({
                 )}
               </div>
               <div className="flex items-baseline gap-1.5 flex-1 max-w-[50%] justify-end">
-                <span className="font-bold">Date:</span>
+                <span className="font-bold">{tLang("date", billLanguage)}</span>
                 <span className="font-mono font-bold border-b border-dotted border-[#1b365d] px-2 text-xs sm:text-sm text-[#1b365d] min-w-[120px] text-right">
                   {dateLabel} <span className="text-[10px] sm:text-xs font-normal text-[#1b365d]/85 font-sans whitespace-nowrap ml-1">{timeLabel}</span>
                 </span>
@@ -1402,7 +1436,7 @@ export function InvoiceEditor({
             {/* Customer Address Block: "To, ......" */}
             <div className="mt-2 text-xs sm:text-sm text-[#1b365d]">
               <div className="flex items-baseline gap-1.5">
-                <span className="font-bold shrink-0">To,</span>
+                <span className="font-bold shrink-0">{tLang("toCustomer", billLanguage)}</span>
                 {status === "final" ? (
                   <span className="flex-1 border-b border-dotted border-[#1b365d] px-2 font-medium">
                     {customerName || "—"}
@@ -1411,7 +1445,7 @@ export function InvoiceEditor({
                   <input
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Customer name"
+                    placeholder={billLanguage === "kn" ? "ಗ್ರಾಹಕರ ಹೆಸರು" : "Customer name"}
                     style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
                     className="flex-1 border-b border-dotted border-[#1b365d] bg-transparent px-2 py-0.5 text-xs sm:text-sm outline-none font-medium text-[#1b365d] placeholder:text-[#1b365d]/50"
                   />
@@ -1426,7 +1460,7 @@ export function InvoiceEditor({
                   <input
                     value={customerDetails}
                     onChange={(e) => setCustomerDetails(e.target.value)}
-                    placeholder="Address / Phone number / Location"
+                    placeholder={billLanguage === "kn" ? "ವಿಳಾಸ / ಫೋನ್ ಸಂಖ್ಯೆ / ಸ್ಥಳ" : "Address / Phone number / Location"}
                     style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
                     className="w-full border-b border-dotted border-[#1b365d] bg-transparent px-2 py-0.5 text-xs outline-none text-[#1b365d] placeholder:text-[#1b365d]/50"
                   />
@@ -1441,19 +1475,19 @@ export function InvoiceEditor({
               {/* Header Row */}
               <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-b-2 border-[#1b365d] text-center text-[11px] sm:text-xs font-bold bg-white">
                 <div className="py-2 px-1 border-r border-[#1b365d] flex items-center justify-center">
-                  <span>Sl.<br />No.</span>
+                  <span>{billLanguage === "kn" ? "ಕ್ರ.ಸಂ." : <>Sl.<br />No.</>}</span>
                 </div>
                 <div className="py-2 px-2 border-r border-[#1b365d] flex items-center justify-center">
-                  Particulars
+                  {tLang("particulars", billLanguage)}
                 </div>
                 <div className="py-2 px-1 border-r border-[#1b365d] flex items-center justify-center">
-                  Qty.
+                  {tLang("qty", billLanguage)}
                 </div>
                 <div className="py-2 px-1 border-r border-[#1b365d] flex items-center justify-center">
-                  Rate
+                  {tLang("rate", billLanguage)}
                 </div>
                 <div className="py-2 px-1 flex items-center justify-center">
-                  Amount
+                  {tLang("amount", billLanguage)}
                 </div>
               </div>
 
@@ -1482,13 +1516,15 @@ export function InvoiceEditor({
 
                       {/* Particulars */}
                       <div className="py-1.5 px-2 font-medium flex items-center justify-between">
-                        <span className="truncate pr-1">{item.name}</span>
+                        <span className="truncate pr-1">
+                          {translateItem(item.name, billLanguage)}
+                        </span>
                         {status !== "final" && (
                           <button
                             type="button"
                             onClick={() => removeItem(item.key)}
                             className="opacity-0 group-hover:opacity-100 text-rust hover:text-red-700 print:hidden p-0.5 shrink-0"
-                            title="Remove item"
+                            title={tLang("removeItem", billLanguage)}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -1547,7 +1583,7 @@ export function InvoiceEditor({
 
                   {items.length === 0 && (
                     <div className="p-8 text-center text-xs sm:text-sm text-[#1b365d]/60 italic print:hidden">
-                      No items added yet. Click &quot;Back to Edit Bill&quot; above to add items from stock.
+                      {tLang("emptyItemsNotice", billLanguage)}
                     </div>
                   )}
                 </div>
@@ -1560,10 +1596,10 @@ export function InvoiceEditor({
 
                     {/* Rs ..................... Amount in words */}
                     <div className="border-r border-[#1b365d] px-2 py-2 flex items-baseline text-xs sm:text-sm font-semibold">
-                      <span className="font-bold mr-1 shrink-0">Rs</span>
+                      <span className="font-bold mr-1 shrink-0">{tLang("rsLabel", billLanguage)}</span>
                       <span className="flex-1 border-b border-dotted border-[#1b365d] pb-0.5 text-[11px] sm:text-xs font-normal text-[#1b365d] truncate px-1">
                         {total > 0
-                          ? numberToIndianWords(total)
+                          ? (billLanguage === "kn" ? numberToKannadaWords(total) : numberToIndianWords(total))
                           : "......................................................................."}
                       </span>
                     </div>
@@ -1573,7 +1609,7 @@ export function InvoiceEditor({
 
                     {/* TOTAL box */}
                     <div className="border-r border-[#1b365d] py-2 px-1 text-center font-extrabold text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center bg-blue-50/20">
-                      TOTAL
+                      {tLang("total", billLanguage)}
                     </div>
 
                     {/* Total amount box */}
@@ -1592,12 +1628,16 @@ export function InvoiceEditor({
               {/* Bottom Left: Payment Mode Tag */}
               <div className="flex flex-col items-start gap-1 pb-1">
                 <div className="inline-flex items-center gap-1.5 rounded border border-[#1b365d]/50 bg-blue-50/50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[#1b365d]">
-                  <span className="text-[10px] font-medium text-[#1b365d]/75">Payment:</span>
-                  <span className="font-extrabold">{paymentTag.toUpperCase()}</span>
+                  <span className="text-[10px] font-medium text-[#1b365d]/75">{tLang("paymentMode", billLanguage)}</span>
+                  <span className="font-extrabold">
+                    {billLanguage === "kn"
+                      ? (paymentTag === "cash" ? tLang("cash", "kn") : tLang("onlineUpi", "kn"))
+                      : paymentTag.toUpperCase()}
+                  </span>
                 </div>
                 {status === "draft" && (
                   <span className="text-[10px] text-[#1b365d]/70 print:hidden">
-                    (Click &apos;Pay with Cash&apos; or &apos;Pay Online&apos; below to finalize)
+                    {billLanguage === "kn" ? "(ಅಂತಿಮಗೊಳಿಸಲು ಕೆಳಗಿನ 'ನಗದು' ಅಥವಾ 'ಆನ್‌ಲೈನ್' ಬಟನ್ ಕ್ಲಿಕ್ ಮಾಡಿ)" : "(Click 'Pay with Cash' or 'Pay Online' below to finalize)"}
                   </span>
                 )}
               </div>
@@ -1606,13 +1646,13 @@ export function InvoiceEditor({
               <div className="text-right">
                 <div className="flex items-center justify-end gap-2.5 mb-1 print:hidden">
                   <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100/70 text-[#1b365d] border border-blue-200">
-                    Version {invoiceVersion}
+                    {tLang("versionLabel", billLanguage)} {invoiceVersion}
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-medium text-[#1b365d]/80">Digital Signature:</span>
+                    <span className="text-[11px] font-medium text-[#1b365d]/80">{tLang("digitallySigned", billLanguage)}:</span>
                     {status === "final" ? (
                       <span className="text-[11px] font-bold text-[#1b365d]">
-                        {isSigned ? "Included (Locked)" : "None"}
+                        {isSigned ? (billLanguage === "kn" ? "ಸೇರಿಸಲಾಗಿದೆ (ಲಾಕ್ ಆಗಿದೆ)" : "Included (Locked)") : (billLanguage === "kn" ? "ಇಲ್ಲ" : "None")}
                       </span>
                     ) : (
                       <button
@@ -1624,14 +1664,16 @@ export function InvoiceEditor({
                             : "border border-[#1b365d]/30 text-[#1b365d] hover:bg-blue-50/50"
                         }`}
                       >
-                        {isSigned ? "Included" : "None"}
+                        {isSigned ? (billLanguage === "kn" ? "ಸೇರಿಸಲಾಗಿದೆ" : "Included") : (billLanguage === "kn" ? "ಇಲ್ಲ" : "None")}
                       </button>
                     )}
                   </div>
                 </div>
 
                 <p className="font-bold text-xs sm:text-sm tracking-tight">
-                  For {headerDetails.businessName.includes("NURSERY") ? headerDetails.businessName : "Sri VijayaLakshmi Nursery & Farm"}
+                  {billLanguage === "kn"
+                    ? tLang("forNursery", "kn")
+                    : `For ${headerDetails.businessName.includes("NURSERY") ? headerDetails.businessName : "Sri VijayaLakshmi Nursery & Farm"}`}
                 </p>
 
               <div className="min-h-[56px] sm:min-h-[64px] flex items-center justify-end py-1">
@@ -1664,7 +1706,7 @@ export function InvoiceEditor({
                       </svg>
                     )}
                     <span className="text-[9px] font-sans font-semibold tracking-wider text-[#1b365d]/75 uppercase -mt-0.5">
-                      Digitally Signed
+                      {tLang("digitallySigned", billLanguage)}
                     </span>
                     {status !== "final" && (
                       <button
@@ -1683,18 +1725,24 @@ export function InvoiceEditor({
                       type="button"
                       onClick={() => setIsSigned(true)}
                       className="rounded border border-dashed border-[#1b365d]/40 bg-blue-50/40 px-3 py-1.5 text-xs font-semibold text-[#1b365d] hover:bg-blue-100/60 print:hidden transition-colors cursor-pointer flex items-center gap-1.5"
-                      title="Click to add digital signature"
+                      title={tLang("addDigitalSignature", billLanguage)}
                     >
-                      <PenTool size={12} /> Add Digital Signature
+                      <PenTool size={12} /> {tLang("addDigitalSignature", billLanguage)}
                     </button>
                   ) : null
                 )}
               </div>
 
               <p className="font-bold text-xs sm:text-sm pr-4 sm:pr-6">
-                Proprietor
+                {tLang("proprietor", billLanguage)}
               </p>
             </div>
+          </div>
+
+          {/* Terms & Conditions Notice */}
+          <div className="mt-3 border-t border-dotted border-[#1b365d]/40 pt-1.5 flex flex-wrap items-center justify-between text-[10px] text-[#1b365d]/80 px-2 sm:px-4">
+            <span>{tLang("term1", billLanguage)}</span>
+            <span>{tLang("term2", billLanguage)}</span>
           </div>
         </div>
       </div>
@@ -1742,7 +1790,7 @@ export function InvoiceEditor({
                     onClick={handleBackToEdit}
                     className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md border border-line-strong px-3.5 py-2 text-xs sm:text-sm font-medium text-ink transition-colors hover:bg-line/50 cursor-pointer whitespace-nowrap"
                   >
-                    <ArrowLeft size={15} /> Back
+                    <ArrowLeft size={15} /> {t("backToEdit")}
                   </button>
                   <button
                     type="button"
@@ -1751,7 +1799,7 @@ export function InvoiceEditor({
                     className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md border border-line-strong px-3.5 py-2 text-xs sm:text-sm font-medium text-ink transition-colors hover:bg-line/50 disabled:opacity-50 cursor-pointer whitespace-nowrap"
                   >
                     <Save size={15} />
-                    {saving === "draft" ? "Saving…" : "Save draft"}
+                    {saving === "draft" ? t("saving") : t("saveAsDraft")}
                   </button>
                 </>
               )}
@@ -1768,7 +1816,7 @@ export function InvoiceEditor({
                     className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md border border-pine bg-surface px-4 py-2.5 text-xs sm:text-sm font-semibold text-pine-deep shadow-xs transition-colors hover:bg-pine-tint/40 disabled:opacity-50 cursor-pointer whitespace-nowrap"
                   >
                     <Banknote size={16} />
-                    {saving === "final" && paymentTag === "cash" ? "Finalizing…" : "Pay with Cash"}
+                    {saving === "final" && paymentTag === "cash" ? t("finalizing") : t("payWithCash")}
                   </button>
 
                   <button
@@ -1781,7 +1829,7 @@ export function InvoiceEditor({
                     className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md bg-pine px-4 py-2.5 text-xs sm:text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer whitespace-nowrap"
                   >
                     <QrCode size={16} />
-                    {saving === "final" && paymentTag === "online" ? "Finalizing…" : "Pay with Online"}
+                    {saving === "final" && paymentTag === "online" ? t("finalizing") : t("payOnline")}
                   </button>
                 </>
               ) : (
@@ -1789,7 +1837,7 @@ export function InvoiceEditor({
                   onClick={() => handlePrint()}
                   className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-md bg-pine px-5 py-2.5 text-sm font-medium text-surface shadow-sm transition-opacity hover:opacity-90 cursor-pointer whitespace-nowrap"
                 >
-                  <Printer size={15} /> Print Bill
+                  <Printer size={15} /> {t("printBill")}
                 </button>
               )}
             </div>
@@ -1807,8 +1855,8 @@ export function InvoiceEditor({
                   <QrCode size={18} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-ink">Scan &amp; Pay Online</h3>
-                  <p className="text-[11px] text-ink-soft">Sri Vijaya Lakshmi Nursery</p>
+                  <h3 className="text-sm font-bold text-ink">{t("scanAndPay")}</h3>
+                  <p className="text-[11px] text-ink-soft">{t("brandFullName")}</p>
                 </div>
               </div>
               <button
@@ -1823,7 +1871,7 @@ export function InvoiceEditor({
             {/* Total Amount Box */}
             <div className="rounded-lg bg-blue-50/70 border border-blue-200/80 p-3 text-center mb-4">
               <div className="text-xs font-semibold text-[#1b365d]/80 uppercase tracking-wide">
-                Amount to Pay
+                {t("amountToPay")}
               </div>
               <div className="text-2xl font-mono font-extrabold text-[#1b365d] mt-0.5">
                 ₹ {formatMoney(total)}
