@@ -943,7 +943,7 @@ export function InvoiceEditor({
               </h2>
               {items.length > 0 && (
                 <span className="font-mono text-xs font-bold text-pine-deep">
-                  {t("subtotal")} ₹ {formatMoney(total)}
+                  {t("subtotal")} ₹ {formatMoney(grossTotal)}
                 </span>
               )}
             </div>
@@ -1296,16 +1296,16 @@ export function InvoiceEditor({
                 <div className="bg-paper-flat border-t border-line px-4 py-3 flex flex-wrap items-center justify-between gap-3">
                   <div className="text-xs text-ink-soft">
                     <span>{items.length} item{items.length !== 1 ? "s" : ""}</span>
-                    {total > 0 && (
+                    {grossTotal > 0 && (
                       <span className="ml-2 font-medium italic text-ink-soft/80">
-                        ({numberToIndianWords(total)})
+                        ({language === "kn" ? numberToKannadaWords(grossTotal) : numberToIndianWords(grossTotal)})
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold text-ink-soft uppercase tracking-wider">Total:</span>
                     <span className="font-mono text-base sm:text-lg font-extrabold text-pine-deep tabular">
-                      ₹ {formatMoney(total)}
+                      ₹ {formatMoney(grossTotal)}
                     </span>
                   </div>
                 </div>
