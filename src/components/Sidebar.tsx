@@ -44,7 +44,7 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -64,52 +64,64 @@ export function Sidebar({
     }
   }
 
-  const renderNavLinks = (isMobile: boolean = false) => (
-    <nav className="flex flex-col gap-1.5">
-      {navItems.map((item) => {
-        const active =
-          pathname === item.href || pathname.startsWith(item.href + "/");
-        const Icon = item.icon;
-        const label = t(item.key);
+  const renderNavLinks = (isMobile: boolean = false) => {
+    // Strip locale prefix from pathname (e.g. /en/stock -> /stock, /kn/gallery -> /gallery)
+    const normalizedPathname = pathname.replace(/^\/(?:en|kn)(?:\/|$)/, "/") || "/";
 
-        if (collapsed && !isMobile) {
+    return (
+      <nav className="flex flex-col gap-1.5">
+        {navItems.map((item) => {
+          const isInvoiceDetail = normalizedPathname.startsWith("/invoices/");
+          const active =
+            item.href === "/invoices"
+              ? normalizedPathname === "/invoices" || isInvoiceDetail
+              : item.href === "/invoice"
+              ? normalizedPathname === "/invoice" || normalizedPathname === "/"
+              : normalizedPathname === item.href || normalizedPathname.startsWith(item.href + "/");
+
+          const Icon = item.icon;
+          const label = t(item.key);
+          const targetHref = `/${language}${item.href}`;
+
+          if (collapsed && !isMobile) {
+            return (
+              <Link
+                key={item.href}
+                href={targetHref}
+                title={label}
+                className={`group relative flex h-10 w-10 mx-auto items-center justify-center rounded-lg transition-all ${
+                  active
+                    ? "bg-pine text-surface font-semibold shadow-xs ring-1 ring-pine/40"
+                    : "text-ink-soft hover:bg-line/60 hover:text-ink"
+                }`}
+              >
+                <Icon size={19} strokeWidth={active ? 2.4 : 1.8} />
+                <span className="sr-only">{label}</span>
+              </Link>
+            );
+          }
+
           return (
             <Link
               key={item.href}
-              href={item.href}
-              title={label}
-              className={`group relative flex h-10 w-10 mx-auto items-center justify-center rounded-lg transition-all ${
+              href={targetHref}
+              onClick={() => {
+                if (isMobile && onMobileClose) onMobileClose();
+              }}
+              className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-all ${
                 active
-                  ? "bg-pine text-surface font-medium shadow-xs"
-                  : "text-ink-soft hover:bg-line/60 hover:text-ink"
+                  ? "bg-pine text-surface font-semibold shadow-xs"
+                  : "text-ink-soft hover:bg-line/60 hover:text-ink font-medium"
               }`}
             >
-              <Icon size={19} strokeWidth={active ? 2.2 : 1.8} />
-              <span className="sr-only">{label}</span>
+              <Icon size={17} strokeWidth={active ? 2.4 : 1.8} className="shrink-0" />
+              <span className="truncate">{label}</span>
             </Link>
           );
-        }
-
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => {
-              if (isMobile && onMobileClose) onMobileClose();
-            }}
-            className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
-              active
-                ? "bg-pine text-surface font-medium"
-                : "text-ink-soft hover:bg-line/60 hover:text-ink"
-            }`}
-          >
-            <Icon size={17} strokeWidth={active ? 2.2 : 1.8} className="shrink-0" />
-            <span className="truncate">{label}</span>
-          </Link>
-        );
-      })}
-    </nav>
-  );
+        })}
+      </nav>
+    );
+  };
 
   const renderFooter = (isCollapsed: boolean = false) => {
     if (isCollapsed) {
