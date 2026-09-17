@@ -8,12 +8,14 @@ import { handleApiError } from "@/lib/api-utils";
 
 const updateSchema = z.object({
   name: z.string().trim().min(1).optional(),
+  nameKn: z.string().trim().optional().nullable(),
   unit: z.string().trim().optional(),
   price: z.number().nonnegative().optional(),
   quantity: z.number().int().nonnegative().optional(),
   category: z.string().trim().min(1).optional(),
   subcategory: z.string().trim().optional(),
   description: z.string().trim().optional().nullable(),
+  descriptionKn: z.string().trim().optional().nullable(),
 });
 
 export async function PATCH(
@@ -34,6 +36,7 @@ export async function PATCH(
 
     const values: Record<string, unknown> = { updatedAt: new Date() };
     if (parsed.data.name !== undefined) values.name = parsed.data.name;
+    if (parsed.data.nameKn !== undefined) values.nameKn = parsed.data.nameKn;
     if (parsed.data.unit !== undefined) values.unit = parsed.data.unit.trim() || "pcs";
     if (parsed.data.price !== undefined)
       values.price = parsed.data.price.toFixed(2);
@@ -45,6 +48,8 @@ export async function PATCH(
       values.subcategory = parsed.data.subcategory;
     if (parsed.data.description !== undefined)
       values.description = parsed.data.description;
+    if (parsed.data.descriptionKn !== undefined)
+      values.descriptionKn = parsed.data.descriptionKn;
 
     const [item] = await db
       .update(stockItems)

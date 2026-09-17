@@ -8,12 +8,14 @@ import { handleApiError } from "@/lib/api-utils";
 
 const createSchema = z.object({
   name: z.string().trim().optional().default("Plant / Item"),
+  nameKn: z.string().trim().optional().nullable(),
   unit: z.string().trim().default("pcs"),
   price: z.coerce.number().min(0).optional().default(0),
   quantity: z.coerce.number().int().min(0).optional().default(0),
   category: z.string().trim().min(1).optional().default("plants"),
   subcategory: z.string().trim().optional().default("other"),
   description: z.string().trim().optional().nullable(),
+  descriptionKn: z.string().trim().optional().nullable(),
 });
 
 export async function GET() {
@@ -44,17 +46,19 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const { name, unit, price, quantity, category, subcategory, description } = parsed.data;
+    const { name, nameKn, unit, price, quantity, category, subcategory, description, descriptionKn } = parsed.data;
     const [item] = await db
       .insert(stockItems)
       .values({
         name,
+        nameKn: nameKn || null,
         unit: unit || "pcs",
         price: price.toFixed(2),
         quantity,
         category,
         subcategory,
         description: description || null,
+        descriptionKn: descriptionKn || null,
       })
       .returning();
     return NextResponse.json({ item }, { status: 201 });

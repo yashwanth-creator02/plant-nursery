@@ -31,6 +31,8 @@ export const stockItems = pgTable("stock_items", {
   category: text("category").notNull().default("plants"),
   subcategory: text("subcategory").default("other"),
   description: text("description"),
+  nameKn: text("name_kn"),
+  descriptionKn: text("description_kn"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -113,6 +115,7 @@ export const stockItemImages = pgTable("stock_item_images", {
   imageUrl: text("image_url").notNull(),
   storagePath: text("storage_path").notNull(),
   description: text("description"),
+  descriptionKn: text("description_kn"),
   isPrimary: boolean("is_primary").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

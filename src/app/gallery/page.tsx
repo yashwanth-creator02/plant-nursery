@@ -12,8 +12,10 @@ import {
 import { GalleryStockItem, StockCategory } from "@/lib/types";
 import { StockItemDetailModal } from "@/components/StockItemDetailModal";
 import { StockPhotoUploadModal } from "@/components/StockPhotoUploadModal";
+import { useLanguage, translateItem } from "@/lib/language-context";
 
 export default function GalleryPage() {
+  const { language } = useLanguage();
   const [items, setItems] = useState<GalleryStockItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -77,14 +79,27 @@ export default function GalleryPage() {
       // Text search
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase().trim();
-      const matchesName = item.name.toLowerCase().includes(q);
+      const knName = item.nameKn || translateItem(item.name, "kn");
+      const matchesName = item.name?.toLowerCase().includes(q);
+      const matchesKnName = knName?.toLowerCase().includes(q);
       const matchesCategory = item.category?.toLowerCase().includes(q);
       const matchesSub = item.subcategory?.toLowerCase().includes(q);
-      const matchesDesc = item.images?.some((img) =>
-        img.description?.toLowerCase().includes(q)
+      const matchesDesc = item.description?.toLowerCase().includes(q);
+      const matchesDescKn = item.descriptionKn?.toLowerCase().includes(q);
+      const matchesImgDesc = item.images?.some((img) =>
+        (img.description && img.description.toLowerCase().includes(q)) ||
+        (img.descriptionKn && img.descriptionKn.toLowerCase().includes(q))
       );
 
-      return matchesName || matchesCategory || matchesSub || matchesDesc;
+      return (
+        matchesName ||
+        matchesKnName ||
+        matchesCategory ||
+        matchesSub ||
+        matchesDesc ||
+        matchesDescKn ||
+        matchesImgDesc
+      );
     });
   }, [items, categoryFilter, photoFilter, searchQuery]);
 
@@ -149,10 +164,12 @@ export default function GalleryPage() {
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-serif text-2xl font-bold tracking-tight text-pine-deep sm:text-3xl">
-            Stock Gallery
+            {language === "kn" ? "ಸ್ಟಾಕ್ ಗ್ಯಾಲರಿ" : "Stock Gallery"}
           </h1>
           <p className="text-xs sm:text-sm text-ink-soft">
-            Explore plant photos, inventory visuals, and upload images with camera or file drop.
+            {language === "kn"
+              ? "ಸಸ್ಯಗಳ ಫೋಟೋಗಳು, ದಾಸ್ತಾನು ದೃಶ್ಯಗಳು ಮತ್ತು ಕ್ಯಾಮೆರಾ ಅಥವಾ ಫೈಲ್ ಮೂಲಕ ಚಿತ್ರಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ."
+              : "Explore plant photos, inventory visuals, and upload images with camera or file drop."}
           </p>
         </div>
 
@@ -163,7 +180,7 @@ export default function GalleryPage() {
             className="flex h-10 flex-1 sm:flex-initial items-center justify-center gap-2 rounded-lg bg-pine px-4 text-xs sm:text-sm font-semibold text-surface shadow-sm transition-all hover:bg-pine-deep cursor-pointer active:scale-95"
           >
             <Plus size={16} strokeWidth={2.5} />
-            <span>Upload Photo</span>
+            <span>{language === "kn" ? "ಫೋಟೋ ಅಪ್‌ಲೋಡ್" : "Upload Photo"}</span>
           </button>
         </div>
       </div>
@@ -181,7 +198,11 @@ export default function GalleryPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by plant name, category, or photo description..."
+              placeholder={
+                language === "kn"
+                  ? "ಸಸ್ಯದ ಹೆಸರು, ವರ್ಗ ಅಥವಾ ವಿವರಣೆಯ ಮೂಲಕ ಹುಡುಕಿ..."
+                  : "Search by plant name, category, or photo description..."
+              }
               className="h-10 w-full rounded-lg border border-line bg-surface pl-10 pr-4 text-xs sm:text-sm text-ink placeholder-ink-soft/60 focus:border-pine focus:outline-none"
             />
             {searchQuery && (
@@ -189,7 +210,7 @@ export default function GalleryPage() {
                 onClick={() => setSearchQuery("")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ink-soft hover:text-ink cursor-pointer"
               >
-                Clear
+                {language === "kn" ? "ತೆರವು" : "Clear"}
               </button>
             )}
           </div>
@@ -206,21 +227,30 @@ export default function GalleryPage() {
                     : "text-ink-soft hover:text-ink"
                 }`}
               >
-                All Categories
+                {language === "kn" ? "ಎಲ್ಲಾ ವರ್ಗಗಳು" : "All Categories"}
               </button>
-              {categories.map((c) => (
-                <button
-                  key={c.slug}
-                  onClick={() => setCategoryFilter(c.slug)}
-                  className={`rounded px-2.5 py-1 transition-colors cursor-pointer ${
-                    categoryFilter.toLowerCase() === c.slug.toLowerCase()
-                      ? "bg-surface text-pine-deep font-semibold shadow-xs"
-                      : "text-ink-soft hover:text-ink"
-                  }`}
-                >
-                  {c.name}
-                </button>
-              ))}
+              {categories.map((c) => {
+                const label = language === "kn"
+                  ? c.slug === "plants"
+                    ? "ಗಿಡಗಳು"
+                    : c.slug === "non-plants"
+                    ? "ಇತರ ವಸ್ತುಗಳು"
+                    : c.name
+                  : c.name;
+                return (
+                  <button
+                    key={c.slug}
+                    onClick={() => setCategoryFilter(c.slug)}
+                    className={`rounded px-2.5 py-1 transition-colors cursor-pointer ${
+                      categoryFilter.toLowerCase() === c.slug.toLowerCase()
+                        ? "bg-surface text-pine-deep font-semibold shadow-xs"
+                        : "text-ink-soft hover:text-ink"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Photo presence filter */}
@@ -233,7 +263,7 @@ export default function GalleryPage() {
                     : "text-ink-soft hover:text-ink"
                 }`}
               >
-                All ({items.length})
+                {language === "kn" ? "ಎಲ್ಲವೂ" : "All"} ({items.length})
               </button>
               <button
                 onClick={() => setPhotoFilter("with-photos")}
@@ -243,7 +273,7 @@ export default function GalleryPage() {
                     : "text-ink-soft hover:text-ink"
                 }`}
               >
-                With Photos ({totalWithPhotos})
+                {language === "kn" ? "ಫೋಟೋಗಳೊಂದಿಗೆ" : "With Photos"} ({totalWithPhotos})
               </button>
               <button
                 onClick={() => setPhotoFilter("needs-photos")}
@@ -253,7 +283,7 @@ export default function GalleryPage() {
                     : "text-ink-soft hover:text-ink"
                 }`}
               >
-                Needs Photos ({items.length - totalWithPhotos})
+                {language === "kn" ? "ಫೋಟೋ ಬೇಕಾಗಿದೆ" : "Needs Photos"} ({items.length - totalWithPhotos})
               </button>
             </div>
           </div>
@@ -282,12 +312,20 @@ export default function GalleryPage() {
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-pine-tint text-pine">
             <ImageIcon size={28} />
           </div>
-          <h3 className="font-serif text-lg font-semibold text-ink">No items found</h3>
+          <h3 className="font-serif text-lg font-semibold text-ink">
+            {language === "kn" ? "ಯಾವುದೇ ವಸ್ತುಗಳು ಕಂಡುಬಂದಿಲ್ಲ" : "No items found"}
+          </h3>
           <p className="mt-1 max-w-sm text-xs sm:text-sm text-ink-soft">
             {searchQuery
-              ? `No stock items match "${searchQuery}". Try adjusting your search term or filters.`
+              ? language === "kn"
+                ? `"${searchQuery}" ಗೆ ಹೊಂದಾಣಿಕೆಯಾಗುವ ಯಾವುದೇ ಸಸ್ಯಗಳು ಕಂಡುಬಂದಿಲ್ಲ. ಹುಡುಕಾಟ ಪದ ಅಥವಾ ಫಿಲ್ಟರ್ ಬದಲಾಯಿಸಿ.`
+                : `No stock items match "${searchQuery}". Try adjusting your search term or filters.`
               : photoFilter === "with-photos"
-              ? "No items have photos yet. Tap 'Upload Photo' to add photos for your plants!"
+              ? language === "kn"
+                ? "ಇನ್ನೂ ಯಾವುದೇ ವಸ್ತುಗಳಿಗೆ ಫೋಟೋಗಳಿಲ್ಲ. ನಿಮ್ಮ ಸಸ್ಯಗಳ ಫೋಟೋಗಳನ್ನು ಸೇರಿಸಲು 'ಫೋಟೋ ಅಪ್‌ಲೋಡ್' ಕ್ಲಿಕ್ ಮಾಡಿ!"
+                : "No items have photos yet. Tap 'Upload Photo' to add photos for your plants!"
+              : language === "kn"
+              ? "ದಾಸ್ತಾನು ವಸ್ತುಗಳು ಲಭ್ಯವಿಲ್ಲ. ಮೊದಲು ದಾಸ್ತಾನು ನಿರ್ವಹಣೆಯಲ್ಲಿ ವಸ್ತುಗಳನ್ನು ಸೇರಿಸಿ."
               : "No stock items available. Add items in Stock management first."}
           </p>
           <div className="mt-5 flex gap-2">
@@ -296,14 +334,14 @@ export default function GalleryPage() {
                 onClick={() => setSearchQuery("")}
                 className="rounded-lg border border-line bg-paper px-3.5 py-2 text-xs font-medium text-ink hover:bg-line/40 cursor-pointer"
               >
-                Clear Search
+                {language === "kn" ? "ಹುಡುಕಾಟ ತೆರವು" : "Clear Search"}
               </button>
             )}
             <button
               onClick={() => openUploadModal()}
               className="rounded-lg bg-pine px-4 py-2 text-xs font-semibold text-surface hover:bg-pine-deep cursor-pointer"
             >
-              Upload Photo
+              {language === "kn" ? "ಫೋಟೋ ಅಪ್‌ಲೋಡ್" : "Upload Photo"}
             </button>
           </div>
         </div>
@@ -313,6 +351,17 @@ export default function GalleryPage() {
           {filteredItems.map((item) => {
             const hasImages = item.images && item.images.length > 0;
             const primaryImage = item.images?.find((img) => img.isPrimary) || item.images?.[0];
+
+            const primaryName = language === "kn"
+              ? (item.nameKn || translateItem(item.name, "kn"))
+              : item.name;
+            const secondaryName = language === "kn"
+              ? item.name
+              : (item.nameKn || translateItem(item.name, "kn"));
+
+            const descPreview = language === "kn"
+              ? (item.descriptionKn || item.description || primaryImage?.descriptionKn || primaryImage?.description)
+              : (item.description || item.descriptionKn || primaryImage?.description || primaryImage?.descriptionKn);
 
             return (
               <div
@@ -341,7 +390,9 @@ export default function GalleryPage() {
                     /* Placeholder for items without images */
                     <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 p-4 text-center text-ink-soft/70 transition-colors group-hover:text-pine">
                       <ImageIcon size={32} strokeWidth={1.5} />
-                      <span className="text-[11px] font-medium">+ Add Photo</span>
+                      <span className="text-[11px] font-medium">
+                        {language === "kn" ? "+ ಫೋಟೋ ಸೇರಿಸಿ" : "+ Add Photo"}
+                      </span>
                     </div>
                   )}
 
@@ -354,11 +405,21 @@ export default function GalleryPage() {
                   )}
                 </div>
 
-                {/* Card Name */}
-                <div className="flex min-h-[46px] items-center px-3.5 py-2.5">
-                  <h3 className="font-serif text-sm font-semibold leading-snug tracking-tight text-ink group-hover:text-pine-deep line-clamp-2">
-                    {item.name}
+                {/* Card Name & Subtext */}
+                <div className="flex flex-col justify-center px-3.5 py-2.5 min-h-[54px]">
+                  <h3 className="font-serif text-sm font-semibold leading-snug tracking-tight text-ink group-hover:text-pine-deep line-clamp-1">
+                    {primaryName}
                   </h3>
+                  {secondaryName && secondaryName !== primaryName && (
+                    <span className="text-[11px] text-ink-soft line-clamp-1">
+                      {secondaryName}
+                    </span>
+                  )}
+                  {descPreview && (
+                    <p className="mt-0.5 text-[11px] text-ink-soft/70 line-clamp-1 italic font-sans">
+                      {descPreview}
+                    </p>
+                  )}
                 </div>
               </div>
             );

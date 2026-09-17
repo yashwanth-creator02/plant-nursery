@@ -9,6 +9,7 @@ import { deleteStorageFile } from "@/lib/supabase-storage";
 
 const patchSchema = z.object({
   description: z.string().trim().optional(),
+  descriptionKn: z.string().trim().optional().nullable(),
   isPrimary: z.boolean().optional(),
 });
 
@@ -52,6 +53,9 @@ export async function PATCH(
       .set({
         ...(parsed.data.description !== undefined && {
           description: parsed.data.description,
+        }),
+        ...(parsed.data.descriptionKn !== undefined && {
+          descriptionKn: parsed.data.descriptionKn,
         }),
         ...(parsed.data.isPrimary !== undefined && {
           isPrimary: parsed.data.isPrimary,

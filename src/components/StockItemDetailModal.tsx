@@ -15,8 +15,14 @@ import {
   Plus,
   Loader2,
   Image as ImageIcon,
+  Globe,
+  Sparkles,
+  Languages,
+  RotateCw,
 } from "lucide-react";
 import { GalleryStockItem, StockItemImage } from "@/lib/types";
+import { useLanguage } from "@/lib/language-context";
+import { translateOnTheFly } from "@/lib/translator";
 
 interface StockItemDetailModalProps {
   item: GalleryStockItem | null;
@@ -35,22 +41,45 @@ export function StockItemDetailModal({
   onOpenUpload,
   showViewInStock = true,
 }: StockItemDetailModalProps) {
+  const { language, t, translateItem } = useLanguage();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [editingDesc, setEditingDesc] = useState(false);
   const [editedDescText, setEditedDescText] = useState("");
   const [savingDesc, setSavingDesc] = useState(false);
   const [deletingImage, setDeletingImage] = useState(false);
 
+  // Bilingual Plant Details Editing State
+  const [editingBilingual, setEditingBilingual] = useState(false);
+  const [editNameEn, setEditNameEn] = useState("");
+  const [editNameKn, setEditNameKn] = useState("");
+  const [editDescEn, setEditDescEn] = useState("");
+  const [editDescKn, setEditDescKn] = useState("");
+  const [translatingName, setTranslatingName] = useState(false);
+  const [translatingDescKn, setTranslatingDescKn] = useState(false);
+  const [translatingDescEn, setTranslatingDescEn] = useState(false);
+  const [savingBilingual, setSavingBilingual] = useState(false);
+  const [activeDescTab, setActiveDescTab] = useState<"kn" | "en">("kn");
+  const [editedDescKnText, setEditedDescKnText] = useState("");
+  const [translatingImgDescKn, setTranslatingImgDescKn] = useState(false);
+
   // Reset index and state when item changes
   useEffect(() => {
     setSelectedImageIndex(0);
     setEditingDesc(false);
+    setEditingBilingual(false);
     if (item?.images?.[0]) {
       setEditedDescText(item.images[0].description || "");
+      setEditedDescKnText(item.images[0].descriptionKn || "");
     } else {
       setEditedDescText("");
+      setEditedDescKnText("");
     }
-  }, [item]);
+    setEditNameEn(item?.name || "");
+    setEditNameKn(item?.nameKn || "");
+    setEditDescEn(item?.description || "");
+    setEditDescKn(item?.descriptionKn || "");
+    setActiveDescTab(language === "kn" ? "kn" : "en");
+  }, [item, language]);
 
   if (!item) return null;
 
@@ -64,6 +93,22 @@ export function StockItemDetailModal({
     setEditingDesc(false);
     if (item.images?.[index]) {
       setEditedDescText(item.images[index].description || "");
+      setEditedDescKnText(item.images[index].descriptionKn || "");
+    }
+  };
+
+  const handleTranslateImgDescToKn = async () => {
+    if (!editedDescText.trim()) return;
+    try {
+      setTranslatingImgDescKn(true);
+      const translated = await translateOnTheFly(editedDescText.trim(), "kn", "en");
+      if (translated) {
+        setEditedDescKnText(translated);
+      }
+    } catch (err) {
+      console.error("Translation error:", err);
+    } finally {
+      setTranslatingImgDescKn(false);
     }
   };
 
@@ -74,13 +119,22 @@ export function StockItemDetailModal({
       const res = await fetch(`/api/gallery/images/${currentImage.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description: editedDescText.trim() }),
+        body: JSON.stringify({
+          description: editedDescText.trim(),
+          descriptionKn: editedDescKnText.trim(),
+        }),
       });
       if (!res.ok) throw new Error("Failed to update description");
 
       // Update in-memory item
       const updatedImages = item.images.map((img, idx) =>
-        idx === selectedImageIndex ? { ...img, description: editedDescText.trim() } : img
+        idx === selectedImageIndex
+          ? {
+              ...img,
+              description: editedDescText.trim(),
+              descriptionKn: editedDescKnText.trim(),
+            }
+          : img
       );
       const updatedItem: GalleryStockItem = { ...item, images: updatedImages };
       onItemUpdated?.(updatedItem);
@@ -127,6 +181,72 @@ export function StockItemDetailModal({
     }
   };
 
+  // On-the-fly Google Translation handlers
+  const handleTranslateName = async () => {
+    if (!editNameEn.trim()) return;
+    setTranslatingName(true);
+    try {
+      const translated = await translateOnTheFly(editNameEn, "kn", "en");
+      if (translated) setEditNameKn(translated);
+    } finally {
+      setTranslatingName(false);
+    }
+  };
+
+  const handleTranslateDescToKn = async () => {
+    if (!editDescEn.trim()) return;
+    setTranslatingDescKn(true);
+    try {
+      const translated = await translateOnTheFly(editDescEn, "kn", "en");
+      if (translated) setEditDescKn(translated);
+    } finally {
+      setTranslatingDescKn(false);
+    }
+  };
+
+  const handleTranslateDescToEn = async () => {
+    if (!editDescKn.trim()) return;
+    setTranslatingDescEn(true);
+    try {
+      const translated = await translateOnTheFly(editDescKn, "en", "kn");
+      if (translated) setEditDescEn(translated);
+    } finally {
+      setTranslatingDescEn(false);
+    }
+  };
+
+  const handleSaveBilingualDetails = async () => {
+    try {
+      setSavingBilingual(true);
+      const res = await fetch(`/api/stock/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editNameEn.trim() || item.name,
+          nameKn: editNameKn.trim() || null,
+          description: editDescEn.trim() || null,
+          descriptionKn: editDescKn.trim() || null,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to update plant details");
+      const updatedItem: GalleryStockItem = {
+        ...item,
+        name: editNameEn.trim() || item.name,
+        nameKn: editNameKn.trim() || null,
+        description: editDescEn.trim() || null,
+        descriptionKn: editDescKn.trim() || null,
+      };
+      onItemUpdated?.(updatedItem);
+      setEditingBilingual(false);
+      window.dispatchEvent(new Event("stockUpdated"));
+    } catch (err) {
+      console.error("Failed to save plant details:", err);
+      alert("Failed to save plant details. Please try again.");
+    } finally {
+      setSavingBilingual(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-ink/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
@@ -135,17 +255,21 @@ export function StockItemDetailModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-line px-4 py-3 sm:px-6">
           <div className="min-w-0 pr-3">
-            <h2 className="font-serif text-lg font-bold text-pine-deep truncate sm:text-xl">
-              {item.name}
-            </h2>
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <h2 className="font-serif text-lg font-bold text-pine-deep truncate sm:text-xl">
+                {language === "kn"
+                  ? item.nameKn || translateItem(item.name, "kn")
+                  : item.name}
+              </h2>
+              {language === "kn" ? (
+                <span className="text-xs font-normal text-ink-soft">({item.name})</span>
+              ) : item.nameKn ? (
+                <span className="text-xs font-normal text-ink-soft">({item.nameKn})</span>
+              ) : null}
+            </div>
             <span className="text-xs capitalize text-ink-soft">
               {item.category} • {item.subcategory || "General"}
             </span>
-            {item.description && (
-              <p className="mt-0.5 text-xs text-ink-soft/90 line-clamp-2">
-                {item.description}
-              </p>
-            )}
           </div>
           <button
             onClick={onClose}
@@ -248,18 +372,19 @@ export function StockItemDetailModal({
             <div className="rounded-xl border border-line bg-paper p-4">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-pine">
-                  Photo Description
+                  Photo Description / ಫೋಟೋ ವಿವರಣೆ
                 </span>
                 {!editingDesc ? (
                   <button
                     onClick={() => {
                       setEditingDesc(true);
                       setEditedDescText(currentImage.description || "");
+                      setEditedDescKnText(currentImage.descriptionKn || "");
                     }}
                     className="flex items-center gap-1 text-xs text-ink-soft hover:text-pine cursor-pointer"
                   >
                     <Edit2 size={13} />
-                    <span>{currentImage.description ? "Edit" : "Add Description"}</span>
+                    <span>{currentImage.description || currentImage.descriptionKn ? "Edit" : "Add Description"}</span>
                   </button>
                 ) : (
                   <div className="flex items-center gap-1.5">
@@ -287,37 +412,288 @@ export function StockItemDetailModal({
               </div>
 
               {editingDesc ? (
-                <textarea
-                  value={editedDescText}
-                  onChange={(e) => setEditedDescText(e.target.value)}
-                  rows={3}
-                  placeholder="Describe this plant variety, blossom color, age, pot size, or special nursery notes..."
-                  className="w-full rounded-lg border border-line bg-surface p-2.5 text-xs sm:text-sm text-ink focus:border-pine focus:outline-none"
-                  autoFocus
-                />
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-[11px] font-semibold text-ink-soft mb-1 block">English</label>
+                    <textarea
+                      value={editedDescText}
+                      onChange={(e) => setEditedDescText(e.target.value)}
+                      rows={2}
+                      placeholder="Describe this photo in English..."
+                      className="w-full rounded-lg border border-line bg-surface p-2 text-xs text-ink focus:border-pine focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-semibold text-ink-soft">ಕನ್ನಡ (Kannada)</label>
+                      <button
+                        type="button"
+                        onClick={handleTranslateImgDescToKn}
+                        disabled={translatingImgDescKn || !editedDescText.trim()}
+                        className="inline-flex items-center gap-1 text-[11px] font-medium text-pine-deep hover:underline cursor-pointer disabled:opacity-50"
+                      >
+                        {translatingImgDescKn ? (
+                          <Loader2 size={11} className="animate-spin" />
+                        ) : (
+                          <Sparkles size={11} />
+                        )}
+                        <span>Translate to Kannada 🔄</span>
+                      </button>
+                    </div>
+                    <textarea
+                      value={editedDescKnText}
+                      onChange={(e) => setEditedDescKnText(e.target.value)}
+                      rows={2}
+                      placeholder="ಫೋಟೋ ವಿವರಣೆ ಕನ್ನಡದಲ್ಲಿ..."
+                      className="w-full rounded-lg border border-line bg-surface p-2 text-xs text-ink focus:border-pine focus:outline-none font-sans"
+                    />
+                  </div>
+                </div>
               ) : (
-                <p className="text-xs sm:text-sm leading-relaxed text-ink">
-                  {currentImage.description || item.description || (
+                <div className="text-xs sm:text-sm leading-relaxed text-ink space-y-1">
+                  {language === "kn" ? (
+                    currentImage.descriptionKn || currentImage.description ? (
+                      <div>
+                        <p className="font-sans">{currentImage.descriptionKn || currentImage.description}</p>
+                        {currentImage.descriptionKn && currentImage.description && (
+                          <p className="text-[11px] text-ink-soft mt-0.5">{currentImage.description}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="italic text-ink-soft">
+                        ಯಾವುದೇ ಫೋಟೋ ವಿವರಣೆ ನೀಡಿಲ್ಲ. ವಿವರಣೆ ಸೇರಿಸಲು ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡಿ.
+                      </span>
+                    )
+                  ) : currentImage.description || currentImage.descriptionKn ? (
+                    <div>
+                      <p>{currentImage.description || currentImage.descriptionKn}</p>
+                      {currentImage.description && currentImage.descriptionKn && (
+                        <p className="text-[11px] text-ink-soft font-sans mt-0.5">{currentImage.descriptionKn}</p>
+                      )}
+                    </div>
+                  ) : (
                     <span className="italic text-ink-soft">
-                      No description provided yet. Click &quot;Add Description&quot; to describe this variety.
+                      No description provided yet. Click &quot;Add Description&quot; to describe this photo.
                     </span>
                   )}
-                </p>
+                </div>
               )}
             </div>
           )}
 
-          {/* Plant Description if no photo or photo has separate description */}
-          {!hasImages && item.description && (
-            <div className="rounded-xl border border-line bg-paper p-4">
-              <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-pine">
-                Plant Description
-              </span>
-              <p className="text-xs sm:text-sm leading-relaxed text-ink">
-                {item.description}
-              </p>
+          {/* Plant Description & Bilingual Details Section */}
+          <div className="rounded-xl border border-line bg-paper p-4">
+            <div className="mb-2 flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-1.5">
+                <Globe size={14} className="text-pine" />
+                <span className="text-xs font-bold uppercase tracking-wider text-pine">
+                  Plant Description &amp; Details
+                </span>
+              </div>
+
+              {!editingBilingual && (
+                <button
+                  type="button"
+                  onClick={() => setEditingBilingual(true)}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-pine-deep hover:underline cursor-pointer bg-pine/10 hover:bg-pine/20 px-2 py-1 rounded transition-colors"
+                  title="Edit details in English & Kannada with Google Translation"
+                >
+                  <Sparkles size={13} className="text-pine" />
+                  <span>Edit in English &amp; Kannada</span>
+                </button>
+              )}
             </div>
-          )}
+
+            {/* Bilingual Editing Form */}
+            {editingBilingual ? (
+              <div className="mt-2 space-y-3 rounded-lg border border-pine/30 bg-surface p-3.5 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between border-b border-line pb-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-pine-deep">
+                    <Languages size={14} />
+                    <span>Bilingual Plant Editor (English &amp; Kannada)</span>
+                  </div>
+                  <span className="text-[10px] text-ink-soft bg-paper-flat px-1.5 py-0.5 rounded font-medium">
+                    Google Translate Integrated
+                  </span>
+                </div>
+
+                {/* Plant Name Fields */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-ink">Name (English)</span>
+                      <button
+                        type="button"
+                        onClick={handleTranslateName}
+                        disabled={translatingName || !editNameEn.trim()}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-pine-deep hover:underline cursor-pointer disabled:opacity-50"
+                        title="Translate English name into Kannada on the fly"
+                      >
+                        {translatingName ? (
+                          <Loader2 size={11} className="animate-spin" />
+                        ) : (
+                          <RotateCw size={11} />
+                        )}
+                        <span>Translate to Kannada</span>
+                      </button>
+                    </div>
+                    <input
+                      value={editNameEn}
+                      onChange={(e) => setEditNameEn(e.target.value)}
+                      placeholder="e.g. Chikoo / Sapota Plant"
+                      className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-xs sm:text-sm text-ink outline-none focus:border-pine"
+                    />
+                  </label>
+
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-ink">Name (Kannada / ಕನ್ನಡ)</span>
+                    <input
+                      value={editNameKn}
+                      onChange={(e) => setEditNameKn(e.target.value)}
+                      placeholder="ಉದಾ: ಚಿಕ್ಕು / ಸಪೋಟ ಗಿಡ"
+                      className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-xs sm:text-sm text-ink outline-none focus:border-pine font-sans"
+                    />
+                  </label>
+                </div>
+
+                {/* Description Fields */}
+                <div className="space-y-2.5 pt-1">
+                  <label className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-ink">Description (English)</span>
+                      <button
+                        type="button"
+                        onClick={handleTranslateDescToKn}
+                        disabled={translatingDescKn || !editDescEn.trim()}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-pine-deep hover:underline cursor-pointer disabled:opacity-50"
+                        title="Translate English description into Kannada on the fly"
+                      >
+                        {translatingDescKn ? (
+                          <Loader2 size={11} className="animate-spin" />
+                        ) : (
+                          <Sparkles size={11} />
+                        )}
+                        <span>Translate to Kannada 🔄</span>
+                      </button>
+                    </div>
+                    <textarea
+                      value={editDescEn}
+                      onChange={(e) => setEditDescEn(e.target.value)}
+                      rows={3}
+                      placeholder="Plant variety details, blossom color, fruit yield, watering notes..."
+                      className="w-full rounded-md border border-line-strong bg-surface p-2 text-xs sm:text-sm text-ink outline-none focus:border-pine"
+                    />
+                  </label>
+
+                  <label className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-ink">Description (Kannada / ಕನ್ನಡ ವಿವರಣೆ)</span>
+                      <button
+                        type="button"
+                        onClick={handleTranslateDescToEn}
+                        disabled={translatingDescEn || !editDescKn.trim()}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-pine-deep hover:underline cursor-pointer disabled:opacity-50"
+                        title="Translate Kannada description into English on the fly"
+                      >
+                        {translatingDescEn ? (
+                          <Loader2 size={11} className="animate-spin" />
+                        ) : (
+                          <Sparkles size={11} />
+                        )}
+                        <span>Translate to English 🔄</span>
+                      </button>
+                    </div>
+                    <textarea
+                      value={editDescKn}
+                      onChange={(e) => setEditDescKn(e.target.value)}
+                      rows={3}
+                      placeholder="ಗಿಡದ ವಿವರಣೆ, ಹೂವಿನ ಬಣ್ಣ, ಹಣ್ಣಿನ ಇಳುವರಿ, ಬೆಳೆಸುವ ವಿಧಾನ..."
+                      className="w-full rounded-md border border-line-strong bg-surface p-2 text-xs sm:text-sm text-ink outline-none focus:border-pine font-sans"
+                    />
+                  </label>
+                </div>
+
+                {/* Save / Cancel Buttons */}
+                <div className="flex items-center justify-end gap-2 pt-1 border-t border-line">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditNameEn(item.name || "");
+                      setEditNameKn(item.nameKn || "");
+                      setEditDescEn(item.description || "");
+                      setEditDescKn(item.descriptionKn || "");
+                      setEditingBilingual(false);
+                    }}
+                    disabled={savingBilingual}
+                    className="rounded px-3 py-1.5 text-xs font-medium text-ink-soft hover:text-ink cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveBilingualDetails}
+                    disabled={savingBilingual}
+                    className="inline-flex items-center gap-1.5 rounded-md bg-pine px-4 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-pine-deep cursor-pointer disabled:opacity-50"
+                  >
+                    {savingBilingual ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      <Check size={13} />
+                    )}
+                    <span>{savingBilingual ? "Saving..." : "Save Details"}</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Viewing Mode: Tabbed Kannada / English Description Display */
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 border-b border-line/60 pb-1.5 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setActiveDescTab("kn")}
+                    className={`inline-flex items-center gap-1 rounded px-2 py-0.5 font-medium transition-colors cursor-pointer ${
+                      activeDescTab === "kn"
+                        ? "bg-pine text-white font-semibold"
+                        : "text-ink-soft hover:text-ink"
+                    }`}
+                  >
+                    <span>ಕನ್ನಡ (Kannada)</span>
+                    {item.descriptionKn && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveDescTab("en")}
+                    className={`inline-flex items-center gap-1 rounded px-2 py-0.5 font-medium transition-colors cursor-pointer ${
+                      activeDescTab === "en"
+                        ? "bg-pine text-white font-semibold"
+                        : "text-ink-soft hover:text-ink"
+                    }`}
+                  >
+                    <span>English</span>
+                    {item.description && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />}
+                  </button>
+                </div>
+
+                <div className="text-xs sm:text-sm leading-relaxed text-ink">
+                  {activeDescTab === "kn" ? (
+                    item.descriptionKn ? (
+                      <p className="font-sans whitespace-pre-wrap">{item.descriptionKn}</p>
+                    ) : (
+                      <p className="italic text-ink-soft">
+                        ಕನ್ನಡದಲ್ಲಿ ಯಾವುದೇ ವಿವರಣೆ ನೀಡಿಲ್ಲ. ವಿವರಣೆ ಸೇರಿಸಲು ಮೇಲೆ &quot;Edit in English &amp; Kannada&quot; ಕ್ಲಿಕ್ ಮಾಡಿ.
+                      </p>
+                    )
+                  ) : item.description ? (
+                    <p className="whitespace-pre-wrap">{item.description}</p>
+                  ) : (
+                    <p className="italic text-ink-soft">
+                      No English description provided yet. Click &quot;Edit in English &amp; Kannada&quot; above to add.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Stock Details Quick Glance */}
           <div className="grid grid-cols-2 gap-3 rounded-xl border border-line bg-paper p-3 text-xs sm:grid-cols-4">
