@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { invoiceItems, invoices, stockItems, businessSettings, users } from "@/db/schema";
-import { requireUser } from "@/lib/session";
+import { requireUser, requireAdmin } from "@/lib/session";
 import { handleApiError } from "@/lib/api-utils";
 import { generateInvoiceNumber, advanceInvoiceSequence } from "@/lib/invoice-number";
 
@@ -242,4 +242,24 @@ class StockShortageError extends Error {
 import { sql } from "drizzle-orm";
 function sqlDecrement(n: number) {
   return sql`${stockItems.quantity} - ${n}`;
+}
+
+export async function DELETE() {
+  try {
+    await requireAdmin();
+
+    await db.transaction(async (tx) => {
+      // 1. Delete all invoice line items
+      await tx.delete(invoiceItems);
+      // 2. Delete all invoices
+      await tx.delete(invoices);
+    });
+
+    return NextResponse.json({
+      ok: true,
+      message: "All invoices deleted successfully.",
+    });
+  } catch (err) {
+    return handleApiError(err);
+  }
 }

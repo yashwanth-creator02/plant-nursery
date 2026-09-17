@@ -129,6 +129,7 @@ export function ProfilePanel({
   const [newRole, setNewRole] = useState<"admin" | "staff">("staff");
   const [submitting, setSubmitting] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [deletingInvoices, setDeletingInvoices] = useState(false);
   const [isDark, setIsDark] = useState(false);
 
   // QR Code Settings State
@@ -569,6 +570,32 @@ export function ProfilePanel({
       loadUsers();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't remove user");
+    }
+  }
+
+  async function handleDeleteAllInvoices() {
+    const confirmed = window.confirm(
+      "WARNING: This will permanently delete ALL invoices and billing history from the database.\n\nStock inventory and user accounts will NOT be deleted.\n\nThis action CANNOT be undone.\n\nAre you sure you want to delete all invoices?",
+    );
+    if (!confirmed) return;
+
+    const doubleCheck = window.confirm(
+      "CONFIRM AGAIN: Are you absolutely sure you want to permanently delete all invoices?",
+    );
+    if (!doubleCheck) return;
+
+    setDeletingInvoices(true);
+    setError("");
+    try {
+      const res = await fetch("/api/invoices", { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete invoices");
+      alert("All invoices have been permanently deleted.");
+      window.dispatchEvent(new Event("invoiceSequenceUpdated"));
+      window.location.reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't delete invoices");
+      setDeletingInvoices(false);
     }
   }
 
@@ -1393,18 +1420,30 @@ export function ProfilePanel({
                 Danger Zone
               </h4>
               <p className="mb-3 text-xs text-ink-soft">
-                Permanently delete all invoices, stock items, and reset database
-                records. Your admin account will remain active.
+                Admin database cleanup and permanent deletion tools.
               </p>
-              <button
-                type="button"
-                onClick={handleClearAllData}
-                disabled={clearing}
-                className="flex w-full items-center justify-center gap-2 rounded-md border border-rust/40 bg-rust-tint/60 px-3 py-2 text-xs font-semibold text-rust transition-colors hover:bg-rust hover:text-surface disabled:opacity-50 cursor-pointer"
-              >
-                <Trash2 size={14} />
-                {clearing ? "Clearing database…" : "Clear all database data"}
-              </button>
+
+              <div className="space-y-2.5">
+                <button
+                  type="button"
+                  onClick={handleDeleteAllInvoices}
+                  disabled={deletingInvoices || clearing}
+                  className="flex w-full items-center justify-center gap-2 rounded-md border border-rust/40 bg-rust-tint/60 px-3 py-2 text-xs font-semibold text-rust transition-colors hover:bg-rust hover:text-surface disabled:opacity-50 cursor-pointer"
+                >
+                  <Trash2 size={14} />
+                  {deletingInvoices ? "Deleting all invoices…" : "Delete All Invoices"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleClearAllData}
+                  disabled={clearing || deletingInvoices}
+                  className="flex w-full items-center justify-center gap-2 rounded-md border border-red-300 bg-red-50 text-red-700 dark:bg-red-950/30 dark:border-red-800 dark:text-red-400 px-3 py-2 text-xs font-semibold hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  <Trash2 size={14} />
+                  {clearing ? "Clearing database…" : "Clear Entire Database Data"}
+                </button>
+              </div>
             </div>
           </div>
         )}
