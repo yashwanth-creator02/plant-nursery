@@ -1294,30 +1294,18 @@ export function InvoiceEditor({
                 style={{ colorScheme: "light" }}
                 className="w-[720px] shrink-0 rounded-lg border border-slate-300 bg-white p-6 sm:p-7 text-[#1b365d] shadow-md print:w-full print:max-w-none print:rounded-none print:border-none print:p-0 print:shadow-none print:shrink"
               >
-            {/* Top GSTIN & Mobiles Row */}
+            {/* Top GSTIN & Mobiles Row (Clean contact info without big version badge) */}
             <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold tracking-tight text-[#1b365d]">
-              <span>{tLang("gstinLabel", billLanguage)} {headerDetails.gstin}</span>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100/80 text-[#1b365d] border border-blue-200">
-                  {tLang("versionLabel", billLanguage)} {invoiceVersion}
-                </span>
-                <span>{tLang("mobilesLabel", billLanguage)} {headerDetails.mobiles}</span>
-              </div>
+              <span>GSTIN: {headerDetails.gstin}</span>
+              <span>Mob: {headerDetails.mobiles}</span>
             </div>
 
-            {/* Nursery Main Title */}
-            <h1 className="mt-2 text-center font-serif text-xl sm:text-2xl md:text-[26px] font-extrabold uppercase tracking-wide text-[#1b365d]">
-              {billLanguage === "kn" && (headerDetails.businessName === DEFAULT_HEADER.businessName || !headerDetails.businessName)
-                ? tLang("brandFullName", "kn")
-                : headerDetails.businessName}
-            </h1>
-
-            {/* Subtitle row with Logo Placeholder */}
-            <div className="relative my-2 flex items-center justify-center min-h-[64px]">
+            {/* Nursery Logo placed right on top of business name, centered */}
+            <div className="mt-3 mb-1.5 flex items-center justify-center">
               <div
                 id="nursery-logo-placeholder"
-                className="sm:absolute left-0 top-1/2 sm:-translate-y-1/2 flex items-center justify-center shrink-0 mb-1 sm:mb-0"
-                title={headerDetails.logoData ? "Sri Vijaya Lakshmi Nursery Logo" : "Logo Placeholder — Swap with your original SVG"}
+                className="flex items-center justify-center shrink-0"
+                title={headerDetails.logoData ? "Sri Vijaya Lakshmi Nursery Logo" : "Logo Placeholder"}
               >
                 {headerDetails.logoData ? (
                   headerDetails.logoData.trim().startsWith("<svg") ? (
@@ -1333,9 +1321,9 @@ export function InvoiceEditor({
                     />
                   )
                 ) : (
-                  <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded border border-dashed border-[#1b365d]/50 bg-blue-50/60 text-[#1b365d]">
+                  <div className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded border border-dashed border-[#1b365d]/50 bg-blue-50/60 text-[#1b365d]">
                     <svg
-                      className="h-8 w-8 opacity-80"
+                      className="h-7 w-7 opacity-80"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -1351,25 +1339,18 @@ export function InvoiceEditor({
                   </div>
                 )}
               </div>
+            </div>
 
-              {/* Centered Government Approval & Address Details */}
-              <div className="text-center text-[11px] sm:text-xs font-semibold text-[#1b365d] leading-tight px-14 sm:px-16">
-                <p>
-                  {billLanguage === "kn" && headerDetails.subheading1 === DEFAULT_HEADER.subheading1
-                    ? tLang("subheading1", "kn")
-                    : headerDetails.subheading1}
-                </p>
-                <p>
-                  {billLanguage === "kn" && headerDetails.subheading2 === DEFAULT_HEADER.subheading2
-                    ? tLang("subheading2", "kn")
-                    : headerDetails.subheading2}
-                </p>
-                <p className="font-bold">
-                  {billLanguage === "kn" && headerDetails.address === DEFAULT_HEADER.address
-                    ? tLang("nurseryAddress", "kn")
-                    : headerDetails.address}
-                </p>
-              </div>
+            {/* Nursery Main Title */}
+            <h1 className="text-center font-serif text-xl sm:text-2xl md:text-[26px] font-extrabold uppercase tracking-wide text-[#1b365d]">
+              {headerDetails.businessName}
+            </h1>
+
+            {/* Centered Government Approval & Address Details */}
+            <div className="text-center text-[11px] sm:text-xs font-semibold text-[#1b365d] leading-tight px-14 sm:px-16 my-1.5">
+              <p>{headerDetails.subheading1}</p>
+              <p>{headerDetails.subheading2}</p>
+              <p className="font-bold">{headerDetails.address}</p>
             </div>
 
             {/* Document Title: BILL OF SUPPLIERS / CASH/CREDIT */}
@@ -1642,32 +1623,27 @@ export function InvoiceEditor({
                 )}
               </div>
 
-              {/* Bottom Right: Version & Signature Block */}
+              {/* Bottom Right: Signature Block */}
               <div className="text-right">
-                <div className="flex items-center justify-end gap-2.5 mb-1 print:hidden">
-                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100/70 text-[#1b365d] border border-blue-200">
-                    {tLang("versionLabel", billLanguage)} {invoiceVersion}
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-medium text-[#1b365d]/80">{tLang("digitallySigned", billLanguage)}:</span>
-                    {status === "final" ? (
-                      <span className="text-[11px] font-bold text-[#1b365d]">
-                        {isSigned ? (billLanguage === "kn" ? "ಸೇರಿಸಲಾಗಿದೆ (ಲಾಕ್ ಆಗಿದೆ)" : "Included (Locked)") : (billLanguage === "kn" ? "ಇಲ್ಲ" : "None")}
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setIsSigned(!isSigned)}
-                        className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
-                          isSigned
-                            ? "bg-[#1b365d] text-white"
-                            : "border border-[#1b365d]/30 text-[#1b365d] hover:bg-blue-50/50"
-                        }`}
-                      >
-                        {isSigned ? (billLanguage === "kn" ? "ಸೇರಿಸಲಾಗಿದೆ" : "Included") : (billLanguage === "kn" ? "ಇಲ್ಲ" : "None")}
-                      </button>
-                    )}
-                  </div>
+                <div className="flex items-center justify-end gap-2 mb-1 print:hidden">
+                  <span className="text-[11px] font-medium text-[#1b365d]/80">{tLang("digitallySigned", billLanguage)}:</span>
+                  {status === "final" ? (
+                    <span className="text-[11px] font-bold text-[#1b365d]">
+                      {isSigned ? (billLanguage === "kn" ? "ಸೇರಿಸಲಾಗಿದೆ (ಲಾಕ್ ಆಗಿದೆ)" : "Included (Locked)") : (billLanguage === "kn" ? "ಇಲ್ಲ" : "None")}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsSigned(!isSigned)}
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
+                        isSigned
+                          ? "bg-[#1b365d] text-white"
+                          : "border border-[#1b365d]/30 text-[#1b365d] hover:bg-blue-50/50"
+                      }`}
+                    >
+                      {isSigned ? (billLanguage === "kn" ? "ಸೇರಿಸಲಾಗಿದೆ" : "Included") : (billLanguage === "kn" ? "ಇಲ್ಲ" : "None")}
+                    </button>
+                  )}
                 </div>
 
                 <p className="font-bold text-xs sm:text-sm tracking-tight">
@@ -1739,10 +1715,27 @@ export function InvoiceEditor({
             </div>
           </div>
 
-          {/* Terms & Conditions Notice */}
-          <div className="mt-3 border-t border-dotted border-[#1b365d]/40 pt-1.5 flex flex-wrap items-center justify-between text-[10px] text-[#1b365d]/80 px-2 sm:px-4">
-            <span>{tLang("term1", billLanguage)}</span>
-            <span>{tLang("term2", billLanguage)}</span>
+          {/* Thank you note */}
+          <div className="mt-3.5 pt-1.5 text-center text-xs sm:text-sm font-serif font-bold italic tracking-wide text-[#1b365d]/90">
+            ~ {tLang("thankYouNote", billLanguage)} ~
+          </div>
+
+          {/* Footer: Left-aligned Disclaimers + Bottom-Left Watermark */}
+          <div className="mt-2.5 pt-2 border-t border-dotted border-[#1b365d]/30 flex items-end justify-between px-1 sm:px-2">
+            <div className="flex items-baseline gap-2.5">
+              {/* Subtle Watermark Version Number in bottom left corner */}
+              <span
+                className="font-mono font-extrabold text-sm sm:text-base text-[#1b365d]/30 select-none tracking-tight shrink-0"
+                title={`Invoice Version ${invoiceVersion}`}
+              >
+                #{invoiceVersion}
+              </span>
+              {/* Disclaimers formatted to the left */}
+              <div className="text-[10px] text-[#1b365d]/75 space-y-0.5 text-left leading-tight">
+                <p>{tLang("term1", billLanguage)}</p>
+                <p>{tLang("term2", billLanguage)}</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

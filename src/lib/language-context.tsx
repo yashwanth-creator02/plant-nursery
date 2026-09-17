@@ -46,6 +46,16 @@ export interface Translations {
   termsConditions: string;
   term1: string;
   term2: string;
+  thankYouNote: string;
+  cgst: string;
+  sgst: string;
+  discount: string;
+  discountPercent: string;
+  discountAmount: string;
+  taxableAmount: string;
+  plantsTaxExempt: string;
+  showBillableAmount: string;
+  billableAmount: string;
 
   // Bill Preview Screen & Action Bar
   backToEdit: string;
@@ -147,6 +157,16 @@ export const translations: Record<Language, Translations> = {
     termsConditions: "Terms & Conditions",
     term1: "1. Goods once sold cannot be returned or exchanged.",
     term2: "2. Plants are living goods; please inspect upon receipt.",
+    thankYouNote: "Thank you for shopping with us! Visit again",
+    cgst: "CGST",
+    sgst: "SGST",
+    discount: "Discount",
+    discountPercent: "Discount (%)",
+    discountAmount: "Discount (₹)",
+    taxableAmount: "Taxable Amount",
+    plantsTaxExempt: "Plants (0% GST Exempt)",
+    showBillableAmount: "Show Billable Amount",
+    billableAmount: "Billable Amount",
 
     // Bill Preview Screen & Action Bar
     backToEdit: "Back to Edit Bill",
@@ -247,6 +267,16 @@ export const translations: Record<Language, Translations> = {
     termsConditions: "ನಿಯಮಗಳು ಮತ್ತು ಷರತ್ತುಗಳು",
     term1: "೧. ಒಮ್ಮೆ ಮಾರಾಟವಾದ ಸರಕುಗಳನ್ನು ಹಿಂಪಡೆಯಲಾಗುವುದಿಲ್ಲ ಅಥವಾ ಬದಲಾಯಿಸಲಾಗುವುದಿಲ್ಲ.",
     term2: "೨. ಸಸ್ಯಗಳು ಜೀವಂತ ವಸ್ತುಗಳಾಗಿವೆ; ಸ್ವೀಕರಿಸಿದ ತಕ್ಷಣ ಪರಿಶೀಲಿಸಿ.",
+    thankYouNote: "ನಮ್ಮಲ್ಲಿ ಖರೀದಿಸಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು! ಮತ್ತೆ ಭೇಟಿ ನೀಡಿ",
+    cgst: "ಸಿ.ಜಿ.ಎಸ್.ಟಿ (CGST)",
+    sgst: "ಎಸ್.ಜಿ.ಎಸ್.ಟಿ (SGST)",
+    discount: "ರಿಯಾಯಿತಿ (Discount)",
+    discountPercent: "ರಿಯಾಯಿತಿ (%)",
+    discountAmount: "ರಿಯಾಯಿತಿ (₹)",
+    taxableAmount: "ತೆರಿಗೆಗೆ ಒಳಪಡುವ ಮೊತ್ತ",
+    plantsTaxExempt: "ಸಸ್ಯಗಳು (0% ಜಿಎಸ್‌ಟಿ ವಿನಾಯಿತಿ)",
+    showBillableAmount: "ಪಾವತಿಸಬೇಕಾದ ಮೊತ್ತ ತೋರಿಸಿ",
+    billableAmount: "ಪಾವತಿಸಬೇಕಾದ ಮೊತ್ತ",
 
     // Bill Preview Screen & Action Bar
     backToEdit: "ಬಿಲ್ ತಿದ್ದುಪಡಿಗೆ ಹಿಂತಿರುಗಿ",
