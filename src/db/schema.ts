@@ -59,6 +59,8 @@ export const businessSettings = pgTable("business_settings", {
   address: text("address").notNull().default("Harige B. H. Road, Shimoga - 577203"),
   mobiles: text("mobiles").notNull().default("7353025302, 9448140483, 9606602194"),
   gstin: text("gstin").notNull().default("29ADXPV1295N2Z6"),
+  cgstRate: numeric("cgst_rate", { precision: 5, scale: 2 }).notNull().default("2.50"),
+  sgstRate: numeric("sgst_rate", { precision: 5, scale: 2 }).notNull().default("2.50"),
   qrCodeData: text("qr_code_data"),
   logoData: text("logo_data"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

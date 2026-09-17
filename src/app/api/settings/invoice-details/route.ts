@@ -14,6 +14,8 @@ const DEFAULT_SETTINGS = {
   address: "Harige B. H. Road, Shimoga - 577203",
   mobiles: "7353025302, 9448140483, 9606602194",
   gstin: "29ADXPV1295N2Z6",
+  cgstRate: "2.50",
+  sgstRate: "2.50",
 };
 
 export async function GET() {
@@ -98,6 +100,8 @@ export async function POST(req: Request) {
       address,
       mobiles,
       gstin,
+      cgstRate,
+      sgstRate,
     } = body;
 
     if (!businessName || !address) {
@@ -116,6 +120,15 @@ export async function POST(req: Request) {
 
     const nextVersion = latest.length > 0 ? latest[0].version + 1 : 2;
 
+    const validatedCgst =
+      cgstRate !== undefined && cgstRate !== null && String(cgstRate).trim() !== ""
+        ? String(Number(cgstRate) || 0)
+        : latest[0]?.cgstRate || "2.50";
+    const validatedSgst =
+      sgstRate !== undefined && sgstRate !== null && String(sgstRate).trim() !== ""
+        ? String(Number(sgstRate) || 0)
+        : latest[0]?.sgstRate || "2.50";
+
     const [created] = await db
       .insert(businessSettings)
       .values({
@@ -126,6 +139,8 @@ export async function POST(req: Request) {
         address: address.trim(),
         mobiles: (mobiles || "").trim(),
         gstin: (gstin || "").trim(),
+        cgstRate: validatedCgst,
+        sgstRate: validatedSgst,
         qrCodeData: latest.length > 0 ? latest[0].qrCodeData : null,
         logoData: latest.length > 0 ? latest[0].logoData : null,
         updatedAt: new Date(),
