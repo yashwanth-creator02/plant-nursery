@@ -12,14 +12,16 @@ import { ProfilePanel } from "@/components/ProfilePanel";
 
 function ShellInner({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  const isLoginRoute = pathname === "/login";
+  // Normalize pathname by stripping locale prefix (e.g. /en/login -> /login, /kn/login -> /login)
+  const normalizedPathname = pathname.replace(/^\/(?:en|kn)(?:\/|$)/, "/") || "/";
+  const isLoginRoute = normalizedPathname === "/login" || pathname === "/login" || pathname.endsWith("/login");
 
   useEffect(() => {
     try {
@@ -53,12 +55,12 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
     if (!user && !isLoginRoute) {
-      router.replace("/login");
+      router.replace(`/${language}/login`);
     }
     if (user && isLoginRoute) {
-      router.replace("/invoice");
+      router.replace(`/${language}/invoice`);
     }
-  }, [user, loading, isLoginRoute, router]);
+  }, [user, loading, isLoginRoute, router, language]);
 
   useEffect(() => {
     setMobileMenuOpen(false);
