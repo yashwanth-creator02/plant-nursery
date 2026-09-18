@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/lib/language-context";
 
 type FilterMode =
   | "today"
@@ -138,6 +139,7 @@ export function SalesAnalyticsModal({
   isAdmin = false,
 }: SalesAnalyticsModalProps) {
   const router = useRouter();
+  const { t, language } = useLanguage();
   const [filterMode, setFilterMode] = useState<FilterMode>("today");
   const [specificDate, setSpecificDate] = useState<string>(getTodayString());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
@@ -789,20 +791,20 @@ export function SalesAnalyticsModal({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-serif text-base sm:text-lg font-bold text-ink">
-                  Sales &amp; Revenue Analytics
+                  {t("salesAnalyticsTitle")}
                 </h2>
                 {isAdmin ? (
                   <span className="rounded bg-pine-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-pine-deep">
-                    Admin View • All Access
+                    {language === "kn" ? "ನಿರ್ವಾಹಕರ ನೋಟ • ಪೂರ್ಣ ಪ್ರವೇಶ" : "Admin View • All Access"}
                   </span>
                 ) : (
                   <span className="rounded bg-blue-50 text-[#1b365d] border border-blue-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-                    My Staff Sales
+                    {language === "kn" ? "ನನ್ನ ಸಿಬ್ಬಂದಿ ಮಾರಾಟ" : "My Staff Sales"}
                   </span>
                 )}
               </div>
               <p className="text-xs text-ink-soft">
-                Breakdown of online UPI, counter cash payments, and customer bills.
+                {t("salesAnalyticsSubtitle")}
               </p>
             </div>
           </div>
@@ -831,18 +833,18 @@ export function SalesAnalyticsModal({
           {/* Quick Preset Buttons */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs font-semibold">
             {[
-              { id: "today", label: "Today" },
-              { id: "yesterday", label: "Yesterday" },
-              { id: "week", label: "Last 7 Days" },
-              { id: "this_month", label: "This Month" },
-              { id: "last_month", label: "Last Month" },
-              { id: "quarterly", label: "Quarterly" },
-              { id: "half_yearly", label: "Half Yearly" },
-              { id: "month", label: "By Month" },
-              { id: "year", label: "By Year" },
-              { id: "date", label: "Specific Date" },
-              { id: "custom", label: "Custom Range" },
-              { id: "all", label: "All Time" },
+              { id: "today", label: t("filterToday") },
+              { id: "yesterday", label: t("filterYesterday") },
+              { id: "week", label: t("filterThisWeek") },
+              { id: "this_month", label: t("filterThisMonth") },
+              { id: "last_month", label: t("filterLastMonth") },
+              { id: "quarterly", label: t("filterQuarterly") },
+              { id: "half_yearly", label: t("filterHalfYearly") },
+              { id: "month", label: t("filterByMonth") },
+              { id: "year", label: t("filterByYear") },
+              { id: "date", label: t("filterSpecificDate") },
+              { id: "custom", label: t("filterCustomRange") },
+              { id: "all", label: t("filterAllTime") },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -865,7 +867,7 @@ export function SalesAnalyticsModal({
             {filterMode === "date" && (
               <div className="flex items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-1.5">
                 <Calendar size={14} className="text-pine-deep" />
-                <span className="font-semibold text-ink-soft">Date:</span>
+                <span className="font-semibold text-ink-soft">{t("date")}</span>
                 <input
                   type="date"
                   value={specificDate}
@@ -879,7 +881,7 @@ export function SalesAnalyticsModal({
             {filterMode === "quarterly" && (
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-1.5">
-                  <span className="font-semibold text-ink-soft">Quarter:</span>
+                  <span className="font-semibold text-ink-soft">{t("quarterLabel")}</span>
                   <select
                     value={selectedQuarter}
                     onChange={(e) => setSelectedQuarter(Number(e.target.value))}
@@ -893,7 +895,7 @@ export function SalesAnalyticsModal({
                 </div>
 
                 <div className="flex items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-1.5">
-                  <span className="font-semibold text-ink-soft">Year:</span>
+                  <span className="font-semibold text-ink-soft">{t("yearLabel")}</span>
                   <select
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(Number(e.target.value))}
@@ -913,7 +915,7 @@ export function SalesAnalyticsModal({
             {filterMode === "half_yearly" && (
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-1.5">
-                  <span className="font-semibold text-ink-soft">Half-Year:</span>
+                  <span className="font-semibold text-ink-soft">{t("halfYearLabel")}</span>
                   <select
                     value={selectedHalf}
                     onChange={(e) => setSelectedHalf(Number(e.target.value))}
@@ -925,7 +927,7 @@ export function SalesAnalyticsModal({
                 </div>
 
                 <div className="flex items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-1.5">
-                  <span className="font-semibold text-ink-soft">Year:</span>
+                  <span className="font-semibold text-ink-soft">{t("yearLabel")}</span>
                   <select
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(Number(e.target.value))}
@@ -945,7 +947,7 @@ export function SalesAnalyticsModal({
             {filterMode === "month" && (
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-1.5">
-                  <span className="font-semibold text-ink-soft">Month:</span>
+                  <span className="font-semibold text-ink-soft">{t("monthLabel")}</span>
                   <select
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(Number(e.target.value))}
@@ -960,7 +962,7 @@ export function SalesAnalyticsModal({
                 </div>
 
                 <div className="flex items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-1.5">
-                  <span className="font-semibold text-ink-soft">Year:</span>
+                  <span className="font-semibold text-ink-soft">{t("yearLabel")}</span>
                   <select
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(Number(e.target.value))}
@@ -979,7 +981,7 @@ export function SalesAnalyticsModal({
             {/* 3. Year Picker */}
             {filterMode === "year" && (
               <div className="flex items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-1.5">
-                <span className="font-semibold text-ink-soft">Year:</span>
+                <span className="font-semibold text-ink-soft">{t("yearLabel")}</span>
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(Number(e.target.value))}
@@ -998,7 +1000,7 @@ export function SalesAnalyticsModal({
             {filterMode === "custom" && (
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-1.5">
-                  <span className="font-semibold text-ink-soft">From:</span>
+                  <span className="font-semibold text-ink-soft">{t("fromDateLabel")}</span>
                   <input
                     type="date"
                     value={customStartDate}
@@ -1006,9 +1008,9 @@ export function SalesAnalyticsModal({
                     className="bg-transparent font-medium text-ink outline-none cursor-pointer"
                   />
                 </div>
-                <span className="text-ink-soft">to</span>
+                <span className="text-ink-soft">{language === "kn" ? "ದಿಂದ" : "to"}</span>
                 <div className="flex items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-1.5">
-                  <span className="font-semibold text-ink-soft">To:</span>
+                  <span className="font-semibold text-ink-soft">{t("toDateLabel")}</span>
                   <input
                     type="date"
                     value={customEndDate}
@@ -1023,13 +1025,13 @@ export function SalesAnalyticsModal({
             {isAdmin && (
               <div className="flex items-center gap-2 rounded-lg border border-line bg-paper px-2.5 py-1.5">
                 <UserIcon size={14} className="text-pine-deep" />
-                <span className="font-semibold text-ink-soft">Staff:</span>
+                <span className="font-semibold text-ink-soft">{t("staffFilterLabel")}</span>
                 <select
                   value={selectedUserId}
                   onChange={(e) => setSelectedUserId(e.target.value)}
                   className="bg-transparent font-medium text-ink outline-none cursor-pointer"
                 >
-                  <option value="all">All Staff (Entire Nursery)</option>
+                  <option value="all">{t("allStaffOption")}</option>
                   {staffList.map((st) => (
                     <option key={st.id} value={st.id}>
                       {st.username} ({st.role})
@@ -1050,7 +1052,7 @@ export function SalesAnalyticsModal({
                     : "text-ink-soft hover:text-ink"
                 }`}
               >
-                All Modes
+                {t("allModesLabel")}
               </button>
               <button
                 type="button"
@@ -1061,7 +1063,7 @@ export function SalesAnalyticsModal({
                     : "text-ink-soft hover:text-ink"
                 }`}
               >
-                <CreditCard size={12} /> Online (UPI)
+                <CreditCard size={12} /> {t("onlineUpiLabel")}
               </button>
               <button
                 type="button"
@@ -1072,7 +1074,7 @@ export function SalesAnalyticsModal({
                     : "text-ink-soft hover:text-ink"
                 }`}
               >
-                <Banknote size={12} /> Cash
+                <Banknote size={12} /> {t("cashOfflineLabel")}
               </button>
             </div>
           </div>
@@ -1091,14 +1093,14 @@ export function SalesAnalyticsModal({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                  Key Statistics &amp; Performance
+                  {t("keyStatsTitle")}
                 </h3>
                 <span className="rounded bg-pine-tint px-2 py-0.5 text-[10px] font-bold text-pine-deep font-mono">
-                  {filteredInvoices.length} Bills
+                  {filteredInvoices.length} {t("billsBadge")}
                 </span>
               </div>
               <p className="text-[11px] text-ink-soft mt-0.5">
-                Financial totals and payment mode breakdown
+                {t("financialTotalsSubtitle")}
               </p>
             </div>
 
@@ -1113,7 +1115,7 @@ export function SalesAnalyticsModal({
               title="Toggle interactive data visualization charts"
             >
               <BarChart3 size={15} className={showVisualization ? "text-white" : "text-pine"} />
-              <span>{showVisualization ? "Hide Charts" : "Visualize Data"}</span>
+              <span>{showVisualization ? t("hideChartsBtn") : t("visualizeDataBtn")}</span>
               <span
                 className={`rounded px-1.5 py-0.2 text-[10px] font-mono font-bold uppercase tracking-wider ${
                   showVisualization
@@ -1132,7 +1134,7 @@ export function SalesAnalyticsModal({
             <div className="relative overflow-hidden rounded-xl border border-line bg-paper-flat p-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                  Total Sales
+                  {t("totalSalesMetric")}
                 </span>
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-pine/10 text-pine-deep">
                   <Receipt size={16} />
@@ -1142,7 +1144,7 @@ export function SalesAnalyticsModal({
                 {formatCurrency(summary.totalRevenue)}
               </div>
               <div className="mt-1 flex items-center justify-between text-xs text-ink-soft">
-                <span>{summary.totalInvoices} finalized bill(s)</span>
+                <span>{summary.totalInvoices} {t("finalizedBillsSuffix")}</span>
                 <span className="font-semibold text-pine">100%</span>
               </div>
             </div>
@@ -1151,7 +1153,7 @@ export function SalesAnalyticsModal({
             <div className="relative overflow-hidden rounded-xl border border-blue-200/80 bg-blue-50/40 dark:bg-blue-950/20 p-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-blue-800 dark:text-blue-300">
-                  Online (UPI)
+                  {t("onlineUpiMetric")}
                 </span>
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400">
                   <CreditCard size={16} />
@@ -1161,7 +1163,7 @@ export function SalesAnalyticsModal({
                 {formatCurrency(summary.onlineRevenue)}
               </div>
               <div className="mt-1 flex items-center justify-between text-xs text-blue-800/80 dark:text-blue-400">
-                <span>{summary.onlineCount} online bill(s)</span>
+                <span>{summary.onlineCount} {t("onlineBillsSuffix")}</span>
                 <span className="font-semibold">{onlinePercent}%</span>
               </div>
             </div>
@@ -1170,7 +1172,7 @@ export function SalesAnalyticsModal({
             <div className="relative overflow-hidden rounded-xl border border-emerald-200/80 bg-emerald-50/40 dark:bg-emerald-950/20 p-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
-                  Cash (Offline)
+                  {t("cashOfflineMetric")}
                 </span>
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                   <Banknote size={16} />
@@ -1180,7 +1182,7 @@ export function SalesAnalyticsModal({
                 {formatCurrency(summary.cashRevenue)}
               </div>
               <div className="mt-1 flex items-center justify-between text-xs text-emerald-800/80 dark:text-emerald-400">
-                <span>{summary.cashCount} cash bill(s)</span>
+                <span>{summary.cashCount} {t("cashBillsSuffix")}</span>
                 <span className="font-semibold">{cashPercent}%</span>
               </div>
             </div>
@@ -1189,7 +1191,7 @@ export function SalesAnalyticsModal({
             <div className="relative overflow-hidden rounded-xl border border-line bg-paper-flat p-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                  Avg Bill Value
+                  {t("avgBillValueMetric")}
                 </span>
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
                   <TrendingUp size={16} />
@@ -1199,7 +1201,7 @@ export function SalesAnalyticsModal({
                 {formatCurrency(summary.averageInvoiceValue)}
               </div>
               <div className="mt-1 text-xs text-ink-soft">
-                Average transaction size
+                {t("avgTransactionSizeSubtitle")}
               </div>
             </div>
           </div>
@@ -1210,11 +1212,11 @@ export function SalesAnalyticsModal({
               <div className="flex items-center justify-between text-xs font-semibold">
                 <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
                   <span className="h-2.5 w-2.5 rounded-full bg-blue-500"></span>
-                  <span>Online / UPI ({onlinePercent}%)</span>
+                  <span>{t("onlineUpiLabel")} ({onlinePercent}%)</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-                  <span>Cash / Offline ({cashPercent}%)</span>
+                  <span>{t("cashOfflineLabel")} ({cashPercent}%)</span>
                 </div>
               </div>
               <div className="h-3 w-full rounded-full bg-line overflow-hidden flex">
@@ -1245,10 +1247,10 @@ export function SalesAnalyticsModal({
                   </div>
                   <div>
                     <h4 className="font-serif text-sm font-bold text-ink">
-                      Visual Statistics &amp; Analytics
+                      {t("visualStatsTitle")}
                     </h4>
                     <p className="text-[11px] text-ink-soft">
-                      Interactive chart breakdowns by time, payment mode, and order ticket size
+                      {t("visualStatsSubtitle")}
                     </p>
                   </div>
                 </div>
@@ -1264,7 +1266,7 @@ export function SalesAnalyticsModal({
                         : "text-ink-soft hover:text-ink"
                     }`}
                   >
-                    Revenue (₹)
+                    {t("revenueModeBtn")}
                   </button>
                   <button
                     type="button"
@@ -1275,7 +1277,7 @@ export function SalesAnalyticsModal({
                         : "text-ink-soft hover:text-ink"
                     }`}
                   >
-                    Bill Count (#)
+                    {t("billCountModeBtn")}
                   </button>
                 </div>
               </div>
@@ -1286,17 +1288,17 @@ export function SalesAnalyticsModal({
                   <div className="font-semibold text-ink flex items-center gap-2">
                     <span>
                       {filterMode === "today" || filterMode === "yesterday" || filterMode === "date"
-                        ? "Hourly Sales Velocity (06:00 AM – 10:00 PM)"
+                        ? t("timelineTitleHourly")
                         : filterMode === "week"
-                        ? "7-Day Sales Trend"
+                        ? t("timelineTitle7Day")
                         : filterMode === "month"
-                        ? `Daily Sales Performance (${MONTH_NAMES[selectedMonth]} ${selectedYear})`
+                        ? `${t("timelineTitleDaily")} (${MONTH_NAMES[selectedMonth]} ${selectedYear})`
                         : filterMode === "year"
-                        ? `Monthly Performance (${selectedYear})`
-                        : "Sales Performance Timeline"}
+                        ? `${t("timelineTitleMonthly")} (${selectedYear})`
+                        : t("timelineTitleGeneric")}
                     </span>
                     <span className="text-[10px] text-ink-soft font-normal hidden sm:inline">
-                      (Hover over bars for details)
+                      {t("hoverBarsHint")}
                     </span>
                   </div>
 
@@ -1304,11 +1306,11 @@ export function SalesAnalyticsModal({
                   <div className="flex items-center gap-3 text-[11px] font-medium">
                     <div className="flex items-center gap-1">
                       <span className="h-2.5 w-2.5 rounded-sm bg-blue-500"></span>
-                      <span className="text-ink-soft">Online (UPI)</span>
+                      <span className="text-ink-soft">{t("onlineUpiLabel")}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500"></span>
-                      <span className="text-ink-soft">Cash (Offline)</span>
+                      <span className="text-ink-soft">{t("cashOfflineLabel")}</span>
                     </div>
                   </div>
                 </div>
@@ -1318,7 +1320,7 @@ export function SalesAnalyticsModal({
                   {timelineData.length === 0 || summary.totalRevenue === 0 ? (
                     <div className="h-44 flex flex-col items-center justify-center text-xs text-ink-soft text-center">
                       <BarChart3 size={32} className="text-ink-soft/30 mb-2" />
-                      <span>No transactions recorded for this period to visualize.</span>
+                      <span>{t("noSalesFoundSubtitle")}</span>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -1334,22 +1336,22 @@ export function SalesAnalyticsModal({
                                   {active.fullLabel}
                                 </span>
                                 <span className="rounded-full bg-pine/10 text-pine-deep px-2 py-0.5 text-[10px] font-bold">
-                                  {active.totalCount} {active.totalCount === 1 ? "bill" : "bills"}
+                                  {active.totalCount} {t("billsBadge")}
                                 </span>
                               </div>
                               <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs">
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-ink-soft">Total:</span>
+                                  <span className="text-ink-soft">{t("total")}:</span>
                                   <span className="font-mono font-bold text-ink text-[13px]">{formatCurrency(active.totalRevenue)}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-medium">
                                   <span className="h-2 w-2 rounded-full bg-blue-500"></span>
-                                  <span>Online:</span>
+                                  <span>{t("onlineUpi")}:</span>
                                   <span className="font-mono font-semibold">{formatCurrency(active.onlineRevenue)} ({active.onlineCount})</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
                                   <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                                  <span>Cash:</span>
+                                  <span>{t("cash")}:</span>
                                   <span className="font-mono font-semibold">{formatCurrency(active.cashRevenue)} ({active.cashCount})</span>
                                 </div>
                               </div>
@@ -1359,10 +1361,10 @@ export function SalesAnalyticsModal({
                           <div className="flex items-center justify-between w-full text-xs text-ink-soft">
                             <span className="flex items-center gap-1.5">
                               <Info size={14} className="text-pine-deep/70 shrink-0" />
-                              Hover over or click any bar below to inspect that time period's sales breakdown.
+                              {t("hoverBarsHint")}
                             </span>
                             <span className="text-[11px] font-mono hidden sm:inline shrink-0">
-                              Peak: {chartMetric === "revenue" ? formatCurrency(maxTimelineVal) : `${maxTimelineVal} bills`}
+                              Peak: {chartMetric === "revenue" ? formatCurrency(maxTimelineVal) : `${maxTimelineVal} ${t("billsBadge")}`}
                             </span>
                           </div>
                         )}
@@ -1507,12 +1509,12 @@ export function SalesAnalyticsModal({
                               <div className="flex items-center justify-between border-b border-line pb-1.5 mb-2 gap-2">
                                 <span className="font-bold text-ink truncate max-w-[140px]">{active.fullLabel}</span>
                                 <span className="text-[10px] font-mono font-semibold text-pine-deep bg-pine-tint px-1.5 py-0.5 rounded">
-                                  {active.totalCount} {active.totalCount === 1 ? "bill" : "bills"}
+                                  {active.totalCount} {t("billsBadge")}
                                 </span>
                               </div>
                               <div className="space-y-1.5">
                                 <div className="flex items-center justify-between text-ink-soft">
-                                  <span>Total:</span>
+                                  <span>{t("total")}:</span>
                                   <span className="font-bold font-mono text-ink text-[13px]">
                                     {formatCurrency(active.totalRevenue)}
                                   </span>
@@ -1520,7 +1522,7 @@ export function SalesAnalyticsModal({
                                 <div className="flex items-center justify-between text-blue-600 dark:text-blue-400 font-medium">
                                   <span className="flex items-center gap-1.5">
                                     <span className="h-2 w-2 rounded-full bg-blue-500"></span>
-                                    Online (UPI):
+                                    {t("onlineUpiLabel")}:
                                   </span>
                                   <span className="font-semibold font-mono">
                                     {formatCurrency(active.onlineRevenue)} ({active.onlineCount})
@@ -1529,7 +1531,7 @@ export function SalesAnalyticsModal({
                                 <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-medium">
                                   <span className="flex items-center gap-1.5">
                                     <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                                    Cash:
+                                    {t("cashOfflineLabel")}:
                                   </span>
                                   <span className="font-semibold font-mono">
                                     {formatCurrency(active.cashRevenue)} ({active.cashCount})
@@ -1564,10 +1566,10 @@ export function SalesAnalyticsModal({
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-bold text-ink flex items-center gap-1.5">
                       <PieChart size={14} className="text-pine-deep" />
-                      <span>Payment Method Split</span>
+                      <span>{t("paymentSplitTitle")}</span>
                     </span>
                     <span className="text-[10px] font-mono text-ink-soft">
-                      {summary.totalInvoices} Bills
+                      {summary.totalInvoices} {t("billsBadge")}
                     </span>
                   </div>
 
@@ -1629,13 +1631,13 @@ export function SalesAnalyticsModal({
                         <div className="flex items-center justify-between text-blue-700 dark:text-blue-300 font-semibold mb-1">
                           <span className="flex items-center gap-1.5">
                             <span className="h-2 w-2 rounded-full bg-blue-500"></span>
-                            Online (UPI)
+                            {t("onlineUpiLabel")}
                           </span>
                           <span>{onlinePercent}%</span>
                         </div>
                         <div className="flex items-center justify-between text-[11px] text-blue-900 dark:text-blue-300/80 font-mono">
                           <span>{formatCurrency(summary.onlineRevenue)}</span>
-                          <span>{summary.onlineCount} bills</span>
+                          <span>{summary.onlineCount} {t("billsBadge")}</span>
                         </div>
                       </div>
 
@@ -1643,13 +1645,13 @@ export function SalesAnalyticsModal({
                         <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-300 font-semibold mb-1">
                           <span className="flex items-center gap-1.5">
                             <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                            Cash (Offline)
+                            {t("cashOfflineLabel")}
                           </span>
                           <span>{cashPercent}%</span>
                         </div>
                         <div className="flex items-center justify-between text-[11px] text-emerald-900 dark:text-emerald-300/80 font-mono">
                           <span>{formatCurrency(summary.cashRevenue)}</span>
-                          <span>{summary.cashCount} bills</span>
+                          <span>{summary.cashCount} {t("billsBadge")}</span>
                         </div>
                       </div>
                     </div>
@@ -1661,7 +1663,7 @@ export function SalesAnalyticsModal({
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-bold text-ink flex items-center gap-1.5">
                       <Layers size={14} className="text-pine-deep" />
-                      <span>Ticket Value Distribution</span>
+                      <span>{t("ticketDistributionTitle")}</span>
                     </span>
                     <span className="text-[10px] font-mono text-ink-soft">
                       Avg: {formatCurrency(summary.averageInvoiceValue)}
@@ -1677,7 +1679,7 @@ export function SalesAnalyticsModal({
                             {item.label}
                           </span>
                           <span className="font-mono text-ink font-semibold">
-                            {item.count} bills ({item.percent}%)
+                            {item.count} {t("billsBadge")} ({item.percent}%)
                           </span>
                         </div>
                         {/* Progress bar */}
@@ -1688,7 +1690,7 @@ export function SalesAnalyticsModal({
                           />
                         </div>
                         <div className="text-[10px] text-ink-soft text-right font-mono">
-                          Total: {formatCurrency(item.revenue)}
+                          {t("total")}: {formatCurrency(item.revenue)}
                         </div>
                       </div>
                     ))}
@@ -1702,10 +1704,10 @@ export function SalesAnalyticsModal({
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-ink flex items-center gap-1.5">
                       <UserIcon size={14} className="text-pine-deep" />
-                      <span>Staff Sales Contribution</span>
+                      <span>{t("staffContributionTitle")}</span>
                     </span>
                     <span className="text-[10px] text-ink-soft font-mono">
-                      {staffSalesData.length} Staff Members Active
+                      {staffSalesData.length} {t("staffMembersActiveSuffix")}
                     </span>
                   </div>
 
@@ -1724,7 +1726,7 @@ export function SalesAnalyticsModal({
                               {formatCurrency(staff.revenue)}
                             </span>
                             <span className="text-ink-soft">
-                              ({staff.count} bills • {staff.percent}%)
+                              ({staff.count} {t("billsBadge")} • {staff.percent}%)
                             </span>
                           </div>
                         </div>
@@ -1748,7 +1750,7 @@ export function SalesAnalyticsModal({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line bg-paper-flat px-4 py-3 sm:px-5">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-bold text-ink">
-                  Invoices Breakdown
+                  {t("invoicesBreakdownTitle")}
                 </h3>
                 <span className="rounded-full bg-line px-2 py-0.5 text-[11px] font-semibold text-ink-soft">
                   {filteredInvoices.length}
@@ -1762,7 +1764,7 @@ export function SalesAnalyticsModal({
                 />
                 <input
                   type="text"
-                  placeholder="Search invoice or customer..."
+                  placeholder={t("searchInvoicesPlaceholder")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full rounded-lg border border-line bg-surface pl-8 pr-3 py-1.5 text-xs text-ink outline-none focus:border-pine"
@@ -1774,14 +1776,14 @@ export function SalesAnalyticsModal({
             {loading ? (
               <div className="flex h-48 items-center justify-center gap-2 text-xs text-ink-soft">
                 <Loader2 size={16} className="animate-spin text-pine" />
-                <span>Loading sales data...</span>
+                <span>{t("loadingSalesData")}</span>
               </div>
             ) : filteredInvoices.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
                 <Receipt size={36} className="text-ink-soft/40 mb-2" />
-                <p className="text-sm font-semibold text-ink">No sales found</p>
+                <p className="text-sm font-semibold text-ink">{t("noSalesFoundTitle")}</p>
                 <p className="text-xs text-ink-soft mt-1 max-w-sm">
-                  There are no finalized invoices matching the selected period or filters.
+                  {t("noSalesFoundSubtitle")}
                 </p>
               </div>
             ) : (
@@ -1789,13 +1791,13 @@ export function SalesAnalyticsModal({
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="border-b border-line bg-paper-flat/60 text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
-                      <th className="px-4 py-2.5">Invoice #</th>
-                      <th className="px-4 py-2.5">Customer</th>
-                      <th className="px-4 py-2.5">Date &amp; Time</th>
-                      <th className="px-4 py-2.5">Payment Mode</th>
-                      {isAdmin && <th className="px-4 py-2.5">Billed By</th>}
-                      <th className="px-4 py-2.5 text-right">Amount</th>
-                      <th className="px-4 py-2.5 text-center">Action</th>
+                      <th className="px-4 py-2.5">{t("colInvoiceNo")}</th>
+                      <th className="px-4 py-2.5">{t("colCustomer")}</th>
+                      <th className="px-4 py-2.5">{t("colDateTime")}</th>
+                      <th className="px-4 py-2.5">{t("colPaymentMode")}</th>
+                      {isAdmin && <th className="px-4 py-2.5">{t("colBilledBy")}</th>}
+                      <th className="px-4 py-2.5 text-right">{t("colAmount")}</th>
+                      <th className="px-4 py-2.5 text-center">{t("colAction")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
@@ -1811,14 +1813,14 @@ export function SalesAnalyticsModal({
                               type="button"
                               onClick={() => handleViewInvoice(inv.id)}
                               className="font-mono font-bold text-pine-deep hover:underline text-left cursor-pointer"
-                              title="View Invoice"
+                              title={t("viewInvoiceBtn")}
                             >
                               {inv.invoiceNumber}
                             </button>
                           </td>
                           <td className="px-4 py-3">
                             <div className="font-semibold text-ink">
-                              {inv.customerName || "Walk-in Customer"}
+                              {inv.customerName || t("walkInCustomer")}
                             </div>
                             {inv.customerDetails && (
                               <div className="text-[11px] text-ink-soft truncate max-w-[200px]">
@@ -1842,7 +1844,7 @@ export function SalesAnalyticsModal({
                               ) : (
                                 <Banknote size={11} />
                               )}
-                              <span>{isOnline ? "Online (UPI)" : "Cash"}</span>
+                              <span>{isOnline ? t("onlineUpiLabel") : t("cashOfflineLabel")}</span>
                             </span>
                           </td>
                           {isAdmin && (
@@ -1860,9 +1862,9 @@ export function SalesAnalyticsModal({
                               type="button"
                               onClick={() => handleViewInvoice(inv.id)}
                               className="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 text-[11px] font-semibold text-ink-soft hover:bg-paper hover:text-ink transition-colors cursor-pointer"
-                              title="View Invoice"
+                              title={t("viewInvoiceBtn")}
                             >
-                              <span>View</span>
+                              <span>{t("viewInvoiceBtn")}</span>
                               <ExternalLink size={11} />
                             </button>
                           </td>
@@ -1880,14 +1882,14 @@ export function SalesAnalyticsModal({
         <div className="flex items-center justify-between border-t border-line bg-paper-flat px-5 py-3 text-xs">
           <div className="text-ink-soft">
             Showing <strong className="text-ink">{filteredInvoices.length}</strong> of{" "}
-            <strong className="text-ink">{summary.totalInvoices}</strong> invoice(s)
+            <strong className="text-ink">{summary.totalInvoices}</strong> {t("billsBadge")}
           </div>
           <button
             type="button"
             onClick={onClose}
             className="rounded-lg bg-pine px-4 py-2 font-semibold text-white shadow-xs hover:bg-pine-deep transition-all cursor-pointer"
           >
-            Close
+            {t("close")}
           </button>
         </div>
       </div>

@@ -407,7 +407,10 @@ export default function StockPage() {
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete the "${cat.name}" category?`)) {
+    const confirmCatMsg = language === "kn"
+      ? `"${cat.nameKn || cat.name}" ವರ್ಗವನ್ನು ಅಳಿಸಲು ನೀವು ಖಚಿತವಾಗಿ ಬಯಸುವಿರಾ?`
+      : `Are you sure you want to delete the "${cat.name}" category?`;
+    if (!confirm(confirmCatMsg)) {
       return;
     }
 
@@ -575,7 +578,10 @@ export default function StockPage() {
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete the "${sub.name}" subcategory?`)) {
+    const confirmSubMsg = language === "kn"
+      ? `"${sub.nameKn || sub.name}" ಉಪವರ್ಗವನ್ನು ಅಳಿಸಲು ನೀವು ಖಚಿತವಾಗಿ ಬಯಸುವಿರಾ?`
+      : `Are you sure you want to delete the "${sub.name}" subcategory?`;
+    if (!confirm(confirmSubMsg)) {
       return;
     }
 
@@ -737,7 +743,10 @@ export default function StockPage() {
   }
 
   async function removeItem(id: string) {
-    if (!confirm("Remove this item from stock?")) return;
+    const confirmRemoveMsg = language === "kn"
+      ? "ಈ ಸಸ್ಯ/ವಸ್ತುವನ್ನು ಸ್ಟಾಕ್‌ನಿಂದ ತೆಗೆದುಹಾಕಬೇಕೇ?"
+      : "Remove this item from stock?";
+    if (!confirm(confirmRemoveMsg)) return;
     setError("");
     try {
       const res = await fetch(`/api/stock/${id}`, { method: "DELETE" });

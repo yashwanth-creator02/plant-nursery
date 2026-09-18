@@ -4,6 +4,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X, Check, RotateCcw, PenTool, Type } from "lucide-react";
+import { useLanguage } from "@/lib/language-context";
 
 interface SignatureModalProps {
   open: boolean;
@@ -12,6 +13,7 @@ interface SignatureModalProps {
 }
 
 export function SignatureModal({ open, onClose, onSave }: SignatureModalProps) {
+  const { language, t } = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
@@ -116,13 +118,13 @@ export function SignatureModal({ open, onClose, onSave }: SignatureModalProps) {
           <div className="flex items-center gap-2">
             <PenTool size={18} className="text-pine" />
             <h3 className="font-serif text-base font-semibold text-ink">
-              Digital Signature
+              {t("signatureModalTitle")}
             </h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded p-1 text-ink-soft hover:bg-line/50 hover:text-ink"
+            className="rounded p-1 text-ink-soft hover:bg-line/50 hover:text-ink cursor-pointer"
             aria-label="Close"
           >
             <X size={16} />
@@ -134,26 +136,26 @@ export function SignatureModal({ open, onClose, onSave }: SignatureModalProps) {
           <button
             type="button"
             onClick={() => setMode("draw")}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded py-1.5 transition-all ${
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded py-1.5 transition-all cursor-pointer ${
               mode === "draw"
                 ? "bg-surface text-pine-deep font-semibold shadow-xs"
                 : "text-ink-soft hover:text-ink"
             }`}
           >
             <PenTool size={13} />
-            <span>Draw Signature</span>
+            <span>{t("tabDraw")}</span>
           </button>
           <button
             type="button"
             onClick={() => setMode("type")}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded py-1.5 transition-all ${
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded py-1.5 transition-all cursor-pointer ${
               mode === "type"
                 ? "bg-surface text-pine-deep font-semibold shadow-xs"
                 : "text-ink-soft hover:text-ink"
             }`}
           >
             <Type size={13} />
-            <span>Type Signature</span>
+            <span>{t("tabType")}</span>
           </button>
         </div>
 
@@ -175,31 +177,31 @@ export function SignatureModal({ open, onClose, onSave }: SignatureModalProps) {
               />
               {!hasDrawn && (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs text-[#1b365d]/40">
-                  Draw your signature here
+                  {language === "kn" ? "ನಿಮ್ಮ ಸಹಿಯನ್ನು ಇಲ್ಲಿ ಬರೆಯಿರಿ" : "Draw your signature here"}
                 </div>
               )}
             </div>
 
             <div className="mt-2 flex w-full justify-between text-xs text-ink-soft">
-              <span>Color: Blue Ink</span>
+              <span>{language === "kn" ? "ಬಣ್ಣ: ನೀಲಿ ಶಾಯಿ" : "Color: Blue Ink"}</span>
               <button
                 type="button"
                 onClick={clearCanvas}
-                className="flex items-center gap-1 text-rust hover:underline"
+                className="flex items-center gap-1 text-rust hover:underline cursor-pointer"
               >
-                <RotateCcw size={12} /> Clear
+                <RotateCcw size={12} /> {t("clearSignatureBtn")}
               </button>
             </div>
           </div>
         ) : (
           <div className="mt-4 space-y-3">
             <label className="flex flex-col gap-1 text-xs text-ink-soft">
-              <span>Signer Name</span>
+              <span>{language === "kn" ? "ಸಹಿ ಮಾಡುವವರ ಹೆಸರು" : "Signer Name"}</span>
               <input
                 type="text"
                 value={typedName}
                 onChange={(e) => setTypedName(e.target.value)}
-                placeholder="e.g. S. V. Lakshmi"
+                placeholder={t("typeSignaturePlaceholder")}
                 className="rounded-md border border-line-strong bg-surface px-3 py-2 text-sm outline-none focus:border-pine"
               />
             </label>
@@ -210,7 +212,7 @@ export function SignatureModal({ open, onClose, onSave }: SignatureModalProps) {
                   {typedName}
                 </div>
                 <div className="mt-1 text-[10px] tracking-widest text-[#1b365d]/60 uppercase">
-                  Digitally Signed
+                  {t("digitallySigned")}
                 </div>
               </div>
             )}
@@ -222,17 +224,17 @@ export function SignatureModal({ open, onClose, onSave }: SignatureModalProps) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-line px-3.5 py-1.5 text-xs font-medium text-ink-soft hover:bg-line/40"
+            className="rounded-md border border-line px-3.5 py-1.5 text-xs font-medium text-ink-soft hover:bg-line/40 cursor-pointer"
           >
-            Cancel
+            {t("cancel")}
           </button>
           <button
             type="button"
             onClick={handleSave}
             disabled={mode === "draw" ? !hasDrawn : !typedName.trim()}
-            className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-1.5 text-xs font-medium text-surface shadow-xs hover:opacity-90 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-1.5 text-xs font-medium text-surface shadow-xs hover:opacity-90 disabled:opacity-50 cursor-pointer"
           >
-            <Check size={14} /> Save Signature
+            <Check size={14} /> {t("saveSignatureBtn")}
           </button>
         </div>
       </div>

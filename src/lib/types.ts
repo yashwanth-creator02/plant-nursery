@@ -47,6 +47,7 @@ export type InvoiceLineItem = {
   key: string;
   stockItemId: string | null;
   name: string;
+  nameKn?: string | null;
   price: number;
   quantity: number;
   category?: "plants" | "non-plants" | string;

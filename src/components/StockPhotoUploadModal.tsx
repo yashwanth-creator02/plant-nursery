@@ -11,9 +11,11 @@ import {
   Sparkles,
   Loader2,
   Check,
+  Languages,
 } from "lucide-react";
 import { StockItem, GalleryStockItem } from "@/lib/types";
 import { useLanguage, translateItem, translateCategory } from "@/lib/language-context";
+import { translateOnTheFly } from "@/lib/translator";
 
 interface StockPhotoUploadModalProps {
   open: boolean;
@@ -36,6 +38,8 @@ export function StockPhotoUploadModal({
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string | null>(null);
   const [uploadDescription, setUploadDescription] = useState("");
+  const [uploadDescriptionKn, setUploadDescriptionKn] = useState("");
+  const [isTranslatingDesc, setIsTranslatingDesc] = useState(false);
   const [uploadIsPrimary, setUploadIsPrimary] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -67,9 +71,25 @@ export function StockPhotoUploadModal({
         setUploadPreviewUrl(null);
       }
       setUploadDescription("");
+      setUploadDescriptionKn("");
       setUploadIsPrimary(false);
     }
   }, [open, targetItemId, stockItems]);
+
+  const handleTranslateDesc = async () => {
+    if (!uploadDescription.trim()) return;
+    setIsTranslatingDesc(true);
+    try {
+      const translated = await translateOnTheFly(uploadDescription.trim(), "kn", "en");
+      if (translated) {
+        setUploadDescriptionKn(translated);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setIsTranslatingDesc(false);
+    }
+  };
 
   const searchableStockItems = useMemo(() => {
     if (!itemSearchQuery.trim()) return stockItems;
@@ -180,6 +200,9 @@ export function StockPhotoUploadModal({
       formData.append("stockItemId", uploadTargetItemId);
       if (uploadDescription.trim()) {
         formData.append("description", uploadDescription.trim());
+      }
+      if (uploadDescriptionKn.trim()) {
+        formData.append("descriptionKn", uploadDescriptionKn.trim());
       }
       if (uploadIsPrimary) {
         formData.append("isPrimary", "true");
@@ -453,21 +476,57 @@ export function StockPhotoUploadModal({
           </div>
 
           {/* 3. Optional Photo Description */}
-          <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-ink">
-              {language === "kn" ? "ಫೋಟೋ ವಿವರಣೆ (ಐಚ್ಛಿಕ)" : "Photo Description (Optional)"}
-            </label>
-            <textarea
-              value={uploadDescription}
-              onChange={(e) => setUploadDescription(e.target.value)}
-              rows={2}
-              placeholder={
-                language === "kn"
-                  ? "ಉದಾ. 8-ಇಂಚಿನ ನರ್ಸರಿ ಚೀಲದಲ್ಲಿ ಕಸಿ ಮಾಡಿದ ತಳಿ, ಹೂವು ಬಿಡುವ ಸ್ಥಿತಿ..."
-                  : "e.g. Grafted variety in 8-inch nursery bag, blossom state, healthy leaf growth..."
-              }
-              className="w-full rounded-lg border border-line bg-paper p-2.5 text-xs text-ink placeholder-ink-soft/60 focus:border-pine focus:outline-none"
-            />
+          <div className="space-y-3">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-ink">
+                  {language === "kn" ? "ಫೋಟೋ ವಿವರಣೆ (ಇಂಗ್ಲಿಷ್ - ಐಚ್ಛಿಕ)" : "Photo Description (English - Optional)"}
+                </label>
+                {uploadDescription.trim() && (
+                  <button
+                    type="button"
+                    onClick={handleTranslateDesc}
+                    disabled={isTranslatingDesc}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-pine-deep hover:underline cursor-pointer disabled:opacity-50"
+                  >
+                    {isTranslatingDesc ? (
+                      <Loader2 size={11} className="animate-spin" />
+                    ) : (
+                      <Languages size={11} />
+                    )}
+                    <span>{isTranslatingDesc ? (language === "kn" ? "ಅನುವಾದಿಸಲಾಗುತ್ತಿದೆ..." : "Translating...") : (language === "kn" ? "ಕನ್ನಡಕ್ಕೆ ಅನುವಾದಿಸಿ" : "Translate to Kannada")}</span>
+                  </button>
+                )}
+              </div>
+              <textarea
+                value={uploadDescription}
+                onChange={(e) => setUploadDescription(e.target.value)}
+                rows={2}
+                placeholder={
+                  language === "kn"
+                    ? "ಉದಾ. 8-ಇಂಚಿನ ನರ್ಸರಿ ಚೀಲದಲ್ಲಿ ಕಸಿ ಮಾಡಿದ ತಳಿ, ಹೂವು ಬಿಡುವ ಸ್ಥಿತಿ..."
+                    : "e.g. Grafted variety in 8-inch nursery bag, blossom state, healthy leaf growth..."
+                }
+                className="w-full rounded-lg border border-line bg-paper p-2.5 text-xs text-ink placeholder-ink-soft/60 focus:border-pine focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-ink">
+                {language === "kn" ? "ಫೋಟೋ ವಿವರಣೆ (ಕನ್ನಡ - ಐಚ್ಛಿಕ)" : "Photo Description (Kannada - Optional)"}
+              </label>
+              <textarea
+                value={uploadDescriptionKn}
+                onChange={(e) => setUploadDescriptionKn(e.target.value)}
+                rows={2}
+                placeholder={
+                  language === "kn"
+                    ? "ಕನ್ನಡ ವಿವರಣೆ (ಉದಾ. 8-ಇಂಚಿನ ಚೀಲದಲ್ಲಿ ಕಸಿ ಮಾಡಿದ ಗಿಡ)..."
+                    : "Kannada description (e.g. 8-ಇಂಚಿನ ಚೀಲದಲ್ಲಿ ಕಸಿ ಮಾಡಿದ ಗಿಡ)..."
+                }
+                className="w-full rounded-lg border border-line bg-paper p-2.5 text-xs text-ink placeholder-ink-soft/60 focus:border-pine focus:outline-none"
+              />
+            </div>
           </div>
 
           {/* 4. Primary Cover Checkbox */}

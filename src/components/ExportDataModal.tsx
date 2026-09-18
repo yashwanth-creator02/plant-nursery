@@ -18,6 +18,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import JSZip from "jszip";
+import { useLanguage } from "@/lib/language-context";
 
 interface ExportDataModalProps {
   open: boolean;
@@ -92,6 +93,7 @@ async function writeToDir(
 }
 
 export function ExportDataModal({ open, onClose }: ExportDataModalProps) {
+  const { language, t } = useLanguage();
   const [data, setData] = useState<ExportDataPayload | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState<string>("");
@@ -382,10 +384,12 @@ export function ExportDataModal({ open, onClose }: ExportDataModalProps) {
             </div>
             <div>
               <h3 className="font-serif text-base font-semibold text-ink">
-                Export All Nursery Data
+                {t("exportDataModalTitle")}
               </h3>
               <p className="text-[11px] text-ink-soft">
-                Full backup into a structured folder named after the website
+                {language === "kn"
+                  ? "ವೆಬ್‌ಸೈಟ್ ಹೆಸರಿನ ರಚನಾತ್ಮಕ ಫೋಲ್ಡರ್‌ನಲ್ಲಿ ಸಂಪೂರ್ಣ ಬ್ಯಾಕಪ್"
+                  : "Full backup into a structured folder named after the website"}
               </p>
             </div>
           </div>
@@ -410,7 +414,7 @@ export function ExportDataModal({ open, onClose }: ExportDataModalProps) {
         {loadingData ? (
           <div className="py-12 text-center text-xs text-ink-soft flex flex-col items-center gap-3">
             <Loader2 size={24} className="animate-spin text-pine" />
-            <span>Connecting to database and compiling data manifest…</span>
+            <span>{language === "kn" ? "ಡೇಟಾಬೇಸ್‌ಗೆ ಸಂಪರ್ಕಿಸಲಾಗುತ್ತಿದೆ..." : "Connecting to database and compiling data manifest…"}</span>
           </div>
         ) : completedInfo ? (
           /* Success Screen */
@@ -419,21 +423,21 @@ export function ExportDataModal({ open, onClose }: ExportDataModalProps) {
               <CheckCircle2 size={28} />
             </div>
             <h4 className="font-serif text-base font-bold text-ink">
-              Data Successfully Exported!
+              {language === "kn" ? "ಡೇಟಾ ಯಶಸ್ವಿಯಾಗಿ ರಫ್ತಾಗಿದೆ!" : "Data Successfully Exported!"}
             </h4>
             <p className="mt-1 text-xs text-ink-soft">
               {completedInfo.method === "folder"
-                ? `Created folder "${completedInfo.folderName}" in your chosen destination.`
-                : `Archive "${completedInfo.folderName}_backup.zip" downloaded.`}
+                ? (language === "kn" ? `ನಿಮ್ಮ ಆಯ್ಕೆಯ ಸ್ಥಳದಲ್ಲಿ "${completedInfo.folderName}" ಫೋಲ್ಡರ್ ರಚಿಸಲಾಗಿದೆ.` : `Created folder "${completedInfo.folderName}" in your chosen destination.`)
+                : (language === "kn" ? `"${completedInfo.folderName}_backup.zip" ಆರ್ಕೈವ್ ಡೌನ್‌ಲೋಡ್ ಆಗಿದೆ.` : `Archive "${completedInfo.folderName}_backup.zip" downloaded.`)}
             </p>
 
             <div className="mt-4 inline-flex items-center gap-3 rounded-lg border border-line bg-paper-flat px-4 py-2.5 text-xs text-ink-soft">
               <div>
-                <strong className="font-semibold text-ink">{completedInfo.fileCount}</strong> Total Files
+                <strong className="font-semibold text-ink">{completedInfo.fileCount}</strong> {language === "kn" ? "ಒಟ್ಟು ಫೈಲ್‌ಗಳು" : "Total Files"}
               </div>
               <span>•</span>
               <div>
-                <strong className="font-semibold text-ink">{completedInfo.imageCount}</strong> Photos &amp; Signatures
+                <strong className="font-semibold text-ink">{completedInfo.imageCount}</strong> {language === "kn" ? "ಫೋಟೋಗಳು ಮತ್ತು ಸಹಿಗಳು" : "Photos & Signatures"}
               </div>
             </div>
 
@@ -443,7 +447,7 @@ export function ExportDataModal({ open, onClose }: ExportDataModalProps) {
                 onClick={onClose}
                 className="rounded-md bg-pine px-6 py-2 text-xs font-semibold text-surface shadow-xs hover:bg-pine-deep cursor-pointer"
               >
-                Close Window
+                {t("close")}
               </button>
             </div>
           </div>
@@ -454,22 +458,24 @@ export function ExportDataModal({ open, onClose }: ExportDataModalProps) {
             <div className="rounded-lg border border-pine/30 bg-pine-tint/30 p-3.5">
               <div className="flex items-center gap-2 text-xs font-semibold text-pine-deep">
                 <FolderOpen size={15} />
-                <span>Destination Folder Name</span>
+                <span>{language === "kn" ? "ಗಮ್ಯಸ್ಥಾನ ಫೋಲ್ಡರ್ ಹೆಸರು" : "Destination Folder Name"}</span>
               </div>
               <div className="mt-1 font-mono text-sm font-bold text-ink">
                 /{data?.websiteFolderName || "Sri_Vijaya_Lakshmi_Nursery"}/
               </div>
               <p className="mt-1 text-[11px] text-ink-soft leading-relaxed">
-                All data, images, invoices, and spreadsheets will be accurately structured inside this root folder.
+                {language === "kn"
+                  ? "ಎಲ್ಲಾ ಡೇಟಾ, ಚಿತ್ರಗಳು, ಇನ್‌ವಾಯ್ಸ್‌ಗಳು ಮತ್ತು ಸ್ಪ್ರೆಡ್‌ಶೀಟ್‌ಗಳನ್ನು ಈ ರೂಟ್ ಫೋಲ್ಡರ್‌ನಲ್ಲಿ ರಚಿಸಲಾಗುತ್ತದೆ."
+                  : "All data, images, invoices, and spreadsheets will be accurately structured inside this root folder."}
               </p>
             </div>
 
             {/* Folder Hierarchy Preview */}
             <div className="rounded-lg border border-line bg-paper-flat p-3 text-xs">
               <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-soft flex items-center justify-between">
-                <span>Included Nested Structure</span>
+                <span>{language === "kn" ? "ಫೋಲ್ಡರ್ ರಚನೆ" : "Included Nested Structure"}</span>
                 <span className="font-mono text-[10px] bg-surface border border-line px-1.5 py-0.5 rounded">
-                  {data?.manifest.stats.totalInvoices ?? 0} bills • {data?.manifest.stats.totalStockItems ?? 0} stock
+                  {data?.manifest.stats.totalInvoices ?? 0} {t("billsBadge")} • {data?.manifest.stats.totalStockItems ?? 0} stock
                 </span>
               </div>
 
@@ -531,13 +537,15 @@ export function ExportDataModal({ open, onClose }: ExportDataModalProps) {
                       <HardDrive size={16} />
                       <div className="text-left">
                         <div className="font-bold flex items-center gap-1.5">
-                          <span>Select Destination Folder &amp; Save</span>
+                          <span>{language === "kn" ? "ಗಮ್ಯಸ್ಥಾನ ಫೋಲ್ಡರ್ ಆಯ್ಕೆಮಾಡಿ ಮತ್ತು ಉಳಿಸಿ" : "Select Destination Folder & Save"}</span>
                           <span className="rounded bg-white/20 px-1 py-0.2 text-[10px] uppercase font-bold">
                             Direct
                           </span>
                         </div>
                         <div className="text-[11px] text-white/80 font-normal">
-                          Picks a local folder &amp; creates &ldquo;{data?.websiteFolderName}&rdquo; inside it
+                          {language === "kn"
+                            ? `ಫೋಲ್ಡರ್ ಆಯ್ಕೆಮಾಡಿ ಅದರಲ್ಲಿ "${data?.websiteFolderName}" ರಚಿಸುತ್ತದೆ`
+                            : `Picks a local folder & creates “${data?.websiteFolderName}” inside it`}
                         </div>
                       </div>
                     </div>
@@ -558,9 +566,11 @@ export function ExportDataModal({ open, onClose }: ExportDataModalProps) {
                   <div className="flex items-center gap-2.5">
                     <Download size={15} />
                     <div className="text-left">
-                      <div className="font-semibold">Download as ZIP Archive (.zip)</div>
+                      <div className="font-semibold">{t("exportZipBtn")}</div>
                       <div className="text-[11px] text-ink-soft font-normal">
-                        Contains &ldquo;{data?.websiteFolderName}/&rdquo; with all nested folders
+                        {language === "kn"
+                          ? `ಎಲ್ಲಾ ನೆಸ್ಟೆಡ್ ಫೋಲ್ಡರ್‌ಗಳೊಂದಿಗೆ "${data?.websiteFolderName}/" ಒಳಗೊಂಡಿದೆ`
+                          : `Contains “${data?.websiteFolderName}/” with all nested folders`}
                       </div>
                     </div>
                   </div>

@@ -204,7 +204,10 @@ export function StockItemDetailModal({
 
   const handleDeleteImage = async () => {
     if (!currentImage) return;
-    if (!confirm("Are you sure you want to delete this photo? This cannot be undone.")) {
+    const confirmDeletePhotoMsg = language === "kn"
+      ? "ಈ ಫೋಟೋವನ್ನು ಅಳಿಸಲು ನೀವು ಖಚಿತವಾಗಿ ಬಯಸುವಿರಾ? ಇದನ್ನು ಹಿಂತಿರುಗಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ."
+      : "Are you sure you want to delete this photo? This cannot be undone.";
+    if (!confirm(confirmDeletePhotoMsg)) {
       return;
     }
 

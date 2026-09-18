@@ -25,6 +25,7 @@ import {
   Tag,
   Percent,
   IndianRupee,
+  Languages,
 } from "lucide-react";
 import {
   formatMoney,
@@ -38,6 +39,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useLanguage, Language } from "@/lib/language-context";
 import { PreviewLanguageToggle } from "./LanguageToggle";
 import { numberToKannadaWords } from "@/lib/plant-translations";
+import { translateOnTheFly } from "@/lib/translator";
 
 const DEFAULT_HEADER = {
   businessName: "SRI VIJAYA LAKSHMI NURSERY",
@@ -155,6 +157,8 @@ export function InvoiceEditor({
   const qtyInputRef = useRef<HTMLInputElement>(null);
   const [customMode, setCustomMode] = useState(false);
   const [customName, setCustomName] = useState("");
+  const [customNameKn, setCustomNameKn] = useState("");
+  const [isTranslatingCustom, setIsTranslatingCustom] = useState(false);
   const [customPrice, setCustomPrice] = useState("");
   const [customQty, setCustomQty] = useState("1");
   const [customCategory, setCustomCategory] = useState<"plants" | "non-plants">("plants");
@@ -262,6 +266,7 @@ export function InvoiceEditor({
               setItems(parsed.items);
             }
             if (parsed.customName !== undefined) setCustomName(parsed.customName);
+            if (parsed.customNameKn !== undefined) setCustomNameKn(parsed.customNameKn);
             if (parsed.customPrice !== undefined) setCustomPrice(parsed.customPrice);
             if (parsed.customQty !== undefined) setCustomQty(parsed.customQty);
             if (parsed.customMode !== undefined) setCustomMode(parsed.customMode);
@@ -293,6 +298,7 @@ export function InvoiceEditor({
       Boolean(notes.trim()) ||
       items.length > 0 ||
       Boolean(customName.trim()) ||
+      Boolean(customNameKn.trim()) ||
       Boolean(customPrice.trim());
 
     if (hasContent) {
@@ -309,6 +315,7 @@ export function InvoiceEditor({
             isSigned,
             items,
             customName,
+            customNameKn,
             customPrice,
             customQty,
             customMode,
@@ -329,6 +336,7 @@ export function InvoiceEditor({
     isSigned,
     items,
     customName,
+    customNameKn,
     customPrice,
     customQty,
     customMode,
@@ -533,8 +541,13 @@ export function InvoiceEditor({
     const totalRequested = currentQtyInBill + qty;
 
     if (!force) {
+      const displayName = language === "kn" ? (stockItem.nameKn || translateItem(stockItem.name, "kn")) : stockItem.name;
       if (stockItem.quantity <= 0) {
-        setError(`Insufficient stock for "${stockItem.name}": Out of stock (0 available). Click "Force Add" to add anyway.`);
+        setError(
+          language === "kn"
+            ? `"${displayName}" ಗೆ ಸಾಕಷ್ಟು ದಾಸ್ತಾನು ಇಲ್ಲ: ದಾಸ್ತಾನು ಖಾಲಿಯಾಗಿದೆ (0 ಲಭ್ಯವಿದೆ). ಹಾಗಿದ್ದರೂ ಸೇರಿಸಲು "ಬಲವಂತವಾಗಿ ಸೇರಿಸಿ" ಕ್ಲಿಕ್ ಮಾಡಿ.`
+            : `Insufficient stock for "${stockItem.name}": Out of stock (0 available). Click "Force Add" to add anyway.`
+        );
         setPendingShortage({
           stockItemId: stockItem.id,
           name: stockItem.name,
@@ -545,7 +558,9 @@ export function InvoiceEditor({
       }
       if (totalRequested > stockItem.quantity) {
         setError(
-          `Insufficient stock for "${stockItem.name}": Total requested quantity (${totalRequested}) exceeds available stock (${stockItem.quantity}). Click "Force Add" to add anyway.`
+          language === "kn"
+            ? `"${displayName}" ಗೆ ಸಾಕಷ್ಟು ದಾಸ್ತಾನು ಇಲ್ಲ: ಒಟ್ಟು ಕೋರಿದ ಪ್ರಮಾಣ (${totalRequested}) ಲಭ್ಯವಿರುವ ದಾಸ್ತಾನನ್ನು (${stockItem.quantity}) ಮೀರಿದೆ. ಹಾಗಿದ್ದರೂ ಸೇರಿಸಲು "ಬಲವಂತವಾಗಿ ಸೇರಿಸಿ" ಕ್ಲಿಕ್ ಮಾಡಿ.`
+            : `Insufficient stock for "${stockItem.name}": Total requested quantity (${totalRequested}) exceeds available stock (${stockItem.quantity}). Click "Force Add" to add anyway.`
         );
         setPendingShortage({
           stockItemId: stockItem.id,
@@ -560,7 +575,10 @@ export function InvoiceEditor({
     setError(""); // Clear error on valid or forced addition
     setPendingShortage(null);
     if (existingInBill) {
-      updateItem(existingInBill.key, { quantity: totalRequested });
+      updateItem(existingInBill.key, {
+        quantity: totalRequested,
+        nameKn: existingInBill.nameKn || stockItem.nameKn || null,
+      });
     } else {
       setItems((prev) => [
         ...prev,
@@ -568,6 +586,7 @@ export function InvoiceEditor({
           key: newKey(),
           stockItemId: stockItem.id,
           name: stockItem.name,
+          nameKn: stockItem.nameKn || null,
           price: Number(stockItem.price) || 0,
           quantity: qty,
           category: stockItem.category || "plants",
@@ -580,6 +599,7 @@ export function InvoiceEditor({
 
   function addCustomItem() {
     const name = customName.trim() || "Item";
+    const nameKn = customNameKn.trim() || null;
     const price = customPrice === "" ? 0 : Math.max(0, Number(customPrice) || 0);
     const quantity = customQty === "" ? 1 : Math.max(0, Number(customQty) || 1);
     setItems((prev) => [
@@ -588,12 +608,14 @@ export function InvoiceEditor({
         key: newKey(),
         stockItemId: null,
         name,
+        nameKn,
         price,
         quantity,
         category: customCategory,
       },
     ]);
     setCustomName("");
+    setCustomNameKn("");
     setCustomPrice("");
     setCustomQty("1");
     setCustomCategory("plants");
@@ -607,9 +629,12 @@ export function InvoiceEditor({
         const updated = { ...i, ...patch };
         if (updated.stockItemId && patch.quantity !== undefined) {
           const s = stock.find((st) => st.id === updated.stockItemId);
+          const displayName = language === "kn" ? (updated.nameKn || s?.nameKn || translateItem(updated.name, "kn")) : updated.name;
           if (s && updated.quantity > s.quantity) {
             setError(
-              `Notice: Quantity for "${updated.name}" (${updated.quantity}) exceeds available stock (${s.quantity}).`
+              language === "kn"
+                ? `ಸೂಚನೆ: "${displayName}" ಪ್ರಮಾಣವು (${updated.quantity}) ಲಭ್ಯವಿರುವ ದಾಸ್ತಾನನ್ನು (${s.quantity}) ಮೀರಿದೆ.`
+                : `Notice: Quantity for "${updated.name}" (${updated.quantity}) exceeds available stock (${s.quantity}).`
             );
           } else if (s && updated.quantity <= s.quantity) {
             setError("");
@@ -1031,19 +1056,58 @@ export function InvoiceEditor({
                 </div>
               ) : (
                 <div className="flex flex-col gap-2.5">
-                  <label className="flex flex-col gap-1 w-full">
-                    <span className="text-xs font-medium text-ink">{t("customNameLabel")}</span>
-                    <input
-                      value={customName}
-                      onChange={(e) => setCustomName(e.target.value)}
-                      placeholder={t("customerNamePlaceholder")}
-                      className="w-full rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine h-[38px]"
-                    />
-                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <label className="flex flex-col gap-1 w-full">
+                      <span className="text-xs font-medium text-ink">{t("customNameLabel")} (English)</span>
+                      <input
+                        value={customName}
+                        onChange={(e) => setCustomName(e.target.value)}
+                        placeholder="e.g. Mango Grafted Plant / Red Soil Bag"
+                        className="w-full rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine h-[38px]"
+                      />
+                    </label>
+
+                    <div className="flex flex-col gap-1 w-full">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-ink">{t("customItemKannadaNameLabel")}</span>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!customName.trim()) return;
+                            setIsTranslatingCustom(true);
+                            try {
+                              const res = await translateOnTheFly(customName.trim(), "kn", "en");
+                              if (res) setCustomNameKn(res);
+                            } finally {
+                              setIsTranslatingCustom(false);
+                            }
+                          }}
+                          disabled={isTranslatingCustom || !customName.trim()}
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-pine hover:text-pine-deep disabled:opacity-40 cursor-pointer"
+                          title="Translate English name to Kannada"
+                        >
+                          {isTranslatingCustom ? (
+                            <Loader2 size={11} className="animate-spin" />
+                          ) : (
+                            <Languages size={11} />
+                          )}
+                          <span>{isTranslatingCustom ? t("translating") : (language === "kn" ? "ಅನುವಾದಿಸು 🔄" : "Translate 🔄")}</span>
+                        </button>
+                      </div>
+                      <input
+                        value={customNameKn}
+                        onChange={(e) => setCustomNameKn(e.target.value)}
+                        placeholder="ಉದಾ: ಮಾವಿನ ಕಸಿ ಗಿಡ / ಕೆಂಪು ಮಣ್ಣಿನ ಚೀಲ"
+                        className="w-full rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine h-[38px]"
+                      />
+                    </div>
+                  </div>
 
                   {/* Item Tax Category Selector */}
                   <div className="flex items-center gap-2 pt-0.5">
-                    <span className="text-xs font-semibold text-ink-soft">Type:</span>
+                    <span className="text-xs font-semibold text-ink-soft">
+                      {language === "kn" ? "ವರ್ಗ:" : "Type:"}
+                    </span>
                     <button
                       type="button"
                       onClick={() => setCustomCategory("plants")}
@@ -1053,7 +1117,7 @@ export function InvoiceEditor({
                           : "bg-surface text-ink-soft border-line hover:bg-line/40"
                       }`}
                     >
-                      🌱 Plant (0% GST)
+                      {t("customItemTypePlant")}
                     </button>
                     <button
                       type="button"
@@ -1064,7 +1128,7 @@ export function InvoiceEditor({
                           : "bg-surface text-ink-soft border-line hover:bg-line/40"
                       }`}
                     >
-                      📦 Non-Plant (Taxable)
+                      {t("customItemTypeNonPlant")}
                     </button>
                   </div>
 
@@ -1130,7 +1194,9 @@ export function InvoiceEditor({
                           </span>
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-semibold text-ink break-words leading-tight">
-                              {translateItem(item.name, language)}
+                              {language === "kn"
+                                ? (item.nameKn || stock.find((s) => s.id === item.stockItemId)?.nameKn || translateItem(item.name, "kn"))
+                                : item.name}
                             </div>
                             <div className="text-xs text-ink-soft mt-1">
                               ₹ {formatMoney(item.price)} × {item.quantity} = <strong className="font-mono font-bold text-pine-deep text-sm">₹ {formatMoney(item.price * item.quantity)}</strong>
@@ -1223,7 +1289,11 @@ export function InvoiceEditor({
                           </td>
                           <td className="py-2 px-3 font-medium text-ink">
                             <div className="flex items-center gap-2">
-                              <span>{translateItem(item.name, language)}</span>
+                              <span>
+                                {language === "kn"
+                                  ? (item.nameKn || stock.find((s) => s.id === item.stockItemId)?.nameKn || translateItem(item.name, "kn"))
+                                  : item.name}
+                              </span>
                               <button
                                 type="button"
                                 onClick={() =>
@@ -1814,7 +1884,9 @@ export function InvoiceEditor({
                       {/* Particulars */}
                       <div className="py-1.5 px-2 font-medium flex items-center justify-between">
                         <span className="truncate pr-1">
-                          {translateItem(item.name, billLanguage)}
+                          {billLanguage === "kn"
+                            ? (item.nameKn || stock.find((s) => s.id === item.stockItemId)?.nameKn || translateItem(item.name, "kn"))
+                            : item.name}
                         </span>
                         {status !== "final" && (
                           <button
