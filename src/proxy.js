@@ -51,8 +51,9 @@ export function proxy(request) {
     }
   }
 
-  // 4. Redirect to localized URL: e.g. /stock -> /en/stock or /kn/stock
-  const redirectUrl = new URL(`/${targetLocale}${pathname}${search}`, request.url);
+  // 4. Redirect to localized URL: e.g. / -> /en, /stock -> /en/stock or /kn/stock
+  const redirectPath = pathname === "/" ? `/${targetLocale}` : `/${targetLocale}${pathname}`;
+  const redirectUrl = new URL(`${redirectPath}${search}`, request.url);
   const response = NextResponse.redirect(redirectUrl);
   response.cookies.set("svl_language", targetLocale, {
     path: "/",

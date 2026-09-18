@@ -30,7 +30,7 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || (language === "kn" ? "ಸೈನ್ ಇನ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ" : "Couldn't sign in"));
       await refresh();
-      router.replace("/invoice");
+      router.replace(`/${language}/invoice`);
     } catch (err) {
       setError(err instanceof Error ? err.message : (language === "kn" ? "ಸೈನ್ ಇನ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ" : "Couldn't sign in"));
     } finally {
