@@ -137,6 +137,8 @@ export function Sidebar({
             {user?.username?.slice(0, 1).toUpperCase()}
           </button>
 
+          <CompactLanguageToggle />
+
           <button
             type="button"
             onClick={() => setThemeMode(!isDark)}
@@ -228,9 +230,6 @@ export function Sidebar({
                 <path d="M 128 88 C 117 68, 120 48, 128 34 C 136 48, 139 68, 128 88 Z" fill="#bbf7d0" />
               </svg>
 
-              {/* Compact Language Toggle for collapsed view */}
-              <CompactLanguageToggle />
-
               {onToggleCollapse && (
                 <button
                   type="button"
@@ -314,17 +313,14 @@ export function Sidebar({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <LanguageToggle size="sm" />
-                  <button
-                    type="button"
-                    onClick={onMobileClose}
-                    className="rounded p-1.5 text-ink-soft hover:bg-line/60 hover:text-ink cursor-pointer"
-                    aria-label="Close menu"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={onMobileClose}
+                  className="rounded p-1.5 text-ink-soft hover:bg-line/60 hover:text-ink cursor-pointer shrink-0"
+                  aria-label="Close menu"
+                >
+                  <X size={18} />
+                </button>
               </div>
               {renderNavLinks(true)}
             </div>

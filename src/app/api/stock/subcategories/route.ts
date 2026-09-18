@@ -17,12 +17,14 @@ function slugify(text: string): string {
 
 const createSubcategorySchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(60, "Name is too long"),
+  nameKn: z.string().trim().max(100).optional().nullable(),
   category: z.string().trim().min(1, "Category is required"),
 });
 
 const updateSubcategorySchema = z.object({
   id: z.string().uuid("Invalid ID"),
   name: z.string().trim().min(1, "Name is required").max(60, "Name is too long"),
+  nameKn: z.string().trim().max(100).optional().nullable(),
 });
 
 export async function GET(req: NextRequest) {
@@ -55,7 +57,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { name, category } = parsed.data;
+    const { name, nameKn, category } = parsed.data;
     const slug = slugify(name);
 
     // Check if duplicate slug or name exists for this category
@@ -81,6 +83,7 @@ export async function POST(req: NextRequest) {
       .values({
         category,
         name,
+        nameKn: nameKn || null,
         slug,
       })
       .returning();
@@ -102,7 +105,7 @@ export async function PATCH(req: NextRequest) {
         { status: 400 }
       );
     }
-    const { id, name } = parsed.data;
+    const { id, name, nameKn } = parsed.data;
 
     const [existing] = await db
       .select()
@@ -113,9 +116,14 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Subcategory not found" }, { status: 404 });
     }
 
+    const updateData: { name: string; nameKn?: string | null } = { name };
+    if (nameKn !== undefined) {
+      updateData.nameKn = nameKn || null;
+    }
+
     const [updated] = await db
       .update(stockSubcategories)
-      .set({ name })
+      .set(updateData)
       .where(eq(stockSubcategories.id, id))
       .returning();
 

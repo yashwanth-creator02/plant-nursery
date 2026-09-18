@@ -29,6 +29,7 @@ export type GalleryStockItem = StockItem & {
 export type StockCategory = {
   id: string;
   name: string;
+  nameKn?: string | null;
   slug: string;
   createdAt?: string;
 };
@@ -37,6 +38,7 @@ export type StockSubcategory = {
   id: string;
   category: string;
   name: string;
+  nameKn?: string | null;
   slug: string;
   createdAt?: string;
 };

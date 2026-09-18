@@ -26,6 +26,7 @@ import {
   Loader2,
   AlertCircle,
   Image as ImageIcon,
+  Languages,
 } from "lucide-react";
 import { formatMoney, StockItem, StockCategory, StockSubcategory, GalleryStockItem } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
@@ -37,26 +38,27 @@ import {
   translateSubcategory,
   translateUnit,
 } from "@/lib/language-context";
+import { translateOnTheFly } from "@/lib/translator";
 
 const DEFAULT_CATEGORIES: StockCategory[] = [
-  { id: "plants", name: "Plants", slug: "plants" },
-  { id: "non-plants", name: "Non-Plants", slug: "non-plants" },
+  { id: "plants", name: "Plants", nameKn: "ಗಿಡಗಳು", slug: "plants" },
+  { id: "non-plants", name: "Non-Plants", nameKn: "ಇತರ ವಸ್ತುಗಳು", slug: "non-plants" },
 ];
 
 const DEFAULT_PLANT_SUBS: StockSubcategory[] = [
-  { id: "fruit", category: "plants", name: "Fruit Plants", slug: "fruit" },
-  { id: "flower", category: "plants", name: "Flower Plants", slug: "flower" },
-  { id: "ornamental", category: "plants", name: "Ornamental Plants", slug: "ornamental" },
-  { id: "medicinal", category: "plants", name: "Medicinal Plants", slug: "medicinal" },
-  { id: "other", category: "plants", name: "Other Plants", slug: "other" },
+  { id: "fruit", category: "plants", name: "Fruit Plants", nameKn: "ಹಣ್ಣಿನ ಗಿಡಗಳು", slug: "fruit" },
+  { id: "flower", category: "plants", name: "Flower Plants", nameKn: "ಹೂವಿನ ಗಿಡಗಳು", slug: "flower" },
+  { id: "ornamental", category: "plants", name: "Ornamental Plants", nameKn: "ಅಲಂಕಾರಿಕ ಗಿಡಗಳು", slug: "ornamental" },
+  { id: "medicinal", category: "plants", name: "Medicinal Plants", nameKn: "ಔಷಧೀಯ ಗಿಡಗಳು", slug: "medicinal" },
+  { id: "other", category: "plants", name: "Other Plants", nameKn: "ಇತರ ಗಿಡಗಳು", slug: "other" },
 ];
 
 const DEFAULT_NON_PLANT_SUBS: StockSubcategory[] = [
-  { id: "pots", category: "non-plants", name: "Pots & Planters", slug: "pots" },
-  { id: "fertilizers", category: "non-plants", name: "Fertilizers & Manure", slug: "fertilizers" },
-  { id: "soil", category: "non-plants", name: "Soil & Substrates", slug: "soil" },
-  { id: "tools", category: "non-plants", name: "Gardening Tools", slug: "tools" },
-  { id: "general", category: "non-plants", name: "General Supplies", slug: "general" },
+  { id: "pots", category: "non-plants", name: "Pots & Planters", nameKn: "ಕುಂಡಗಳು", slug: "pots" },
+  { id: "fertilizers", category: "non-plants", name: "Fertilizers & Manure", nameKn: "ಗೊಬ್ಬರಗಳು", slug: "fertilizers" },
+  { id: "soil", category: "non-plants", name: "Soil & Substrates", nameKn: "ಮಣ್ಣು ಮತ್ತು ಮಿಶ್ರಣ", slug: "soil" },
+  { id: "tools", category: "non-plants", name: "Gardening Tools", nameKn: "ತೋಟಗಾರಿಕೆ ಉಪಕರಣಗಳು", slug: "tools" },
+  { id: "general", category: "non-plants", name: "General Supplies", nameKn: "ಸಾಮಾನ್ಯ ಸಾಮಗ್ರಿಗಳು", slug: "general" },
 ];
 
 function getSubcategoryIcon(slug: string, category: string) {
@@ -112,17 +114,25 @@ export default function StockPage() {
   // Major Category Edit & Add States
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState("");
+  const [editingCategoryNameKn, setEditingCategoryNameKn] = useState("");
+  const [translatingCategory, setTranslatingCategory] = useState(false);
   const [savingCategory, setSavingCategory] = useState(false);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryNameKn, setNewCategoryNameKn] = useState("");
+  const [translatingNewCategory, setTranslatingNewCategory] = useState(false);
   const [savingNewCategory, setSavingNewCategory] = useState(false);
 
   // Subcategory Edit & Add States
   const [editingSubId, setEditingSubId] = useState<string | null>(null);
   const [editingSubName, setEditingSubName] = useState("");
+  const [editingSubNameKn, setEditingSubNameKn] = useState("");
+  const [translatingEditSub, setTranslatingEditSub] = useState(false);
   const [savingEditSub, setSavingEditSub] = useState(false);
   const [isAddingSub, setIsAddingSub] = useState<string | null>(null);
   const [newSubName, setNewSubName] = useState("");
+  const [newSubNameKn, setNewSubNameKn] = useState("");
+  const [translatingNewSub, setTranslatingNewSub] = useState(false);
   const [savingSub, setSavingSub] = useState(false);
 
   // Reassignment Modal State
@@ -144,6 +154,8 @@ export default function StockPage() {
 
   // Add Item Form States
   const [name, setName] = useState("");
+  const [nameKn, setNameKn] = useState("");
+  const [translatingItemName, setTranslatingItemName] = useState(false);
   const [unit, setUnit] = useState("pcs");
   const [price, setPrice] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -286,15 +298,26 @@ export default function StockPage() {
   async function handleCreateCategory(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = newCategoryName.trim();
-    if (!trimmed) return;
+    const trimmedKn = newCategoryNameKn.trim();
+    if (!trimmed && !trimmedKn) return;
 
     setSavingNewCategory(true);
     setCategoryError("");
     try {
+      let knName = trimmedKn;
+      if (!knName && trimmed) {
+        try {
+          knName = await translateOnTheFly(trimmed, "kn", "en");
+        } catch {}
+      }
+
       const res = await fetch("/api/stock/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed }),
+        body: JSON.stringify({
+          name: trimmed || knName,
+          nameKn: knName || null,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create category");
@@ -304,6 +327,7 @@ export default function StockPage() {
       setSelectedSubcategory("all");
       setIsAddingCategory(false);
       setNewCategoryName("");
+      setNewCategoryNameKn("");
     } catch (err) {
       setCategoryError(err instanceof Error ? err.message : "Failed to create category");
     } finally {
@@ -315,24 +339,41 @@ export default function StockPage() {
     e.preventDefault();
     if (!editingCategoryId) return;
     const trimmed = editingCategoryName.trim();
-    if (!trimmed) return;
+    const trimmedKn = editingCategoryNameKn.trim();
+    if (!trimmed && !trimmedKn) return;
 
     setSavingCategory(true);
     setCategoryError("");
     try {
+      let knName = trimmedKn;
+      if (!knName && trimmed) {
+        try {
+          knName = await translateOnTheFly(trimmed, "kn", "en");
+        } catch {}
+      }
+
       const res = await fetch("/api/stock/categories", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editingCategoryId, name: trimmed }),
+        body: JSON.stringify({
+          id: editingCategoryId,
+          name: trimmed || knName,
+          nameKn: knName || null,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to rename category");
 
       setCategories((prev) =>
-        prev.map((c) => (c.id === editingCategoryId ? { ...c, name: trimmed } : c))
+        prev.map((c) =>
+          c.id === editingCategoryId
+            ? { ...c, name: trimmed || knName, nameKn: knName || null }
+            : c
+        )
       );
       setEditingCategoryId(null);
       setEditingCategoryName("");
+      setEditingCategoryNameKn("");
     } catch (err) {
       setCategoryError(err instanceof Error ? err.message : "Failed to rename category");
     } finally {
@@ -407,16 +448,27 @@ export default function StockPage() {
   // Subcategory Handlers
   async function handleCreateSubcategory(e: React.FormEvent) {
     e.preventDefault();
-    if (!isAddingSub || !newSubName.trim()) return;
+    if (!isAddingSub) return;
+    const trimmed = newSubName.trim();
+    const trimmedKn = newSubNameKn.trim();
+    if (!trimmed && !trimmedKn) return;
 
     setSavingSub(true);
     setCategoryError("");
     try {
+      let knName = trimmedKn;
+      if (!knName && trimmed) {
+        try {
+          knName = await translateOnTheFly(trimmed, "kn", "en");
+        } catch {}
+      }
+
       const res = await fetch("/api/stock/subcategories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: newSubName.trim(),
+          name: trimmed || knName,
+          nameKn: knName || null,
           category: isAddingSub,
         }),
       });
@@ -426,7 +478,9 @@ export default function StockPage() {
       const created: StockSubcategory = data.subcategory;
       setSubcategories((prev) => {
         if (prev.some((s) => s.category === created.category && s.slug === created.slug)) {
-          return prev;
+          return prev.map((s) =>
+            s.category === created.category && s.slug === created.slug ? created : s
+          );
         }
         return [...prev, created];
       });
@@ -435,6 +489,7 @@ export default function StockPage() {
       setSubcategory(created.slug);
       setIsAddingSub(null);
       setNewSubName("");
+      setNewSubNameKn("");
     } catch (err) {
       setCategoryError(err instanceof Error ? err.message : "Failed to add subcategory");
     } finally {
@@ -446,24 +501,41 @@ export default function StockPage() {
     e.preventDefault();
     if (!editingSubId) return;
     const trimmed = editingSubName.trim();
-    if (!trimmed) return;
+    const trimmedKn = editingSubNameKn.trim();
+    if (!trimmed && !trimmedKn) return;
 
     setSavingEditSub(true);
     setCategoryError("");
     try {
+      let knName = trimmedKn;
+      if (!knName && trimmed) {
+        try {
+          knName = await translateOnTheFly(trimmed, "kn", "en");
+        } catch {}
+      }
+
       const res = await fetch("/api/stock/subcategories", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editingSubId, name: trimmed }),
+        body: JSON.stringify({
+          id: editingSubId,
+          name: trimmed || knName,
+          nameKn: knName || null,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to rename subcategory");
 
       setSubcategories((prev) =>
-        prev.map((s) => (s.id === editingSubId ? { ...s, name: trimmed } : s))
+        prev.map((s) =>
+          s.id === editingSubId
+            ? { ...s, name: trimmed || knName, nameKn: knName || null }
+            : s
+        )
       );
       setEditingSubId(null);
       setEditingSubName("");
+      setEditingSubNameKn("");
     } catch (err) {
       setCategoryError(err instanceof Error ? err.message : "Failed to rename subcategory");
     } finally {
@@ -615,6 +687,10 @@ export default function StockPage() {
 
   async function addItem(e: React.FormEvent) {
     e.preventDefault();
+    const cleanName = name.trim();
+    const cleanNameKn = nameKn.trim();
+    if (!cleanName && !cleanNameKn) return;
+
     setAdding(true);
     setError("");
     try {
@@ -623,11 +699,19 @@ export default function StockPage() {
       );
       const chosenSubcategory = subcategory || catSubs[0]?.slug || "other";
 
+      let finalNameKn = cleanNameKn;
+      if (!finalNameKn && cleanName) {
+        try {
+          finalNameKn = await translateOnTheFly(cleanName, "kn", "en");
+        } catch {}
+      }
+
       const res = await fetch("/api/stock", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: name.trim() || "Stock Item",
+          name: cleanName || finalNameKn || "Stock Item",
+          nameKn: finalNameKn || null,
           unit: unit || "pcs",
           price: Number(price) || 0,
           quantity: Number(quantity) || 0,
@@ -638,6 +722,7 @@ export default function StockPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Couldn't add item");
       setName("");
+      setNameKn("");
       setUnit("pcs");
       setPrice("");
       setQuantity("");
@@ -780,7 +865,7 @@ export default function StockPage() {
                   }`}
                 >
                   <Icon size={13} />
-                  <span>{translateCategory(c.name, language)}</span>
+                  <span>{language === "kn" ? (c.nameKn || translateCategory(c.name, "kn")) : c.name}</span>
                 </button>
               );
             })}
@@ -823,7 +908,7 @@ export default function StockPage() {
                     }`}
                   >
                     <Icon size={12} />
-                    <span>{translateSubcategory(sub.name, language)}</span>
+                    <span>{language === "kn" ? (sub.nameKn || translateSubcategory(sub.name, "kn")) : sub.name}</span>
                   </button>
                 );
               })}
@@ -833,27 +918,66 @@ export default function StockPage() {
 
         {/* Inputs row */}
         <div className="flex flex-wrap items-end gap-2.5 font-sans">
-          <label className="flex w-full sm:min-w-[180px] sm:flex-1 flex-col gap-1">
+          {/* Item Name in English */}
+          <label className="flex w-full sm:min-w-[170px] sm:flex-1 flex-col gap-1">
             <span className="text-xs text-ink-soft">
               {language === "kn"
-                ? "ವಸ್ತು / ಸಸ್ಯದ ಹೆಸರು"
+                ? "ಹೆಸರು (ಇಂಗ್ಲಿಷ್)"
                 : category === "plants"
-                ? "Plant name"
-                : "Item name"}
+                ? "Plant Name (English)"
+                : "Item Name (English)"}
             </span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={
-                language === "kn"
-                  ? category === "plants"
-                    ? "ಉದಾ. ಮಾವಿನ ಗಿಡ, ಗುಲಾಬಿ ಗಿಡ..."
-                    : "ಉದಾ. 10-ಇಂಚಿನ ಕುಂಡ, ವರ್ಮಿಕಾಂಪೋಸ್ಟ್..."
-                  : category === "plants"
+                category === "plants"
                   ? "e.g. Alphonso Mango, Kashmiri Rose"
                   : "e.g. 10-inch Clay Pot, Vermicompost"
               }
               className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
+            />
+          </label>
+
+          {/* Item Name in Kannada with Live Translate */}
+          <label className="flex w-full sm:min-w-[170px] sm:flex-1 flex-col gap-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-ink-soft">
+                {language === "kn" ? "ಹೆಸರು (ಕನ್ನಡ)" : "Name (Kannada / ಕನ್ನಡ)"}
+              </span>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!name.trim()) return;
+                  setTranslatingItemName(true);
+                  try {
+                    const translated = await translateOnTheFly(name.trim(), "kn", "en");
+                    if (translated) setNameKn(translated);
+                  } finally {
+                    setTranslatingItemName(false);
+                  }
+                }}
+                disabled={translatingItemName || !name.trim()}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-pine hover:text-pine-deep disabled:opacity-40 cursor-pointer"
+                title="Translate English name to Kannada"
+              >
+                {translatingItemName ? (
+                  <Loader2 size={11} className="animate-spin" />
+                ) : (
+                  <Languages size={11} />
+                )}
+                <span>{language === "kn" ? "ಅನುವಾದಿಸು" : "Translate 🔄"}</span>
+              </button>
+            </div>
+            <input
+              value={nameKn}
+              onChange={(e) => setNameKn(e.target.value)}
+              placeholder={
+                category === "plants"
+                  ? "ಉದಾ. ಆಲ್ಫಾನ್ಸೋ ಮಾವು, ಕಾಶ್ಮೀರಿ ಗುಲಾಬಿ"
+                  : "ಉದಾ. 10-ಇಂಚಿನ ಕುಂಡ, ವರ್ಮಿಕಾಂಪೋಸ್ಟ್"
+              }
+              className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine font-sans"
             />
           </label>
 
@@ -968,7 +1092,7 @@ export default function StockPage() {
                 <form
                   key={cat.id}
                   onSubmit={handleSaveCategoryEdit}
-                  className="flex items-center gap-1 rounded-lg border border-pine bg-surface px-2 py-1 shadow-xs animate-in fade-in"
+                  className="flex flex-wrap items-center gap-1.5 rounded-lg border border-pine bg-surface p-1.5 shadow-xs animate-in fade-in"
                 >
                   <input
                     type="text"
@@ -976,28 +1100,59 @@ export default function StockPage() {
                     value={editingCategoryName}
                     onChange={(e) => setEditingCategoryName(e.target.value)}
                     disabled={savingCategory}
-                    className="w-28 sm:w-36 rounded px-1.5 py-0.5 text-xs text-ink outline-none"
-                    placeholder="Category name"
+                    className="w-28 sm:w-36 rounded border border-line-strong px-2 py-1 text-xs text-ink outline-none focus:border-pine"
+                    placeholder="English name"
                   />
-                  <button
-                    type="submit"
-                    disabled={savingCategory || !editingCategoryName.trim()}
-                    className="flex items-center justify-center rounded bg-pine p-1 text-surface hover:opacity-90 disabled:opacity-40 cursor-pointer"
-                    title="Save category name"
-                  >
-                    {savingCategory ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingCategoryId(null);
-                      setEditingCategoryName("");
-                    }}
-                    className="flex items-center justify-center rounded p-1 text-ink-soft hover:bg-line/60 cursor-pointer"
-                    title="Cancel"
-                  >
-                    <X size={12} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="text"
+                      value={editingCategoryNameKn}
+                      onChange={(e) => setEditingCategoryNameKn(e.target.value)}
+                      disabled={savingCategory}
+                      className="w-28 sm:w-36 rounded border border-line-strong px-2 py-1 text-xs text-ink outline-none focus:border-pine font-sans"
+                      placeholder="Kannada (ಕನ್ನಡ)"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!editingCategoryName.trim()) return;
+                        setTranslatingCategory(true);
+                        try {
+                          const res = await translateOnTheFly(editingCategoryName.trim(), "kn", "en");
+                          if (res) setEditingCategoryNameKn(res);
+                        } finally {
+                          setTranslatingCategory(false);
+                        }
+                      }}
+                      disabled={translatingCategory || !editingCategoryName.trim()}
+                      className="flex items-center justify-center rounded border border-pine/30 bg-pine-tint/40 p-1 text-pine-deep hover:bg-pine-tint disabled:opacity-40 cursor-pointer"
+                      title="Translate English name to Kannada"
+                    >
+                      {translatingCategory ? <Loader2 size={12} className="animate-spin" /> : <Languages size={12} />}
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="submit"
+                      disabled={savingCategory || (!editingCategoryName.trim() && !editingCategoryNameKn.trim())}
+                      className="flex items-center justify-center rounded bg-pine p-1 text-surface hover:opacity-90 disabled:opacity-40 cursor-pointer"
+                      title="Save category name"
+                    >
+                      {savingCategory ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingCategoryId(null);
+                        setEditingCategoryName("");
+                        setEditingCategoryNameKn("");
+                      }}
+                      className="flex items-center justify-center rounded p-1 text-ink-soft hover:bg-line/60 cursor-pointer"
+                      title="Cancel"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
                 </form>
               );
             }
@@ -1021,7 +1176,7 @@ export default function StockPage() {
                 }`}
               >
                 <CatIcon size={15} />
-                <span>{translateCategory(cat.name, language)}</span>
+                <span>{language === "kn" ? (cat.nameKn || translateCategory(cat.name, "kn")) : cat.name}</span>
                 <span
                   className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
                     isSelected
@@ -1039,6 +1194,7 @@ export default function StockPage() {
                     e.stopPropagation();
                     setEditingCategoryId(cat.id);
                     setEditingCategoryName(cat.name);
+                    setEditingCategoryNameKn(cat.nameKn || "");
                     setCategoryError("");
                   }}
                   className={`ml-0.5 rounded p-0.5 transition-colors cursor-pointer ${
@@ -1074,7 +1230,7 @@ export default function StockPage() {
           {isAddingCategory ? (
             <form
               onSubmit={handleCreateCategory}
-              className="flex items-center gap-1 rounded-lg border border-pine bg-surface px-2 py-1 shadow-xs animate-in fade-in"
+              className="flex flex-wrap items-center gap-1.5 rounded-lg border border-pine bg-surface p-1.5 shadow-xs animate-in fade-in"
             >
               <input
                 type="text"
@@ -1088,31 +1244,66 @@ export default function StockPage() {
                   if (e.key === "Escape") {
                     setIsAddingCategory(false);
                     setNewCategoryName("");
+                    setNewCategoryNameKn("");
                   }
                 }}
-                placeholder="e.g. Fertilizers, Tools"
+                placeholder={language === "kn" ? "ಹೆಸರು (ಇಂಗ್ಲಿಷ್)" : "English name"}
                 disabled={savingNewCategory}
-                className="w-32 sm:w-44 rounded px-1.5 py-0.5 text-xs text-ink placeholder:text-ink-soft/60 outline-none"
+                className="w-28 sm:w-36 rounded border border-line-strong px-2 py-1 text-xs text-ink placeholder:text-ink-soft/60 outline-none focus:border-pine"
               />
-              <button
-                type="submit"
-                disabled={savingNewCategory || !newCategoryName.trim()}
-                className="flex items-center justify-center rounded bg-pine p-1 text-surface hover:opacity-90 disabled:opacity-40 cursor-pointer"
-                title="Save new category"
-              >
-                {savingNewCategory ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsAddingCategory(false);
-                  setNewCategoryName("");
-                }}
-                className="flex items-center justify-center rounded p-1 text-ink-soft hover:bg-line/60 cursor-pointer"
-                title="Cancel"
-              >
-                <X size={12} />
-              </button>
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  value={newCategoryNameKn}
+                  onChange={(e) => {
+                    setNewCategoryNameKn(e.target.value);
+                    if (categoryError) setCategoryError("");
+                  }}
+                  placeholder={language === "kn" ? "ಹೆಸರು (ಕನ್ನಡ)" : "Kannada (ಕನ್ನಡ)"}
+                  disabled={savingNewCategory}
+                  className="w-28 sm:w-36 rounded border border-line-strong px-2 py-1 text-xs text-ink placeholder:text-ink-soft/60 outline-none focus:border-pine font-sans"
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!newCategoryName.trim()) return;
+                    setTranslatingNewCategory(true);
+                    try {
+                      const res = await translateOnTheFly(newCategoryName.trim(), "kn", "en");
+                      if (res) setNewCategoryNameKn(res);
+                    } finally {
+                      setTranslatingNewCategory(false);
+                    }
+                  }}
+                  disabled={translatingNewCategory || !newCategoryName.trim()}
+                  className="flex items-center justify-center rounded border border-pine/30 bg-pine-tint/40 p-1 text-pine-deep hover:bg-pine-tint disabled:opacity-40 cursor-pointer"
+                  title="Translate English name to Kannada"
+                >
+                  {translatingNewCategory ? <Loader2 size={12} className="animate-spin" /> : <Languages size={12} />}
+                </button>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="submit"
+                  disabled={savingNewCategory || (!newCategoryName.trim() && !newCategoryNameKn.trim())}
+                  className="flex items-center justify-center rounded bg-pine p-1 text-surface hover:opacity-90 disabled:opacity-40 cursor-pointer"
+                  title="Save new category"
+                >
+                  {savingNewCategory ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddingCategory(false);
+                    setNewCategoryName("");
+                    setNewCategoryNameKn("");
+                  }}
+                  className="flex items-center justify-center rounded p-1 text-ink-soft hover:bg-line/60 cursor-pointer"
+                  title="Cancel"
+                >
+                  <X size={12} />
+                </button>
+              </div>
             </form>
           ) : (
             <button
@@ -1120,6 +1311,7 @@ export default function StockPage() {
               onClick={() => {
                 setIsAddingCategory(true);
                 setNewCategoryName("");
+                setNewCategoryNameKn("");
                 setCategoryError("");
               }}
               className="flex items-center gap-1 rounded-lg border border-dashed border-pine/50 bg-surface/80 px-3 py-2 text-xs font-semibold text-pine-deep hover:border-pine hover:bg-pine-tint/40 transition-all cursor-pointer shadow-2xs font-sans"
@@ -1182,7 +1374,7 @@ export default function StockPage() {
                   <form
                     key={sub.id || sub.slug}
                     onSubmit={handleSaveSubcategoryEdit}
-                    className="flex items-center gap-1 rounded-md border border-pine bg-surface px-1.5 py-0.5 shadow-xs animate-in fade-in"
+                    className="flex flex-wrap items-center gap-1.5 rounded-md border border-pine bg-surface p-1 shadow-xs animate-in fade-in"
                   >
                     <input
                       type="text"
@@ -1190,27 +1382,59 @@ export default function StockPage() {
                       value={editingSubName}
                       onChange={(e) => setEditingSubName(e.target.value)}
                       disabled={savingEditSub}
-                      className="w-24 sm:w-32 rounded px-1 py-0.5 text-xs text-ink outline-none"
+                      className="w-24 sm:w-32 rounded border border-line-strong px-1.5 py-0.5 text-xs text-ink outline-none focus:border-pine"
+                      placeholder="Type (English)"
                     />
-                    <button
-                      type="submit"
-                      disabled={savingEditSub || !editingSubName.trim()}
-                      className="flex items-center justify-center rounded bg-pine p-1 text-surface hover:opacity-90 disabled:opacity-40 cursor-pointer"
-                      title="Save type name"
-                    >
-                      {savingEditSub ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingSubId(null);
-                        setEditingSubName("");
-                      }}
-                      className="flex items-center justify-center rounded p-1 text-ink-soft hover:bg-line/60 cursor-pointer"
-                      title="Cancel"
-                    >
-                      <X size={11} />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="text"
+                        value={editingSubNameKn}
+                        onChange={(e) => setEditingSubNameKn(e.target.value)}
+                        disabled={savingEditSub}
+                        className="w-24 sm:w-32 rounded border border-line-strong px-1.5 py-0.5 text-xs text-ink outline-none focus:border-pine font-sans"
+                        placeholder="Type (ಕನ್ನಡ)"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!editingSubName.trim()) return;
+                          setTranslatingEditSub(true);
+                          try {
+                            const res = await translateOnTheFly(editingSubName.trim(), "kn", "en");
+                            if (res) setEditingSubNameKn(res);
+                          } finally {
+                            setTranslatingEditSub(false);
+                          }
+                        }}
+                        disabled={translatingEditSub || !editingSubName.trim()}
+                        className="flex items-center justify-center rounded border border-pine/30 bg-pine-tint/40 p-1 text-pine-deep hover:bg-pine-tint disabled:opacity-40 cursor-pointer"
+                        title="Translate type name to Kannada"
+                      >
+                        {translatingEditSub ? <Loader2 size={11} className="animate-spin" /> : <Languages size={11} />}
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="submit"
+                        disabled={savingEditSub || (!editingSubName.trim() && !editingSubNameKn.trim())}
+                        className="flex items-center justify-center rounded bg-pine p-1 text-surface hover:opacity-90 disabled:opacity-40 cursor-pointer"
+                        title="Save type name"
+                      >
+                        {savingEditSub ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingSubId(null);
+                          setEditingSubName("");
+                          setEditingSubNameKn("");
+                        }}
+                        className="flex items-center justify-center rounded p-1 text-ink-soft hover:bg-line/60 cursor-pointer"
+                        title="Cancel"
+                      >
+                        <X size={11} />
+                      </button>
+                    </div>
                   </form>
                 );
               }
@@ -1226,7 +1450,7 @@ export default function StockPage() {
                   }`}
                 >
                   <Icon size={13} />
-                  <span>{translateSubcategory(sub.name, language)}</span>
+                  <span>{language === "kn" ? (sub.nameKn || translateSubcategory(sub.name, "kn")) : sub.name}</span>
                   <span
                     className={`rounded-full px-1.5 py-0.1 text-[10px] ${
                       active ? "bg-white/25 text-surface font-bold" : "text-ink-soft/70"
@@ -1242,6 +1466,7 @@ export default function StockPage() {
                       e.stopPropagation();
                       setEditingSubId(sub.id);
                       setEditingSubName(sub.name);
+                      setEditingSubNameKn(sub.nameKn || "");
                       setCategoryError("");
                     }}
                     className={`ml-0.5 rounded p-0.5 transition-colors cursor-pointer ${
@@ -1277,7 +1502,7 @@ export default function StockPage() {
             {isAddingSub === selectedCategory ? (
               <form
                 onSubmit={handleCreateSubcategory}
-                className="flex items-center gap-1 rounded-md border border-pine bg-surface px-1.5 py-0.5 shadow-xs animate-in fade-in duration-100"
+                className="flex flex-wrap items-center gap-1.5 rounded-md border border-pine bg-surface p-1 shadow-xs animate-in fade-in duration-100"
               >
                 <input
                   type="text"
@@ -1291,31 +1516,66 @@ export default function StockPage() {
                     if (e.key === "Escape") {
                       setIsAddingSub(null);
                       setNewSubName("");
+                      setNewSubNameKn("");
                     }
                   }}
-                  placeholder="e.g. Succulents, Pots"
+                  placeholder={language === "kn" ? "ಪ್ರಕಾರ (ಇಂಗ್ಲಿಷ್)" : "Type (English)"}
                   disabled={savingSub}
-                  className="w-32 sm:w-40 rounded px-1.5 py-0.5 text-xs text-ink placeholder:text-ink-soft/60 outline-none"
+                  className="w-24 sm:w-32 rounded border border-line-strong px-1.5 py-0.5 text-xs text-ink placeholder:text-ink-soft/60 outline-none focus:border-pine"
                 />
-                <button
-                  type="submit"
-                  disabled={savingSub || !newSubName.trim()}
-                  className="flex items-center justify-center rounded bg-pine p-1 text-surface hover:opacity-90 disabled:opacity-40 cursor-pointer"
-                  title="Save type"
-                >
-                  {savingSub ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsAddingSub(null);
-                    setNewSubName("");
-                  }}
-                  className="flex items-center justify-center rounded p-1 text-ink-soft hover:bg-line/60 cursor-pointer"
-                  title="Cancel"
-                >
-                  <X size={12} />
-                </button>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    value={newSubNameKn}
+                    onChange={(e) => {
+                      setNewSubNameKn(e.target.value);
+                      if (categoryError) setCategoryError("");
+                    }}
+                    placeholder={language === "kn" ? "ಪ್ರಕಾರ (ಕನ್ನಡ)" : "Type (ಕನ್ನಡ)"}
+                    disabled={savingSub}
+                    className="w-24 sm:w-32 rounded border border-line-strong px-1.5 py-0.5 text-xs text-ink placeholder:text-ink-soft/60 outline-none focus:border-pine font-sans"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!newSubName.trim()) return;
+                      setTranslatingNewSub(true);
+                      try {
+                        const res = await translateOnTheFly(newSubName.trim(), "kn", "en");
+                        if (res) setNewSubNameKn(res);
+                      } finally {
+                        setTranslatingNewSub(false);
+                      }
+                    }}
+                    disabled={translatingNewSub || !newSubName.trim()}
+                    className="flex items-center justify-center rounded border border-pine/30 bg-pine-tint/40 p-1 text-pine-deep hover:bg-pine-tint disabled:opacity-40 cursor-pointer"
+                    title="Translate English type to Kannada"
+                  >
+                    {translatingNewSub ? <Loader2 size={11} className="animate-spin" /> : <Languages size={11} />}
+                  </button>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="submit"
+                    disabled={savingSub || (!newSubName.trim() && !newSubNameKn.trim())}
+                    className="flex items-center justify-center rounded bg-pine p-1 text-surface hover:opacity-90 disabled:opacity-40 cursor-pointer"
+                    title="Save type"
+                  >
+                    {savingSub ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddingSub(null);
+                      setNewSubName("");
+                      setNewSubNameKn("");
+                    }}
+                    className="flex items-center justify-center rounded p-1 text-ink-soft hover:bg-line/60 cursor-pointer"
+                    title="Cancel"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
               </form>
             ) : (
               <button
@@ -1518,7 +1778,7 @@ export default function StockPage() {
                           >
                             {categories.map((c) => (
                               <option key={c.slug} value={c.slug}>
-                                {translateCategory(c.name, language)}
+                                {language === "kn" ? (c.nameKn || translateCategory(c.name, "kn")) : c.name}
                               </option>
                             ))}
                           </select>
@@ -1549,7 +1809,7 @@ export default function StockPage() {
                               >
                                 {list.map((s) => (
                                   <option key={s.slug} value={s.slug}>
-                                    {translateSubcategory(s.name, language)}
+                                    {language === "kn" ? (s.nameKn || translateSubcategory(s.name, "kn")) : s.name}
                                   </option>
                                 ))}
                                 {!list.some((s) => s.slug === "other") && (
@@ -1773,7 +2033,7 @@ export default function StockPage() {
                       )
                       .map((s) => (
                         <option key={s.slug} value={s.slug}>
-                          {translateSubcategory(s.name, language)}
+                          {language === "kn" ? (s.nameKn || translateSubcategory(s.name, "kn")) : s.name}
                         </option>
                       ))}
                   </>
@@ -1794,7 +2054,7 @@ export default function StockPage() {
                       )
                       .map((c) => (
                         <option key={c.slug} value={c.slug}>
-                          {translateCategory(c.name, language)}{" "}
+                          {language === "kn" ? (c.nameKn || translateCategory(c.name, "kn")) : c.name}{" "}
                           {language === "kn" ? "(ಉಪವರ್ಗವು 'ಇತರ' ಆಗಿರುತ್ತದೆ)" : "(Subcategory will default to \"other\")"}
                         </option>
                       ))}
