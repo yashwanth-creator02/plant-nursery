@@ -20,7 +20,7 @@ import {
   Languages,
   RotateCw,
 } from "lucide-react";
-import { GalleryStockItem, StockItemImage } from "@/lib/types";
+import { GalleryStockItem, StockItemImage, StockCategory, StockSubcategory } from "@/lib/types";
 import {
   useLanguage,
   translateCategory,
@@ -53,13 +53,26 @@ export function StockItemDetailModal({
   const [savingDesc, setSavingDesc] = useState(false);
   const [deletingImage, setDeletingImage] = useState(false);
 
-  // Bilingual Plant Details Editing State
+  // Categories & Subcategories from DB
+  const [categories, setCategories] = useState<StockCategory[]>([
+    { id: "plants", name: "Plants", nameKn: "ಗಿಡಗಳು", slug: "plants" },
+    { id: "non-plants", name: "Non-Plants", nameKn: "ಇತರ ವಸ್ತುಗಳು", slug: "non-plants" },
+  ]);
+  const [subcategories, setSubcategories] = useState<StockSubcategory[]>([]);
+
+  // Bilingual Plant & Inventory Details Editing State
   const [editingBilingual, setEditingBilingual] = useState(false);
   const [editNameEn, setEditNameEn] = useState("");
   const [editNameKn, setEditNameKn] = useState("");
   const [editDescEn, setEditDescEn] = useState("");
   const [editDescKn, setEditDescKn] = useState("");
-  const [translatingName, setTranslatingName] = useState(false);
+  const [editCategory, setEditCategory] = useState("plants");
+  const [editSubcategory, setEditSubcategory] = useState("fruit");
+  const [editUnit, setEditUnit] = useState("pcs");
+  const [editPrice, setEditPrice] = useState("");
+  const [editQuantity, setEditQuantity] = useState("");
+  const [translatingNameKn, setTranslatingNameKn] = useState(false);
+  const [translatingNameEn, setTranslatingNameEn] = useState(false);
   const [translatingDescKn, setTranslatingDescKn] = useState(false);
   const [translatingDescEn, setTranslatingDescEn] = useState(false);
   const [savingBilingual, setSavingBilingual] = useState(false);
@@ -68,6 +81,27 @@ export function StockItemDetailModal({
   const [translatingImgDescKn, setTranslatingImgDescKn] = useState(false);
   const [autoTranslatedDescKn, setAutoTranslatedDescKn] = useState("");
   const [autoTranslatedImgDescKn, setAutoTranslatedImgDescKn] = useState("");
+
+  // Load categories and subcategories on mount
+  useEffect(() => {
+    fetch("/api/stock/categories", { cache: "no-store" })
+      .then(async (res) => {
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.categories) && data.categories.length > 0) {
+          setCategories(data.categories);
+        }
+      })
+      .catch(() => {});
+
+    fetch("/api/stock/subcategories", { cache: "no-store" })
+      .then(async (res) => {
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.subcategories) && data.subcategories.length > 0) {
+          setSubcategories(data.subcategories);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Reset index and state when item changes
   useEffect(() => {
@@ -85,6 +119,11 @@ export function StockItemDetailModal({
     setEditNameKn(item?.nameKn || "");
     setEditDescEn(item?.description || "");
     setEditDescKn(item?.descriptionKn || "");
+    setEditCategory(item?.category || "plants");
+    setEditSubcategory(item?.subcategory || "fruit");
+    setEditUnit(item?.unit || "pcs");
+    setEditPrice(item?.price?.toString() || "0");
+    setEditQuantity(item?.quantity?.toString() || "0");
     setActiveDescTab(language === "kn" ? "kn" : "en");
     setAutoTranslatedDescKn("");
     setAutoTranslatedImgDescKn("");
@@ -200,12 +239,23 @@ export function StockItemDetailModal({
   // On-the-fly Google Translation handlers
   const handleTranslateName = async () => {
     if (!editNameEn.trim()) return;
-    setTranslatingName(true);
+    setTranslatingNameKn(true);
     try {
       const translated = await translateOnTheFly(editNameEn, "kn", "en");
       if (translated) setEditNameKn(translated);
     } finally {
-      setTranslatingName(false);
+      setTranslatingNameKn(false);
+    }
+  };
+
+  const handleTranslateNameEn = async () => {
+    if (!editNameKn.trim()) return;
+    setTranslatingNameEn(true);
+    try {
+      const translated = await translateOnTheFly(editNameKn, "en", "kn");
+      if (translated) setEditNameEn(translated);
+    } finally {
+      setTranslatingNameEn(false);
     }
   };
 
@@ -234,21 +284,42 @@ export function StockItemDetailModal({
   const handleSaveBilingualDetails = async () => {
     try {
       setSavingBilingual(true);
+      let finalNameKn = editNameKn.trim();
+      if (!finalNameKn && editNameEn.trim()) {
+        try {
+          finalNameKn = await translateOnTheFly(editNameEn.trim(), "kn", "en");
+          if (finalNameKn) setEditNameKn(finalNameKn);
+        } catch {}
+      }
+
+      const priceNum = Math.max(0, parseFloat(editPrice) || 0);
+      const qtyNum = Math.max(0, parseInt(editQuantity, 10) || 0);
+
       const res = await fetch(`/api/stock/${item.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: editNameEn.trim() || item.name,
-          nameKn: editNameKn.trim() || null,
+          name: editNameEn.trim() || finalNameKn || item.name,
+          nameKn: finalNameKn || null,
+          category: editCategory || item.category || "plants",
+          subcategory: editSubcategory || item.subcategory || "other",
+          unit: editUnit.trim() || item.unit || "pcs",
+          price: priceNum,
+          quantity: qtyNum,
           description: editDescEn.trim() || null,
           descriptionKn: editDescKn.trim() || null,
         }),
       });
-      if (!res.ok) throw new Error("Failed to update plant details");
+      if (!res.ok) throw new Error("Failed to update item details");
       const updatedItem: GalleryStockItem = {
         ...item,
-        name: editNameEn.trim() || item.name,
-        nameKn: editNameKn.trim() || null,
+        name: editNameEn.trim() || finalNameKn || item.name,
+        nameKn: finalNameKn || null,
+        category: editCategory || item.category || "plants",
+        subcategory: editSubcategory || item.subcategory || "other",
+        unit: editUnit.trim() || item.unit || "pcs",
+        price: priceNum.toFixed(2),
+        quantity: qtyNum,
         description: editDescEn.trim() || null,
         descriptionKn: editDescKn.trim() || null,
       };
@@ -256,8 +327,8 @@ export function StockItemDetailModal({
       setEditingBilingual(false);
       window.dispatchEvent(new Event("stockUpdated"));
     } catch (err) {
-      console.error("Failed to save plant details:", err);
-      alert("Failed to save plant details. Please try again.");
+      console.error("Failed to save item details:", err);
+      alert("Failed to save item details. Please try again.");
     } finally {
       setSavingBilingual(false);
     }
@@ -285,13 +356,26 @@ export function StockItemDetailModal({
               {translateCategory(item.category, language)} • {translateSubcategory(item.subcategory || "other", language)}
             </span>
           </div>
-          <button
-            onClick={onClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink-soft hover:bg-line/60 hover:text-ink cursor-pointer"
-            title={language === "kn" ? "ಮುಚ್ಚಿ" : "Close"}
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {!editingBilingual && (
+              <button
+                type="button"
+                onClick={() => setEditingBilingual(true)}
+                className="inline-flex items-center gap-1 rounded-lg border border-line bg-paper px-2.5 py-1 text-xs font-semibold text-pine-deep hover:border-pine hover:bg-pine/10 cursor-pointer transition-colors shadow-2xs font-sans"
+                title={language === "kn" ? "ವಸ್ತುವನ್ನು ಸಂಪಾದಿಸಿ" : "Edit Item Details"}
+              >
+                <Edit2 size={12} />
+                <span>{language === "kn" ? "ಸಂಪಾದಿಸಿ" : "Edit Item"}</span>
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink-soft hover:bg-line/60 hover:text-ink cursor-pointer"
+              title={language === "kn" ? "ಮುಚ್ಚಿ" : "Close"}
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Modal Body */}
@@ -504,7 +588,7 @@ export function StockItemDetailModal({
               <div className="flex items-center gap-1.5">
                 <Globe size={14} className="text-pine" />
                 <span className="text-xs font-bold uppercase tracking-wider text-pine font-sans">
-                  {language === "kn" ? "ಸಸ್ಯದ ವಿವರಣೆ ಮತ್ತು ಮಾಹಿತಿ" : "Plant Description & Details"}
+                  {language === "kn" ? "ವಸ್ತು / ಸಸ್ಯದ ಮಾಹಿತಿ ಮತ್ತು ವಿವರಣೆ" : "Plant & Stock Item Details"}
                 </span>
               </div>
 
@@ -512,22 +596,26 @@ export function StockItemDetailModal({
                 <button
                   type="button"
                   onClick={() => setEditingBilingual(true)}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-pine-deep hover:underline cursor-pointer bg-pine/10 hover:bg-pine/20 px-2 py-1 rounded transition-colors font-sans"
-                  title="Edit details in English & Kannada with Google Translation"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-pine-deep hover:underline cursor-pointer bg-pine/10 hover:bg-pine/20 px-2.5 py-1 rounded transition-colors font-sans"
+                  title="Edit item details, price, quantity, and bilingual names"
                 >
                   <Sparkles size={13} className="text-pine" />
-                  <span>{language === "kn" ? "ವಿವರಣೆ ಸಂಪಾದಿಸಿ" : "Edit in English & Kannada"}</span>
+                  <span>{language === "kn" ? "ವಸ್ತು ವಿವರಗಳನ್ನು ಸಂಪಾದಿಸಿ" : "Edit Item Details"}</span>
                 </button>
               )}
             </div>
 
             {/* Bilingual Editing Form */}
             {editingBilingual ? (
-              <div className="mt-2 space-y-3 rounded-lg border border-pine/30 bg-surface p-3.5 animate-in fade-in duration-150">
+              <div className="mt-2 space-y-3.5 rounded-lg border border-pine/30 bg-surface p-3.5 sm:p-4 animate-in fade-in duration-150">
                 <div className="flex items-center justify-between border-b border-line pb-2">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-pine-deep">
                     <Languages size={14} />
-                    <span>Bilingual Plant Editor (English &amp; Kannada)</span>
+                    <span>
+                      {language === "kn"
+                        ? "ದಾಸ್ತಾನು ವಸ್ತುವಿನ ಸಮಗ್ರ ಸಂಪಾದನೆ (ಇಂಗ್ಲಿಷ್ ಮತ್ತು ಕನ್ನಡ)"
+                        : "Edit Stock Item Details (English & Kannada)"}
+                    </span>
                   </div>
                   <span className="text-[10px] text-ink-soft bg-paper-flat px-1.5 py-0.5 rounded font-medium">
                     Google Translate Integrated
@@ -538,20 +626,22 @@ export function StockItemDetailModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <label className="flex flex-col gap-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-ink">Name (English)</span>
+                      <span className="text-xs font-semibold text-ink">
+                        {language === "kn" ? "ಹೆಸರು (ಇಂಗ್ಲಿಷ್)" : "Name (English)"}
+                      </span>
                       <button
                         type="button"
                         onClick={handleTranslateName}
-                        disabled={translatingName || !editNameEn.trim()}
+                        disabled={translatingNameKn || !editNameEn.trim()}
                         className="inline-flex items-center gap-1 text-[11px] font-semibold text-pine-deep hover:underline cursor-pointer disabled:opacity-50"
                         title="Translate English name into Kannada on the fly"
                       >
-                        {translatingName ? (
+                        {translatingNameKn ? (
                           <Loader2 size={11} className="animate-spin" />
                         ) : (
                           <RotateCw size={11} />
                         )}
-                        <span>Translate to Kannada</span>
+                        <span>{language === "kn" ? "ಕನ್ನಡಕ್ಕೆ ಅನುವಾದಿಸು" : "Translate to Kannada 🔄"}</span>
                       </button>
                     </div>
                     <input
@@ -563,7 +653,25 @@ export function StockItemDetailModal({
                   </label>
 
                   <label className="flex flex-col gap-1">
-                    <span className="text-xs font-semibold text-ink">Name (Kannada / ಕನ್ನಡ)</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-ink font-sans">
+                        {language === "kn" ? "ಹೆಸರು (ಕನ್ನಡ)" : "Name (Kannada / ಕನ್ನಡ)"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleTranslateNameEn}
+                        disabled={translatingNameEn || !editNameKn.trim()}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-pine-deep hover:underline cursor-pointer disabled:opacity-50"
+                        title="Translate Kannada name into English on the fly"
+                      >
+                        {translatingNameEn ? (
+                          <Loader2 size={11} className="animate-spin" />
+                        ) : (
+                          <RotateCw size={11} />
+                        )}
+                        <span>{language === "kn" ? "ಇಂಗ್ಲಿಷ್‌ಗೆ ಅನುವಾದಿಸು" : "Translate to English 🔄"}</span>
+                      </button>
+                    </div>
                     <input
                       value={editNameKn}
                       onChange={(e) => setEditNameKn(e.target.value)}
@@ -573,11 +681,115 @@ export function StockItemDetailModal({
                   </label>
                 </div>
 
+                {/* Category & Subcategory Selectors */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-ink font-sans">
+                      {language === "kn" ? "ವರ್ಗ (Category)" : "Category"}
+                    </span>
+                    <select
+                      value={editCategory}
+                      onChange={(e) => {
+                        const newCat = e.target.value;
+                        setEditCategory(newCat);
+                        const catSubs = subcategories.filter(
+                          (s) => s.category.toLowerCase() === newCat.toLowerCase()
+                        );
+                        setEditSubcategory(catSubs[0]?.slug || "other");
+                      }}
+                      className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-xs sm:text-sm text-ink outline-none focus:border-pine font-sans"
+                    >
+                      {categories.map((c) => (
+                        <option key={c.slug} value={c.slug}>
+                          {language === "kn" ? (c.nameKn || translateCategory(c.name, "kn")) : c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-ink font-sans">
+                      {language === "kn" ? "ಉಪವರ್ಗ / ಪ್ರಕಾರ (Subcategory)" : "Subcategory / Type"}
+                    </span>
+                    {(() => {
+                      const curCat = editCategory.toLowerCase();
+                      const catSubs = subcategories.filter(
+                        (s) => s.category.toLowerCase() === curCat
+                      );
+                      return (
+                        <select
+                          value={editSubcategory}
+                          onChange={(e) => setEditSubcategory(e.target.value)}
+                          className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-xs sm:text-sm text-ink outline-none focus:border-pine font-sans"
+                        >
+                          {catSubs.map((s) => (
+                            <option key={s.slug} value={s.slug}>
+                              {language === "kn" ? (s.nameKn || translateSubcategory(s.name, "kn")) : s.name}
+                            </option>
+                          ))}
+                          {!catSubs.some((s) => s.slug === "other") && (
+                            <option value="other">
+                              {language === "kn" ? "ಇತರ (Other)" : "Other"}
+                            </option>
+                          )}
+                        </select>
+                      );
+                    })()}
+                  </label>
+                </div>
+
+                {/* Price, Quantity, Unit Fields */}
+                <div className="grid grid-cols-3 gap-3">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-ink font-sans">
+                      {language === "kn" ? "ಬೆಲೆ (₹ Price)" : "Price (₹)"}
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={editPrice}
+                      onChange={(e) => setEditPrice(e.target.value)}
+                      placeholder="0.00"
+                      className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-xs sm:text-sm text-ink outline-none focus:border-pine font-mono"
+                    />
+                  </label>
+
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-ink font-sans">
+                      {language === "kn" ? "ಪ್ರಮಾಣ (Quantity)" : "Stock Quantity"}
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editQuantity}
+                      onChange={(e) => setEditQuantity(e.target.value)}
+                      placeholder="0"
+                      className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-xs sm:text-sm text-ink outline-none focus:border-pine font-mono"
+                    />
+                  </label>
+
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-ink font-sans">
+                      {language === "kn" ? "ಘಟಕ (Unit)" : "Unit"}
+                    </span>
+                    <input
+                      type="text"
+                      value={editUnit}
+                      onChange={(e) => setEditUnit(e.target.value)}
+                      placeholder="pcs, kg, bag..."
+                      className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-xs sm:text-sm text-ink outline-none focus:border-pine"
+                    />
+                  </label>
+                </div>
+
                 {/* Description Fields */}
                 <div className="space-y-2.5 pt-1">
                   <label className="flex flex-col gap-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-ink">Description (English)</span>
+                      <span className="text-xs font-semibold text-ink">
+                        {language === "kn" ? "ವಿವರಣೆ (ಇಂಗ್ಲಿಷ್)" : "Description (English)"}
+                      </span>
                       <button
                         type="button"
                         onClick={handleTranslateDescToKn}
@@ -590,7 +802,7 @@ export function StockItemDetailModal({
                         ) : (
                           <Sparkles size={11} />
                         )}
-                        <span>Translate to Kannada 🔄</span>
+                        <span>{language === "kn" ? "ಕನ್ನಡಕ್ಕೆ ಅನುವಾದಿಸು" : "Translate to Kannada 🔄"}</span>
                       </button>
                     </div>
                     <textarea
@@ -604,7 +816,9 @@ export function StockItemDetailModal({
 
                   <label className="flex flex-col gap-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-ink">Description (Kannada / ಕನ್ನಡ ವಿವರಣೆ)</span>
+                      <span className="text-xs font-semibold text-ink font-sans">
+                        {language === "kn" ? "ವಿವರಣೆ (ಕನ್ನಡ)" : "Description (Kannada / ಕನ್ನಡ ವಿವರಣೆ)"}
+                      </span>
                       <button
                         type="button"
                         onClick={handleTranslateDescToEn}
@@ -617,7 +831,7 @@ export function StockItemDetailModal({
                         ) : (
                           <Sparkles size={11} />
                         )}
-                        <span>Translate to English 🔄</span>
+                        <span>{language === "kn" ? "ಇಂಗ್ಲಿಷ್‌ಗೆ ಅನುವಾದಿಸು" : "Translate to English 🔄"}</span>
                       </button>
                     </div>
                     <textarea
@@ -637,6 +851,11 @@ export function StockItemDetailModal({
                     onClick={() => {
                       setEditNameEn(item.name || "");
                       setEditNameKn(item.nameKn || "");
+                      setEditCategory(item.category || "plants");
+                      setEditSubcategory(item.subcategory || "other");
+                      setEditUnit(item.unit || "pcs");
+                      setEditPrice(item.price?.toString() || "0");
+                      setEditQuantity(item.quantity?.toString() || "0");
                       setEditDescEn(item.description || "");
                       setEditDescKn(item.descriptionKn || "");
                       setEditingBilingual(false);
@@ -644,7 +863,7 @@ export function StockItemDetailModal({
                     disabled={savingBilingual}
                     className="rounded px-3 py-1.5 text-xs font-medium text-ink-soft hover:text-ink cursor-pointer"
                   >
-                    Cancel
+                    {language === "kn" ? "ರದ್ದುಮಾಡಿ" : "Cancel"}
                   </button>
                   <button
                     type="button"
@@ -657,7 +876,11 @@ export function StockItemDetailModal({
                     ) : (
                       <Check size={13} />
                     )}
-                    <span>{savingBilingual ? "Saving..." : "Save Details"}</span>
+                    <span>
+                      {savingBilingual
+                        ? language === "kn" ? "ಉಳಿಸಲಾಗುತ್ತಿದೆ…" : "Saving..."
+                        : language === "kn" ? "ಬದಲಾವಣೆಗಳನ್ನು ಉಳಿಸಿ" : "Save Changes"}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -729,36 +952,53 @@ export function StockItemDetailModal({
           </div>
 
           {/* Stock Details Quick Glance */}
-          <div className="grid grid-cols-2 gap-3 rounded-xl border border-line bg-paper p-3 text-xs sm:grid-cols-4 font-sans">
-            <div>
-              <span className="block text-[11px] text-ink-soft">
-                {language === "kn" ? "ಬೆಲೆ" : "Price"}
+          <div className="rounded-xl border border-line bg-paper p-3 text-xs font-sans">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">
+                {language === "kn" ? "ದಾಸ್ತಾನು ತ್ವರಿತ ಮಾಹಿತಿ" : "Stock Quick Summary"}
               </span>
-              <span className="font-semibold text-ink">₹{item.price}</span>
+              {!editingBilingual && (
+                <button
+                  type="button"
+                  onClick={() => setEditingBilingual(true)}
+                  className="text-[11px] font-semibold text-pine-deep hover:underline cursor-pointer inline-flex items-center gap-1"
+                >
+                  <Edit2 size={11} />
+                  <span>{language === "kn" ? "ಸಂಪಾದಿಸಿ" : "Edit"}</span>
+                </button>
+              )}
             </div>
-            <div>
-              <span className="block text-[11px] text-ink-soft">
-                {language === "kn" ? "ದಾಸ್ತಾನು" : "Stock In Hand"}
-              </span>
-              <span className="font-semibold text-ink">
-                {item.quantity} {translateUnit(item.unit || "pcs", language)}
-              </span>
-            </div>
-            <div>
-              <span className="block text-[11px] text-ink-soft">
-                {language === "kn" ? "ವರ್ಗ" : "Category"}
-              </span>
-              <span className="font-medium capitalize text-ink">
-                {translateCategory(item.category, language)}
-              </span>
-            </div>
-            <div>
-              <span className="block text-[11px] text-ink-soft">
-                {language === "kn" ? "ಉಪವರ್ಗ" : "Subcategory"}
-              </span>
-              <span className="font-medium capitalize text-ink">
-                {translateSubcategory(item.subcategory || "other", language)}
-              </span>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div>
+                <span className="block text-[11px] text-ink-soft">
+                  {language === "kn" ? "ಬೆಲೆ" : "Price"}
+                </span>
+                <span className="font-semibold text-ink">₹{item.price}</span>
+              </div>
+              <div>
+                <span className="block text-[11px] text-ink-soft">
+                  {language === "kn" ? "ದಾಸ್ತಾನು" : "Stock In Hand"}
+                </span>
+                <span className="font-semibold text-ink">
+                  {item.quantity} {translateUnit(item.unit || "pcs", language)}
+                </span>
+              </div>
+              <div>
+                <span className="block text-[11px] text-ink-soft">
+                  {language === "kn" ? "ವರ್ಗ" : "Category"}
+                </span>
+                <span className="font-medium capitalize text-ink">
+                  {translateCategory(item.category, language)}
+                </span>
+              </div>
+              <div>
+                <span className="block text-[11px] text-ink-soft">
+                  {language === "kn" ? "ಉಪವರ್ಗ" : "Subcategory"}
+                </span>
+                <span className="font-medium capitalize text-ink">
+                  {translateSubcategory(item.subcategory || "other", language)}
+                </span>
+              </div>
             </div>
           </div>
         </div>

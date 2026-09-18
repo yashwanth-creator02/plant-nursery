@@ -167,12 +167,14 @@ export default function StockPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<{
     name: string;
+    nameKn: string;
     unit: string;
     price: string;
     quantity: string;
     category: string;
     subcategory: string;
   } | null>(null);
+  const [translatingInlineName, setTranslatingInlineName] = useState(false);
 
   function load() {
     setLoading(true);
@@ -751,6 +753,7 @@ export default function StockPage() {
     setEditingId(item.id);
     setEditDraft({
       name: item.name,
+      nameKn: item.nameKn || "",
       unit: item.unit || "pcs",
       price: item.price.toString(),
       quantity: item.quantity.toString(),
@@ -763,11 +766,19 @@ export default function StockPage() {
     if (!editDraft) return;
     setError("");
     try {
+      let finalNameKn = editDraft.nameKn.trim();
+      if (!finalNameKn && editDraft.name.trim()) {
+        try {
+          finalNameKn = await translateOnTheFly(editDraft.name.trim(), "kn", "en");
+        } catch {}
+      }
+
       const res = await fetch(`/api/stock/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: editDraft.name.trim(),
+          name: editDraft.name.trim() || finalNameKn || "Stock Item",
+          nameKn: finalNameKn || null,
           unit: editDraft.unit.trim() || "pcs",
           price: Number(editDraft.price) || 0,
           quantity: Number(editDraft.quantity) || 0,
@@ -1724,15 +1735,65 @@ export default function StockPage() {
                     {/* Item Name */}
                     <td className="px-4 py-2.5 text-ink font-medium">
                       {editing ? (
-                        <input
-                          value={editDraft?.name}
-                          onChange={(e) =>
-                            setEditDraft((d) =>
-                              d ? { ...d, name: e.target.value } : d,
-                            )
-                          }
-                          className="w-full rounded-md border border-line-strong bg-surface px-2 py-1 text-sm outline-none focus:border-pine"
-                        />
+                        <div className="flex flex-col gap-1.5 min-w-[200px] sm:min-w-[240px]">
+                          <div>
+                            <span className="text-[10px] font-semibold text-ink-soft block font-sans mb-0.5">
+                              {language === "kn" ? "ಹೆಸರು (ಇಂಗ್ಲಿಷ್):" : "Name (English):"}
+                            </span>
+                            <input
+                              value={editDraft?.name}
+                              onChange={(e) =>
+                                setEditDraft((d) =>
+                                  d ? { ...d, name: e.target.value } : d,
+                                )
+                              }
+                              placeholder="English name"
+                              className="w-full rounded border border-line-strong bg-surface px-2 py-1 text-xs outline-none focus:border-pine"
+                            />
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="text-[10px] font-semibold text-ink-soft block font-sans">
+                                {language === "kn" ? "ಹೆಸರು (ಕನ್ನಡ):" : "Name (Kannada / ಕನ್ನಡ):"}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (!editDraft?.name.trim()) return;
+                                  setTranslatingInlineName(true);
+                                  try {
+                                    const res = await translateOnTheFly(editDraft.name.trim(), "kn", "en");
+                                    if (res) {
+                                      setEditDraft((d) => d ? { ...d, nameKn: res } : d);
+                                    }
+                                  } finally {
+                                    setTranslatingInlineName(false);
+                                  }
+                                }}
+                                disabled={translatingInlineName || !editDraft?.name.trim()}
+                                className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-pine hover:text-pine-deep disabled:opacity-40 cursor-pointer"
+                                title="Translate to Kannada"
+                              >
+                                {translatingInlineName ? (
+                                  <Loader2 size={10} className="animate-spin" />
+                                ) : (
+                                  <Languages size={10} />
+                                )}
+                                <span>{language === "kn" ? "ಅನುವಾದಿಸು" : "Translate 🔄"}</span>
+                              </button>
+                            </div>
+                            <input
+                              value={editDraft?.nameKn}
+                              onChange={(e) =>
+                                setEditDraft((d) =>
+                                  d ? { ...d, nameKn: e.target.value } : d,
+                                )
+                              }
+                              placeholder="ಕನ್ನಡ ಹೆಸರು"
+                              className="w-full rounded border border-line-strong bg-surface px-2 py-1 text-xs outline-none focus:border-pine font-sans"
+                            />
+                          </div>
+                        </div>
                       ) : (
                         <button
                           type="button"

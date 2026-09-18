@@ -360,13 +360,13 @@ export default function GalleryPage() {
             return (
               <div
                 key={item.id}
-                onClick={() => (hasImages ? openDetailModal(item) : openUploadModal(item.id))}
+                onClick={() => openDetailModal(item)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    hasImages ? openDetailModal(item) : openUploadModal(item.id);
+                    openDetailModal(item);
                   }
                 }}
                 className="group relative flex flex-col overflow-hidden rounded-xl border border-line bg-paper-flat shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-line-strong hover:shadow-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-pine"
@@ -382,7 +382,13 @@ export default function GalleryPage() {
                     />
                   ) : (
                     /* Placeholder for items without images */
-                    <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 p-4 text-center text-ink-soft/70 transition-colors group-hover:text-pine">
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openUploadModal(item.id);
+                      }}
+                      className="flex h-full w-full flex-col items-center justify-center gap-1.5 p-4 text-center text-ink-soft/70 transition-colors group-hover:text-pine hover:bg-pine/5 cursor-pointer"
+                    >
                       <ImageIcon size={32} strokeWidth={1.5} />
                       <span className="text-[11px] font-medium">
                         {language === "kn" ? "+ ಫೋಟೋ ಸೇರಿಸಿ" : "+ Add Photo"}
