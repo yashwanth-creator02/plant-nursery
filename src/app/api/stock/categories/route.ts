@@ -17,11 +17,13 @@ function slugify(text: string): string {
 
 const createCategorySchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(60, "Name is too long"),
+  nameKn: z.string().trim().max(100).optional().nullable(),
 });
 
 const updateCategorySchema = z.object({
   id: z.string().uuid("Invalid ID"),
   name: z.string().trim().min(1, "Name is required").max(60, "Name is too long"),
+  nameKn: z.string().trim().max(100).optional().nullable(),
 });
 
 export async function GET() {
@@ -36,8 +38,8 @@ export async function GET() {
       await db
         .insert(stockCategories)
         .values([
-          { name: "Plants", slug: "plants" },
-          { name: "Non-Plants", slug: "non-plants" },
+          { name: "Plants", nameKn: "ಗಿಡಗಳು", slug: "plants" },
+          { name: "Non-Plants", nameKn: "ಇತರ ವಸ್ತುಗಳು", slug: "non-plants" },
         ])
         .onConflictDoNothing();
 
@@ -65,7 +67,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { name } = parsed.data;
+    const { name, nameKn } = parsed.data;
     const slug = slugify(name);
 
     const existing = await db
@@ -82,7 +84,11 @@ export async function POST(req: NextRequest) {
 
     const [category] = await db
       .insert(stockCategories)
-      .values({ name, slug })
+      .values({
+        name,
+        nameKn: nameKn || null,
+        slug,
+      })
       .returning();
 
     return NextResponse.json({ category }, { status: 201 });
@@ -102,7 +108,7 @@ export async function PATCH(req: NextRequest) {
         { status: 400 }
       );
     }
-    const { id, name } = parsed.data;
+    const { id, name, nameKn } = parsed.data;
 
     const [existing] = await db
       .select()
@@ -113,9 +119,14 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Category not found" }, { status: 404 });
     }
 
+    const updateData: { name: string; nameKn?: string | null } = { name };
+    if (nameKn !== undefined) {
+      updateData.nameKn = nameKn || null;
+    }
+
     const [updated] = await db
       .update(stockCategories)
-      .set({ name })
+      .set(updateData)
       .where(eq(stockCategories.id, id))
       .returning();
 

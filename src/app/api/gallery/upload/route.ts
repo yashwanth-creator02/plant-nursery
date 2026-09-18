@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file") as File | null;
     const stockItemId = formData.get("stockItemId") as string | null;
     const description = (formData.get("description") as string | null)?.trim() || null;
+    const descriptionKn = (formData.get("descriptionKn") as string | null)?.trim() || null;
     const isPrimaryRaw = formData.get("isPrimary");
 
     if (!file) {
@@ -97,6 +98,7 @@ export async function POST(req: NextRequest) {
         imageUrl,
         storagePath,
         description,
+        descriptionKn,
         isPrimary: shouldBePrimary,
       })
       .returning();

@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { Hash, X, Check, ArrowRight } from "lucide-react";
 import { incrementInvoiceNumber } from "@/lib/invoice-format";
+import { useLanguage } from "@/lib/language-context";
 
 export function CustomInvoiceNumberModal({
   isOpen,
@@ -17,6 +18,7 @@ export function CustomInvoiceNumberModal({
   onUpdated: (newNextNumber: string) => void;
   initialNumber?: string;
 }) {
+  const { language, t } = useLanguage();
   const [customNumber, setCustomNumber] = useState(initialNumber);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -90,7 +92,7 @@ export function CustomInvoiceNumberModal({
               <Hash size={18} />
             </div>
             <h2 className="font-serif text-lg font-bold text-ink">
-              Set Custom Invoice Number
+              {t("customInvoiceModalTitle")}
             </h2>
           </div>
           <button
@@ -105,12 +107,12 @@ export function CustomInvoiceNumberModal({
 
         <form onSubmit={handleSave} className="mt-4 space-y-4">
           <p className="text-xs leading-relaxed text-ink-soft">
-            Set your custom starting invoice number. Subsequent invoices will automatically continue from this number series.
+            {t("customInvoiceModalDesc")}
           </p>
 
           <div>
             <label className="block text-xs font-semibold text-ink-soft mb-1.5">
-              Next Invoice Number
+              {language === "kn" ? "ಮುಂದಿನ ಇನ್‌ವಾಯ್ಸ್ ಸಂಖ್ಯೆ" : "Next Invoice Number"}
             </label>
             <input
               type="text"
@@ -124,7 +126,7 @@ export function CustomInvoiceNumberModal({
 
           {customNumber.trim() && (
             <div className="rounded-lg border border-line-strong/60 bg-paper-flat/60 p-3 text-xs">
-              <div className="text-ink-soft mb-1 font-medium">Series preview:</div>
+              <div className="text-ink-soft mb-1 font-medium">{t("seriesPreviewLabel")}</div>
               <div className="flex items-center gap-2 font-mono font-bold text-[#1b365d]">
                 <span className="rounded bg-blue-50 px-2 py-0.5 border border-blue-200">
                   {customNumber.trim()}
@@ -133,7 +135,7 @@ export function CustomInvoiceNumberModal({
                 <span className="rounded bg-blue-50 px-2 py-0.5 border border-blue-200">
                   {nextPreview}
                 </span>
-                <span className="text-ink-soft font-normal text-[11px]">...and continuing</span>
+                <span className="text-ink-soft font-normal text-[11px]">{language === "kn" ? "...ಮುಂದುವರಿಯುತ್ತದೆ" : "...and continuing"}</span>
               </div>
             </div>
           )}
@@ -157,14 +159,14 @@ export function CustomInvoiceNumberModal({
               onClick={onClose}
               className="rounded-md border border-line-strong px-4 py-2 text-xs font-medium text-ink-soft hover:bg-line/40 hover:text-ink cursor-pointer"
             >
-              Cancel
+              {t("cancel")}
             </button>
             <button
               type="submit"
               disabled={loading}
               className="rounded-md bg-pine px-4 py-2 text-xs font-semibold text-surface hover:opacity-90 disabled:opacity-50 cursor-pointer shadow-xs"
             >
-              {loading ? "Saving..." : "Save Invoice Number"}
+              {loading ? (language === "kn" ? "ಉಳಿಸಲಾಗುತ್ತಿದೆ..." : "Saving...") : t("saveInvoiceSeriesBtn")}
             </button>
           </div>
         </form>

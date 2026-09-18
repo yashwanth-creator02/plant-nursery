@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { InvoiceEditor } from "@/components/InvoiceEditor";
 import { InvoiceRecord } from "@/lib/types";
+import { useLanguage } from "@/lib/language-context";
 
 export default function InvoiceDetailPage({
   params,
@@ -11,6 +12,7 @@ export default function InvoiceDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { t } = useLanguage();
   const [invoice, setInvoice] = useState<InvoiceRecord | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -37,16 +39,16 @@ export default function InvoiceDetailPage({
 
   if (loading) {
     return (
-      <div className="p-8 text-sm text-ink-soft">Loading invoice…</div>
+      <div className="p-8 text-sm text-ink-soft">{t("loadingInvoiceMsg")}</div>
     );
   }
 
   if (error || !invoice) {
     return (
       <div className="p-8">
-        <p className="mb-3 text-sm text-rust">{error || "Invoice not found."}</p>
+        <p className="mb-3 text-sm text-rust">{error || t("invoiceNotFoundMsg")}</p>
         <Link href="/invoices" className="text-sm text-pine-deep underline">
-          Back to invoices
+          {t("backToInvoicesBtn")}
         </Link>
       </div>
     );

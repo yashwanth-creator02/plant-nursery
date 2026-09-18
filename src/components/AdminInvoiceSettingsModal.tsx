@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { X, Check, Building2, AlertTriangle, History, ChevronRight, Copy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { BusinessSettings } from "@/lib/types";
+import { useLanguage } from "@/lib/language-context";
 
 interface AdminInvoiceSettingsModalProps {
   open: boolean;
@@ -19,6 +20,7 @@ export function AdminInvoiceSettingsModal({
   onSuccess,
 }: AdminInvoiceSettingsModalProps) {
   const router = useRouter();
+  const { language, t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -107,7 +109,7 @@ export function AdminInvoiceSettingsModal({
           <div className="flex items-center gap-2">
             <Building2 size={18} className="text-pine" />
             <h3 className="font-serif text-base font-semibold text-ink">
-              Invoice Header Settings
+              {t("invoiceDetailsHeaderTitle")}
             </h3>
           </div>
           <button
@@ -132,7 +134,7 @@ export function AdminInvoiceSettingsModal({
             }`}
           >
             <Building2 size={13} />
-            <span>Edit Header Details</span>
+            <span>{t("editInvoiceHeaderBtn")}</span>
           </button>
           <button
             type="button"
@@ -144,7 +146,7 @@ export function AdminInvoiceSettingsModal({
             }`}
           >
             <History size={13} />
-            <span>Version History</span>
+            <span>{t("versionHistoryTitle")}</span>
             {pastVersions.length > 0 && (
               <span className="rounded-full bg-paper-flat px-1.5 py-0.2 font-mono text-[10px] text-ink-soft border border-line">
                 {pastVersions.length}
@@ -161,21 +163,21 @@ export function AdminInvoiceSettingsModal({
 
         {loading ? (
           <div className="py-8 text-center text-sm text-ink-soft">
-            Loading invoice settings...
+            {language === "kn" ? "ಇನ್‌ವಾಯ್ಸ್ ವಿವರಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ..." : "Loading invoice settings..."}
           </div>
         ) : activeTab === "edit" ? (
           <div className="mt-4 space-y-3.5">
             <div className="flex items-center justify-between bg-paper px-3 py-2 rounded-md border border-line">
               <span className="text-xs font-medium text-ink-soft">
-                Current Active Invoice Version
+                {t("currentActiveBadge")} {t("versionLabel")}
               </span>
               <span className="font-mono text-xs font-bold text-pine-deep bg-surface border border-line px-2 py-0.5 rounded">
-                Version {currentVersion}
+                {t("versionLabel")} {currentVersion}
               </span>
             </div>
 
             <label className="flex flex-col gap-1 text-xs text-ink-soft">
-              <span>Nursery / Business Name</span>
+              <span>{language === "kn" ? "ನರ್ಸರಿ / ವ್ಯಾಪಾರದ ಹೆಸರು" : "Nursery / Business Name"}</span>
               <input
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
@@ -186,7 +188,7 @@ export function AdminInvoiceSettingsModal({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label className="flex flex-col gap-1 text-xs text-ink-soft">
-                <span>GSTIN</span>
+                <span>{t("gstinLabel").replace(":", "")}</span>
                 <input
                   value={gstin}
                   onChange={(e) => setGstin(e.target.value)}
@@ -194,7 +196,7 @@ export function AdminInvoiceSettingsModal({
                 />
               </label>
               <label className="flex flex-col gap-1 text-xs text-ink-soft">
-                <span>Mobile Numbers</span>
+                <span>{language === "kn" ? "ಮೊಬೈಲ್ ಸಂಖ್ಯೆಗಳು" : "Mobile Numbers"}</span>
                 <input
                   value={mobiles}
                   onChange={(e) => setMobiles(e.target.value)}
@@ -204,7 +206,7 @@ export function AdminInvoiceSettingsModal({
             </div>
 
             <label className="flex flex-col gap-1 text-xs text-ink-soft">
-              <span>Subtitle Line 1 (Approval)</span>
+              <span>{language === "kn" ? "ಉಪಶೀರ್ಷಿಕೆ 1 (ಇಲಾಖಾ ಅನುಮೋದನೆ)" : "Subtitle Line 1 (Approval)"}</span>
               <input
                 value={subheading1}
                 onChange={(e) => setSubheading1(e.target.value)}
@@ -213,7 +215,7 @@ export function AdminInvoiceSettingsModal({
             </label>
 
             <label className="flex flex-col gap-1 text-xs text-ink-soft">
-              <span>Subtitle Line 2 (Supplies)</span>
+              <span>{language === "kn" ? "ಉಪಶೀರ್ಷಿಕೆ 2 (ಸರಬರಾಜು ವಿವರ)" : "Subtitle Line 2 (Supplies)"}</span>
               <input
                 value={subheading2}
                 onChange={(e) => setSubheading2(e.target.value)}
@@ -222,7 +224,7 @@ export function AdminInvoiceSettingsModal({
             </label>
 
             <label className="flex flex-col gap-1 text-xs text-ink-soft">
-              <span>Address & Location</span>
+              <span>{language === "kn" ? "ವಿಳಾಸ ಮತ್ತು ಸ್ಥಳ" : "Address & Location"}</span>
               <input
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
@@ -235,18 +237,18 @@ export function AdminInvoiceSettingsModal({
             <div className="rounded-lg border border-line bg-paper/60 p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-ink flex items-center gap-1.5">
-                  Tax Rates (Non-Plant Goods Only)
+                  {t("taxRatesTitle")}
                 </span>
                 <span className="text-[10px] font-semibold text-pine bg-pine-tint px-2 py-0.5 rounded-full">
-                  Live Plants = 0% Tax Exempt
+                  {language === "kn" ? "ಲೈವ್ ಸಸಿಗಳು = 0% ತೆರಿಗೆ ಮುಕ್ತ" : "Live Plants = 0% Tax Exempt"}
                 </span>
               </div>
               <p className="text-[11px] text-ink-soft leading-tight">
-                Live plants are 100% tax-free under GST law. Taxes set below will apply only to non-plant inventory items (e.g. pots, vermicompost, fertilizers, cocopeat, tools).
+                {t("taxRatesDesc")}
               </p>
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <label className="flex flex-col gap-1 text-xs text-ink-soft">
-                  <span className="font-semibold text-ink">CGST (%)</span>
+                  <span className="font-semibold text-ink">{t("cgstRateLabel")}</span>
                   <input
                     type="number"
                     step="0.01"
@@ -259,7 +261,7 @@ export function AdminInvoiceSettingsModal({
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-xs text-ink-soft">
-                  <span className="font-semibold text-ink">SGST (%)</span>
+                  <span className="font-semibold text-ink">{t("sgstRateLabel")}</span>
                   <input
                     type="number"
                     step="0.01"
@@ -280,15 +282,15 @@ export function AdminInvoiceSettingsModal({
                 onClick={onClose}
                 className="rounded-md border border-line px-3.5 py-1.5 text-xs font-medium text-ink-soft hover:bg-line/40"
               >
-                Cancel
+                {t("cancel")}
               </button>
               <button
                 type="button"
                 onClick={() => setShowConfirm(true)}
                 disabled={!businessName.trim() || !address.trim()}
-                className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-1.5 text-xs font-medium text-surface shadow-xs hover:opacity-90 disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-1.5 text-xs font-medium text-surface shadow-xs hover:opacity-90 disabled:opacity-50 cursor-pointer"
               >
-                <Check size={14} /> Save Details
+                <Check size={14} /> {language === "kn" ? "ವಿವರಗಳನ್ನು ಉಳಿಸಿ" : "Save Details"}
               </button>
             </div>
           </div>
@@ -296,7 +298,7 @@ export function AdminInvoiceSettingsModal({
           <div className="mt-4 space-y-3 max-h-[420px] overflow-y-auto pr-1">
             {pastVersions.length === 0 ? (
               <p className="py-8 text-center text-xs text-ink-soft">
-                No past versions recorded.
+                {language === "kn" ? "ಯಾವುದೇ ಹಿಂದಿನ ಆವೃತ್ತಿಗಳು ದಾಖಲಾಗಿಲ್ಲ." : "No past versions recorded."}
               </p>
             ) : (
               pastVersions.map((v) => (
@@ -311,15 +313,15 @@ export function AdminInvoiceSettingsModal({
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2">
                       <span className="font-mono font-bold text-xs text-ink">
-                        Version {v.version}
+                        {t("versionLabel")} {v.version}
                       </span>
                       {v.isCurrent ? (
                         <span className="rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 px-1.5 py-0.2 text-[10px] font-bold uppercase tracking-wider">
-                          Current Active
+                          {t("currentActiveBadge")}
                         </span>
                       ) : (
                         <span className="rounded bg-paper border border-line text-ink-soft px-1.5 py-0.2 text-[10px] font-medium">
-                          Past Version
+                          {t("pastVersionBadge")}
                         </span>
                       )}
                     </div>
@@ -345,14 +347,14 @@ export function AdminInvoiceSettingsModal({
                     <div className="text-ink-soft/90">{v.address}</div>
                     <div className="flex items-center gap-4 text-[10px] text-ink-soft/80 font-mono mt-1 flex-wrap">
                       {v.gstin && <span>GSTIN: {v.gstin}</span>}
-                      {v.mobiles && <span>Mobiles: {v.mobiles}</span>}
+                      {v.mobiles && <span>{t("mobilesLabel")} {v.mobiles}</span>}
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between border-t border-line/60 pt-2.5 text-[11px]">
                     <div className="flex items-center gap-2 text-ink-soft">
                       <span>
-                        <strong className="font-semibold text-ink">{v.invoiceCount ?? 0}</strong> bill(s)
+                        <strong className="font-semibold text-ink">{v.invoiceCount ?? 0}</strong> {t("billsBadge")}
                       </span>
                       <span>•</span>
                       <span className="font-mono font-semibold text-pine-deep">
@@ -378,7 +380,7 @@ export function AdminInvoiceSettingsModal({
                         title="Copy details into editor form"
                       >
                         <Copy size={11} />
-                        <span>Copy to Form</span>
+                        <span>{language === "kn" ? "ಫಾರ್ಮ್‌ಗೆ ನಕಲಿಸಿ" : "Copy to Form"}</span>
                       </button>
 
                       <button
@@ -390,7 +392,7 @@ export function AdminInvoiceSettingsModal({
                         className="inline-flex items-center gap-1 rounded bg-pine-tint px-2 py-1 text-[11px] font-semibold text-pine-deep hover:bg-pine/20 cursor-pointer"
                         title={`Filter invoices created under Version ${v.version}`}
                       >
-                        <span>View Bills</span>
+                        <span>{t("viewBillsBtn")}</span>
                         <ChevronRight size={12} />
                       </button>
                     </div>
@@ -405,7 +407,7 @@ export function AdminInvoiceSettingsModal({
                 onClick={onClose}
                 className="rounded-md border border-line px-4 py-1.5 text-xs font-medium text-ink-soft hover:bg-line/40 cursor-pointer"
               >
-                Close
+                {t("close")}
               </button>
             </div>
           </div>
@@ -419,15 +421,15 @@ export function AdminInvoiceSettingsModal({
                 <AlertTriangle size={20} />
               </div>
               <h4 className="font-serif text-base font-bold text-ink">
-                Confirm Permanent Change
+                {language === "kn" ? "ಖಚಿತ ಬದಲಾವಣೆ ದೃಢೀಕರಣ" : "Confirm Permanent Change"}
               </h4>
               <p className="mt-2 text-xs font-semibold text-rust">
-                &ldquo;you are about to permanetly change the invoice details.&rdquo;
+                &ldquo;{language === "kn" ? "ನೀವು ಇನ್‌ವಾಯ್ಸ್ ವಿವರಗಳನ್ನು ಶಾಶ್ವತವಾಗಿ ಬದಲಾಯಿಸುತ್ತಿದ್ದೀರಿ." : "you are about to permanently change the invoice details."}&rdquo;
               </p>
               <p className="mt-2 text-xs text-ink-soft leading-relaxed">
-                This will increment active invoices to <strong>Version {currentVersion + 1}</strong>.
-                Future invoices will use these new details, while existing invoices will remain
-                permanently tagged as <strong>Version {currentVersion}</strong>.
+                {language === "kn"
+                  ? `ಇದು ಹೊಸ ಇನ್‌ವಾಯ್ಸ್‌ಗಳನ್ನು ಆವೃತ್ತಿ ${currentVersion + 1} ಕ್ಕೆ ಹೆಚ್ಚಿಸುತ್ತದೆ. ಮುಂದಿನ ಇನ್‌ವಾಯ್ಸ್‌ಗಳು ಈ ಹೊಸ ವಿವರಗಳನ್ನು ಬಳಸುತ್ತವೆ.`
+                  : `This will increment active invoices to Version ${currentVersion + 1}. Future invoices will use these new details, while existing invoices will remain permanently tagged as Version ${currentVersion}.`}
               </p>
 
               <div className="mt-5 flex justify-center gap-2.5">
@@ -435,17 +437,19 @@ export function AdminInvoiceSettingsModal({
                   type="button"
                   onClick={() => setShowConfirm(false)}
                   disabled={submitting}
-                  className="rounded-md border border-line px-3.5 py-1.5 text-xs font-medium text-ink-soft hover:bg-line/40"
+                  className="rounded-md border border-line px-3.5 py-1.5 text-xs font-medium text-ink-soft hover:bg-line/40 cursor-pointer"
                 >
-                  Cancel
+                  {t("cancel")}
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirmSave}
                   disabled={submitting}
-                  className="flex items-center gap-1 rounded-md bg-rust px-4 py-1.5 text-xs font-medium text-surface hover:opacity-90 disabled:opacity-50 shadow-xs"
+                  className="flex items-center gap-1 rounded-md bg-rust px-4 py-1.5 text-xs font-medium text-surface hover:opacity-90 disabled:opacity-50 shadow-xs cursor-pointer"
                 >
-                  {submitting ? "Updating..." : "Confirm & Update"}
+                  {submitting
+                    ? (language === "kn" ? "ನವೀಕರಿಸಲಾಗುತ್ತಿದೆ..." : "Updating...")
+                    : (language === "kn" ? "ದೃಢೀಕರಿಸಿ ನವೀಕರಿಸಿ" : "Confirm & Update")}
                 </button>
               </div>
             </div>

@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { useLanguage } from "@/lib/language-context";
 import { SignatureModal } from "./SignatureModal";
 import { AdminInvoiceSettingsModal } from "./AdminInvoiceSettingsModal";
 import { CustomInvoiceNumberModal } from "./CustomInvoiceNumberModal";
@@ -66,6 +67,7 @@ export function ProfilePanel({
   onClose: () => void;
 }) {
   const { user, logout, refresh } = useAuth();
+  const { t, language } = useLanguage();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"profile" | "admin">("profile");
 
@@ -352,7 +354,10 @@ export function ProfilePanel({
   }
 
   async function handleRemoveQr() {
-    if (!confirm("Remove the payment QR code? Staff and customers will no longer see a QR code.")) {
+    const confirmRemoveQrMsg = language === "kn"
+      ? "ಪಾವತಿ QR ಕೋಡ್ ಅನ್ನು ತೆಗೆದುಹಾಕಬೇಕೇ? ಸಿಬ್ಬಂದಿ ಮತ್ತು ಗ್ರಾಹಕರಿಗೆ ಇನ್ನು ಮುಂದೆ QR ಕೋಡ್ ಕಾಣಿಸುವುದಿಲ್ಲ."
+      : "Remove the payment QR code? Staff and customers will no longer see a QR code.";
+    if (!confirm(confirmRemoveQrMsg)) {
       return;
     }
     setUploadingQr(true);
@@ -468,7 +473,10 @@ export function ProfilePanel({
   }
 
   async function handleRemoveLogo() {
-    if (!confirm("Reset to the default nursery plant logo? Future and draft bills will use the default plant logo.")) {
+    const confirmRemoveLogoMsg = language === "kn"
+      ? "ಡೀಫಾಲ್ಟ್ ನರ್ಸರಿ ಲೋಗೋಗೆ ಮರುಹೊಂದಿಸಬೇಕೇ? ಭವಿಷ್ಯದ ಬಿಲ್‌ಗಳು ಡೀಫಾಲ್ಟ್ ಸಸ್ಯದ ಲೋಗೋವನ್ನು ಬಳಸುತ್ತವೆ."
+      : "Reset to the default nursery plant logo? Future and draft bills will use the default plant logo.";
+    if (!confirm(confirmRemoveLogoMsg)) {
       return;
     }
     setUploadingLogo(true);
@@ -553,9 +561,13 @@ export function ProfilePanel({
 
   async function removeUser(targetUser: ManagedUser) {
     const isAdminTarget = targetUser.role === "admin";
-    const msg = isAdminTarget
-      ? `Remove admin "${targetUser.username}"? They will lose all admin and account access.`
-      : `Remove user "${targetUser.username}"? They won't be able to log in anymore.`;
+    const msg = language === "kn"
+      ? (isAdminTarget
+          ? `ನಿರ್ವಾಹಕ "${targetUser.username}" ರನ್ನು ತೆಗೆದುಹಾಕಬೇಕೇ? ಅವರು ಎಲ್ಲಾ ಪ್ರವೇಶವನ್ನು ಕಳೆದುಕೊಳ್ಳುತ್ತಾರೆ.`
+          : `ಬಳಕೆದಾರ "${targetUser.username}" ರನ್ನು ತೆಗೆದುಹಾಕಬೇಕೇ? ಅವರು ಇನ್ನು ಲಾಗಿನ್ ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ.`)
+      : (isAdminTarget
+          ? `Remove admin "${targetUser.username}"? They will lose all admin and account access.`
+          : `Remove user "${targetUser.username}"? They won't be able to log in anymore.`);
 
     if (!confirm(msg)) {
       return;
@@ -575,12 +587,16 @@ export function ProfilePanel({
 
   async function handleDeleteAllInvoices() {
     const confirmed = window.confirm(
-      "WARNING: This will permanently delete ALL invoices and billing history from the database.\n\nStock inventory and user accounts will NOT be deleted.\n\nThis action CANNOT be undone.\n\nAre you sure you want to delete all invoices?",
+      language === "kn"
+        ? "ಎಚ್ಚರಿಕೆ: ಇದು ಡೇಟಾಬೇಸ್‌ನಿಂದ ಎಲ್ಲಾ ಬಿಲ್‌ಗಳು ಮತ್ತು ಬಿಲ್ಲಿಂಗ್ ಇತಿಹಾಸವನ್ನು ಶಾಶ್ವತವಾಗಿ ಅಳಿಸುತ್ತದೆ.\n\nಸ್ಟಾಕ್ ಮತ್ತು ಬಳಕೆದಾರರ ಖಾತೆಗಳನ್ನು ಅಳಿಸಲಾಗುವುದಿಲ್ಲ.\n\nಈ ಕ್ರಿಯೆಯನ್ನು ರದ್ದುಗೊಳಿಸಲಾಗುವುದಿಲ್ಲ.\n\nನೀವು ಎಲ್ಲಾ ಬಿಲ್‌ಗಳನ್ನು ಅಳಿಸಲು ಖಚಿತವಾಗಿ ಬಯಸುವಿರಾ?"
+        : "WARNING: This will permanently delete ALL invoices and billing history from the database.\n\nStock inventory and user accounts will NOT be deleted.\n\nThis action CANNOT be undone.\n\nAre you sure you want to delete all invoices?",
     );
     if (!confirmed) return;
 
     const doubleCheck = window.confirm(
-      "CONFIRM AGAIN: Are you absolutely sure you want to permanently delete all invoices?",
+      language === "kn"
+        ? "ಮತ್ತೊಮ್ಮೆ ದೃಢೀಕರಿಸಿ: ಎಲ್ಲಾ ಬಿಲ್‌ಗಳನ್ನು ಶಾಶ್ವತವಾಗಿ ಅಳಿಸಲು ನೀವು ಖಚಿತವಾಗಿ ಬಯಸುವಿರಾ?"
+        : "CONFIRM AGAIN: Are you absolutely sure you want to permanently delete all invoices?",
     );
     if (!doubleCheck) return;
 
@@ -590,7 +606,7 @@ export function ProfilePanel({
       const res = await fetch("/api/invoices", { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to delete invoices");
-      alert("All invoices have been permanently deleted.");
+      alert(language === "kn" ? "ಎಲ್ಲಾ ಬಿಲ್‌ಗಳನ್ನು ಶಾಶ್ವತವಾಗಿ ಅಳಿಸಲಾಗಿದೆ." : "All invoices have been permanently deleted.");
       window.dispatchEvent(new Event("invoiceSequenceUpdated"));
       window.location.reload();
     } catch (e) {
@@ -601,7 +617,9 @@ export function ProfilePanel({
 
   async function handleClearAllData() {
     const confirmed = window.confirm(
-      "WARNING: This will permanently delete all invoices, line items, stock items, and other user accounts from the database.\n\nThis action CANNOT be undone.\n\nAre you sure you want to proceed?",
+      language === "kn"
+        ? "ಎಚ್ಚರಿಕೆ: ಇದು ಡೇಟಾಬೇಸ್‌ನಿಂದ ಎಲ್ಲಾ ಬಿಲ್‌ಗಳು, ಸ್ಟಾಕ್ ಐಟಂಗಳು ಮತ್ತು ಇತರ ಬಳಕೆದಾರ ಖಾತೆಗಳನ್ನು ಶಾಶ್ವತವಾಗಿ ಅಳಿಸುತ್ತದೆ.\n\nಈ ಕ್ರಿಯೆಯನ್ನು ರದ್ದುಗೊಳಿಸಲಾಗುವುದಿಲ್ಲ.\n\nನೀವು ಮುಂದುವರಿಸಲು ಖಚಿತವಾಗಿ ಬಯಸುವಿರಾ?"
+        : "WARNING: This will permanently delete all invoices, line items, stock items, and other user accounts from the database.\n\nThis action CANNOT be undone.\n\nAre you sure you want to proceed?",
     );
     if (!confirmed) return;
 
@@ -611,7 +629,7 @@ export function ProfilePanel({
       const res = await fetch("/api/admin/clear-data", { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to clear database");
-      alert("Database has been completely cleared.");
+      alert(language === "kn" ? "ಡೇಟಾಬೇಸ್ ಅನ್ನು ಸಂಪೂರ್ಣವಾಗಿ ತೆರವುಗೊಳಿಸಲಾಗಿದೆ." : "Database has been completely cleared.");
       window.location.reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't clear database");
@@ -632,7 +650,7 @@ export function ProfilePanel({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <h2 className="font-serif text-base font-semibold text-ink">
-            {isAdmin ? "Account & Settings" : "Account Profile"}
+            {isAdmin ? t("profileTitleAdmin") : t("profileTitleStaff")}
           </h2>
           <button
             onClick={onClose}
@@ -655,7 +673,7 @@ export function ProfilePanel({
                   : "border-transparent text-ink-soft hover:text-ink"
               }`}
             >
-              <User size={14} /> Profile
+              <User size={14} /> {t("tabProfile")}
             </button>
             <button
               type="button"
@@ -666,7 +684,7 @@ export function ProfilePanel({
                   : "border-transparent text-ink-soft hover:text-ink"
               }`}
             >
-              <ShieldCheck size={14} /> Admin Panel
+              <ShieldCheck size={14} /> {t("tabAdmin")}
             </button>
           </div>
         )}
@@ -686,7 +704,7 @@ export function ProfilePanel({
                   {user?.username}
                 </div>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-xs capitalize font-medium text-ink-soft">{user?.role}</span>
+                  <span className="text-xs capitalize font-medium text-ink-soft">{user?.role === "admin" ? t("adminRole") : t("staffRole")}</span>
                 </div>
               </div>
             </div>
@@ -697,7 +715,7 @@ export function ProfilePanel({
             <div className="border-b border-line px-5 py-3.5">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                  Digital Signature
+                  {t("digitalSignatureSection")}
                 </span>
                 <button
                   type="button"
@@ -705,7 +723,7 @@ export function ProfilePanel({
                   className="flex items-center gap-1 text-xs font-medium text-pine-deep hover:underline cursor-pointer"
                 >
                   <PenTool size={12} />
-                  <span>{signaturePreview ? "Edit Signature" : "Create Signature"}</span>
+                  <span>{signaturePreview ? t("editSignatureBtn") : t("createSignatureBtn")}</span>
                 </button>
               </div>
 
@@ -727,12 +745,12 @@ export function ProfilePanel({
                     onClick={handleResetSignature}
                     className="text-[11px] text-rust hover:underline cursor-pointer"
                   >
-                    Reset
+                    {t("resetSignatureBtn")}
                   </button>
                 </div>
               ) : (
                 <p className="text-xs text-ink-soft/80">
-                  Default cursive signature active. Click above to draw or type a custom signature.
+                  {t("defaultSignatureNote")}
                 </p>
               )}
             </div>
@@ -741,7 +759,7 @@ export function ProfilePanel({
             <div className="border-b border-line px-5 py-3.5">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                  Sales &amp; Revenue Analytics
+                  {t("salesAnalyticsSection")}
                 </span>
                 <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-pine-deep bg-pine-tint px-1.5 py-0.5 rounded">
                   <Sparkles size={10} /> Live
@@ -749,18 +767,18 @@ export function ProfilePanel({
               </div>
               <p className="text-xs text-ink-soft mb-3">
                 {isAdmin
-                  ? "View nursery-wide sales, online UPI & counter cash breakdowns, and staff reports."
-                  : "View your personal sales figures, online UPI payments, and cash collections."}
+                  ? t("salesAnalyticsAdminDesc")
+                  : t("salesAnalyticsStaffDesc")}
               </p>
 
               {/* Today's Quick Snapshot Card */}
               <div className="rounded-xl border border-line bg-paper p-3 mb-3">
                 <div className="flex items-center justify-between text-xs text-ink-soft mb-1">
-                  <span>Today's Total Sales</span>
+                  <span>{t("todayTotalSalesLabel")}</span>
                   <span className="font-semibold text-ink">
                     {todaySalesSummary
-                      ? `${todaySalesSummary.count} bill(s)`
-                      : "Loading..."}
+                      ? `${todaySalesSummary.count} ${t("billsBadge")}`
+                      : "..."}
                   </span>
                 </div>
                 <div className="font-serif text-xl font-bold text-pine-deep mb-2">
@@ -770,14 +788,14 @@ export function ProfilePanel({
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-line/60 text-xs">
                   <div className="flex items-center gap-1.5 overflow-hidden">
                     <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0"></span>
-                    <span className="text-ink-soft truncate">Online:</span>
+                    <span className="text-ink-soft truncate">{t("onlineUpiLabel")}:</span>
                     <span className="font-bold text-blue-700 dark:text-blue-400 font-mono ml-auto">
                       ₹{Number(todaySalesSummary?.online || 0).toLocaleString("en-IN")}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 overflow-hidden">
                     <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
-                    <span className="text-ink-soft truncate">Cash:</span>
+                    <span className="text-ink-soft truncate">{t("cashOfflineLabel")}:</span>
                     <span className="font-bold text-emerald-700 dark:text-emerald-400 font-mono ml-auto">
                       ₹{Number(todaySalesSummary?.cash || 0).toLocaleString("en-IN")}
                     </span>
@@ -793,7 +811,7 @@ export function ProfilePanel({
               >
                 <div className="flex items-center gap-2">
                   <TrendingUp size={15} />
-                  <span>View Full Sales Analytics</span>
+                  <span>{t("viewFullSalesAnalyticsBtn")}</span>
                 </div>
                 <ChevronRight size={15} className="opacity-80" />
               </button>
@@ -803,23 +821,23 @@ export function ProfilePanel({
             <div className="border-b border-line px-5 py-3.5">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                  Invoice Number Series
+                  {t("invoiceSeriesSection")}
                 </span>
                 {nextInvoiceNumber && (
                   <span className="text-[10px] font-mono font-bold bg-blue-50 text-[#1b365d] border border-blue-200 px-1.5 py-0.5 rounded">
-                    Next: {nextInvoiceNumber}
+                    {t("nextSeriesLabel")} {nextInvoiceNumber}
                   </span>
                 )}
               </div>
               <p className="text-xs text-ink-soft mb-2.5">
-                Set a custom starting invoice number. Subsequent invoices will automatically continue from this series.
+                {t("invoiceSeriesDesc")}
               </p>
               <button
                 type="button"
                 onClick={() => setCustomNumberModalOpen(true)}
                 className="flex w-full items-center justify-center gap-2 rounded-md border border-line-strong bg-paper px-3 py-2 text-xs font-medium text-ink transition-colors hover:bg-line/50 cursor-pointer"
               >
-                <Hash size={14} /> Set Custom Invoice Number
+                <Hash size={14} /> {t("setCustomInvoiceNumberBtn")}
               </button>
             </div>
 
@@ -829,7 +847,7 @@ export function ProfilePanel({
                 onClick={logout}
                 className="flex w-full items-center justify-center gap-2 rounded-md border border-line-strong px-3 py-2 text-sm font-medium text-ink transition-colors hover:bg-line/50 cursor-pointer"
               >
-                <LogOut size={15} /> Log out
+                <LogOut size={15} /> {t("logoutBtn")}
               </button>
             </div>
           </div>
@@ -844,14 +862,14 @@ export function ProfilePanel({
             <div className="px-5 py-4 bg-paper-flat/30">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                  Nursery Sales Analytics
+                  {t("nurserySalesAnalyticsTitle")}
                 </span>
                 <span className="rounded bg-pine-tint px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-pine-deep">
                   Live Reports
                 </span>
               </div>
               <p className="text-xs text-ink-soft mb-3">
-                Full analytics with Month, Date, Year, and Custom Length date filters across all staff members.
+                {t("nurserySalesAnalyticsDesc")}
               </p>
               <button
                 type="button"
@@ -860,7 +878,7 @@ export function ProfilePanel({
               >
                 <div className="flex items-center gap-2">
                   <TrendingUp size={15} />
-                  <span>Open Nursery Sales Analytics</span>
+                  <span>{t("openSalesAnalyticsBtn")}</span>
                 </div>
                 <ChevronRight size={15} />
               </button>
@@ -870,19 +888,19 @@ export function ProfilePanel({
             <div className="px-5 py-4 border-b border-line">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                  GST &amp; Tax Rates (Non-Plants)
+                  {t("taxRatesTitle")}
                 </span>
                 <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded">
                   Live Tax Settings
                 </span>
               </div>
               <p className="text-xs text-ink-soft mb-3">
-                Configure CGST and SGST rates applied to non-plant items (pots, fertilizers, tools). Live plants remain 100% GST exempt.
+                {t("taxRatesDesc")}
               </p>
 
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-ink">CGST Rate (%)</span>
+                  <span className="text-xs font-medium text-ink">{t("cgstRateLabel")}</span>
                   <div className="relative">
                     <input
                       type="number"
@@ -898,7 +916,7 @@ export function ProfilePanel({
                   </div>
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-ink">SGST Rate (%)</span>
+                  <span className="text-xs font-medium text-ink">{t("sgstRateLabel")}</span>
                   <div className="relative">
                     <input
                       type="number"
@@ -933,7 +951,7 @@ export function ProfilePanel({
                 className="flex w-full items-center justify-center gap-1.5 rounded-md bg-pine px-3 py-2 text-xs font-semibold text-white shadow-xs hover:bg-pine-deep transition-all cursor-pointer disabled:opacity-50"
               >
                 <Percent size={14} />
-                <span>{taxRatesSaving ? "Saving Tax Rates..." : "Save CGST & SGST Rates"}</span>
+                <span>{taxRatesSaving ? t("savingTaxRatesBtn") : t("saveTaxRatesBtn")}</span>
               </button>
             </div>
 
@@ -941,18 +959,18 @@ export function ProfilePanel({
             <div className="px-5 py-4">
               <div className="mb-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                  Invoice Details &amp; Header
+                  {t("invoiceDetailsHeaderTitle")}
                 </span>
               </div>
               <p className="text-xs text-ink-soft mb-2.5">
-                Manage nursery business name, address, GSTIN, and mobile numbers across versions.
+                {t("invoiceDetailsHeaderDesc")}
               </p>
               <button
                 type="button"
                 onClick={() => setAdminSettingsModalOpen(true)}
                 className="flex w-full items-center justify-center gap-2 rounded-md border border-line-strong bg-paper px-3 py-2 text-xs font-medium text-ink transition-colors hover:bg-line/50 cursor-pointer"
               >
-                <Building2 size={14} /> Edit Invoice Header &amp; Details
+                <Building2 size={14} /> {t("editInvoiceHeaderBtn")}
               </button>
 
               {/* Past & Active Invoice Versions History */}
@@ -960,10 +978,10 @@ export function ProfilePanel({
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-ink">
                     <History size={13} className="text-pine" />
-                    <span>Past &amp; Active Invoice Versions</span>
+                    <span>{t("versionHistoryTitle")}</span>
                   </div>
                   <span className="text-[11px] font-mono text-ink-soft">
-                    {invoiceVersions.length} version{invoiceVersions.length !== 1 ? "s" : ""}
+                    {invoiceVersions.length} {t("versionLabel").toLowerCase()}(s)
                   </span>
                 </div>
 
@@ -987,15 +1005,15 @@ export function ProfilePanel({
                         <div className="flex items-start justify-between gap-2 mb-1.5">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="font-mono font-bold text-xs text-ink">
-                              Version {v.version}
+                              {t("versionLabel")} {v.version}
                             </span>
                             {v.isCurrent ? (
                               <span className="rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 px-1.5 py-0.2 text-[10px] font-bold uppercase tracking-wider">
-                                Current Active
+                                {t("currentActiveBadge")}
                               </span>
                             ) : (
                               <span className="rounded bg-paper border border-line text-ink-soft px-1.5 py-0.2 text-[10px] font-medium">
-                                Past Version
+                                {t("pastVersionBadge")}
                               </span>
                             )}
                           </div>
@@ -1020,14 +1038,14 @@ export function ProfilePanel({
                           <div className="text-ink-soft/90 line-clamp-1">{v.address}</div>
                           <div className="flex items-center gap-3 text-[10px] text-ink-soft/80 font-mono mt-1 flex-wrap">
                             {v.gstin && <span>GSTIN: {v.gstin}</span>}
-                            {v.mobiles && <span>Ph: {v.mobiles}</span>}
+                            {v.mobiles && <span>{t("mobilesLabel")} {v.mobiles}</span>}
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between border-t border-line/60 pt-2 text-[11px]">
                           <div className="flex items-center gap-2 text-ink-soft">
                             <span>
-                              <strong className="font-semibold text-ink">{v.invoiceCount ?? 0}</strong> bill(s)
+                              <strong className="font-semibold text-ink">{v.invoiceCount ?? 0}</strong> {t("billsBadge")}
                             </span>
                             <span>•</span>
                             <span className="font-mono font-semibold text-pine-deep">
@@ -1044,7 +1062,7 @@ export function ProfilePanel({
                             className="inline-flex items-center gap-1 font-semibold text-pine-deep hover:underline cursor-pointer"
                             title={`Filter invoices created under Version ${v.version}`}
                           >
-                            <span>View Bills</span>
+                            <span>{t("viewBillsBtn")}</span>
                             <ChevronRight size={12} />
                           </button>
                         </div>
@@ -1059,11 +1077,11 @@ export function ProfilePanel({
             <div className="px-5 py-4">
               <div className="mb-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                  Payment QR Code
+                  {t("paymentQrTitle")}
                 </span>
               </div>
               <p className="text-xs text-ink-soft mb-3">
-                Upload a payment QR code or photo of your UPI QR card. This will be shown to customers when paying online.
+                {t("paymentQrDesc")}
               </p>
 
               {qrError && (
@@ -1112,7 +1130,7 @@ export function ProfilePanel({
                       onClick={() => fileInputRef.current?.click()}
                       className="flex-1 flex items-center justify-center gap-1.5 rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-line/50 cursor-pointer disabled:opacity-50"
                     >
-                      <RefreshCw size={13} /> {uploadingQr ? "Uploading…" : "Change QR"}
+                      <RefreshCw size={13} /> {uploadingQr ? "..." : t("changeQrBtn")}
                     </button>
                     <button
                       type="button"
@@ -1120,7 +1138,7 @@ export function ProfilePanel({
                       onClick={handleRemoveQr}
                       className="flex items-center justify-center gap-1 rounded-md border border-rust/30 bg-rust-tint/40 px-2.5 py-1.5 text-xs font-medium text-rust hover:bg-rust-tint cursor-pointer disabled:opacity-50"
                     >
-                      <Trash2 size={13} /> Remove
+                      <Trash2 size={13} /> {t("removeQrBtn")}
                     </button>
                   </div>
                 </div>
@@ -1138,7 +1156,7 @@ export function ProfilePanel({
                   </div>
                   <div>
                     <div className="text-xs font-semibold text-ink">
-                      {uploadingQr ? "Uploading QR image…" : "Upload QR Code or Photo"}
+                      {uploadingQr ? "..." : t("uploadQrPrompt")}
                     </div>
                     <div className="text-[11px] text-ink-soft mt-0.5">
                       Supports PNG, JPG, WEBP photo of QR card (max 5MB)
@@ -1159,11 +1177,11 @@ export function ProfilePanel({
             <div className="px-5 py-4 border-t border-line">
               <div className="mb-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                  Nursery Logo (Invoice Header)
+                  {t("nurseryLogoTitle")}
                 </span>
               </div>
               <p className="text-xs text-ink-soft mb-3">
-                Upload your official nursery logo (SVG or image). This logo appears on all future and draft invoice headers. Past finalized invoices remain strictly immutable.
+                {t("nurseryLogoDesc")}
               </p>
 
               {logoError && (
@@ -1212,7 +1230,7 @@ export function ProfilePanel({
                     )}
                   </div>
                   <span className="text-[11px] font-medium text-ink-soft">
-                    Active Custom Logo (shown on new & draft bills)
+                    {t("activeLogoNote")}
                   </span>
 
                   <div className="flex items-center gap-2 w-full">
@@ -1222,7 +1240,7 @@ export function ProfilePanel({
                       onClick={() => logoFileInputRef.current?.click()}
                       className="flex-1 flex items-center justify-center gap-1.5 rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-line/50 cursor-pointer disabled:opacity-50"
                     >
-                      <RefreshCw size={13} /> {uploadingLogo ? "Updating…" : "Change Logo"}
+                      <RefreshCw size={13} /> {uploadingLogo ? "..." : t("changeLogoBtn")}
                     </button>
                     <button
                       type="button"
@@ -1231,7 +1249,7 @@ export function ProfilePanel({
                       className="flex items-center justify-center gap-1 rounded-md border border-rust/30 bg-rust-tint/40 px-2.5 py-1.5 text-xs font-medium text-rust hover:bg-rust-tint cursor-pointer disabled:opacity-50"
                       title="Reset to default plant logo"
                     >
-                      <Trash2 size={13} /> Reset
+                      <Trash2 size={13} /> {t("resetLogoBtn")}
                     </button>
                   </div>
                 </div>
@@ -1262,7 +1280,7 @@ export function ProfilePanel({
                   </div>
                   <div>
                     <div className="text-xs font-semibold text-ink">
-                      {uploadingLogo ? "Updating logo…" : "Upload Nursery Logo"}
+                      {uploadingLogo ? "..." : t("uploadLogoPrompt")}
                     </div>
                     <div className="text-[11px] text-ink-soft mt-0.5">
                       Supports SVG (recommended), PNG, JPG, or WEBP (max 2MB)
@@ -1282,7 +1300,7 @@ export function ProfilePanel({
             {/* 3. Manage Users Section */}
             <div className="px-5 py-4">
               <h3 className="mb-2 font-serif text-sm font-semibold text-ink">
-                Manage Users
+                {t("manageUsersTitle")}
               </h3>
 
               {error && (
@@ -1295,7 +1313,7 @@ export function ProfilePanel({
                 <input
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
-                  placeholder="Username"
+                  placeholder={t("usernameCol")}
                   required
                   className="rounded-md border border-line-strong bg-surface px-3 py-1.5 text-xs outline-none focus:border-pine"
                 />
@@ -1315,15 +1333,15 @@ export function ProfilePanel({
                     }
                     className="rounded-md border border-line-strong bg-surface px-3 py-1.5 text-xs outline-none focus:border-pine flex-1"
                   >
-                    <option value="staff">Staff</option>
-                    <option value="admin">Admin</option>
+                    <option value="staff">{t("staffRole")}</option>
+                    <option value="admin">{t("adminRole")}</option>
                   </select>
                   <button
                     type="submit"
                     disabled={submitting}
                     className="flex items-center justify-center gap-1.5 rounded-md bg-pine px-3.5 py-1.5 text-xs font-medium text-surface transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer"
                   >
-                    <UserPlus size={13} /> Add user
+                    <UserPlus size={13} /> {submitting ? t("addingUserBtn") : t("addUserBtn")}
                   </button>
                 </div>
               </form>
@@ -1356,7 +1374,7 @@ export function ProfilePanel({
                       <div className="flex items-center gap-2">
                         {isCurrent ? (
                           <span className="rounded bg-pine-tint px-2 py-0.5 text-xs font-medium capitalize text-pine-deep">
-                            Admin (You)
+                            {t("adminRole")} (You)
                           </span>
                         ) : (
                           <>
@@ -1371,14 +1389,14 @@ export function ProfilePanel({
                               className="rounded border border-line-strong bg-surface px-2 py-1 text-xs font-medium capitalize text-ink outline-none transition-colors focus:border-pine"
                               aria-label={`Change role for ${u.username}`}
                             >
-                              <option value="staff">Staff</option>
-                              <option value="admin">Admin</option>
+                              <option value="staff">{t("staffRole")}</option>
+                              <option value="admin">{t("adminRole")}</option>
                             </select>
                             <button
                               onClick={() => removeUser(u)}
                               className="rounded p-1 text-ink-soft transition-colors hover:bg-rust-tint hover:text-rust cursor-pointer"
-                              title={`Remove ${u.role === "admin" ? "admin" : "user"} ${u.username}`}
-                              aria-label={`Remove ${u.username}`}
+                              title={`${t("removeUserBtn")} ${u.role === "admin" ? t("adminRole") : t("staffRole")} ${u.username}`}
+                              aria-label={`${t("removeUserBtn")} ${u.username}`}
                             >
                               <Trash2 size={14} />
                             </button>
@@ -1395,7 +1413,7 @@ export function ProfilePanel({
             <div className="px-5 py-4 bg-paper-flat/40">
               <div className="mb-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                  Backup &amp; Full Data Export
+                  {t("exportDataModalTitle")}
                 </span>
               </div>
               <p className="text-xs text-ink-soft mb-3">
@@ -1408,7 +1426,7 @@ export function ProfilePanel({
               >
                 <div className="flex items-center gap-2">
                   <FolderArchive size={15} />
-                  <span>Export All Nursery Data</span>
+                  <span>{t("exportFolderBtn")}</span>
                 </div>
                 <ChevronRight size={15} className="opacity-80" />
               </button>
@@ -1417,10 +1435,10 @@ export function ProfilePanel({
             {/* 4. Danger Zone */}
             <div className="px-5 py-4">
               <h4 className="mb-1 text-xs font-semibold uppercase tracking-wider text-rust">
-                Danger Zone
+                {t("dangerZoneTitle")}
               </h4>
               <p className="mb-3 text-xs text-ink-soft">
-                Admin database cleanup and permanent deletion tools.
+                {t("deleteAllInvoicesDesc")}
               </p>
 
               <div className="space-y-2.5">
@@ -1431,7 +1449,7 @@ export function ProfilePanel({
                   className="flex w-full items-center justify-center gap-2 rounded-md border border-rust/40 bg-rust-tint/60 px-3 py-2 text-xs font-semibold text-rust transition-colors hover:bg-rust hover:text-surface disabled:opacity-50 cursor-pointer"
                 >
                   <Trash2 size={14} />
-                  {deletingInvoices ? "Deleting all invoices…" : "Delete All Invoices"}
+                  {deletingInvoices ? t("deletingInvoicesBtn") : t("deleteAllInvoicesBtn")}
                 </button>
 
                 <button
