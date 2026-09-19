@@ -781,7 +781,7 @@ export function SalesAnalyticsModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="relative flex flex-col w-full max-w-5xl max-h-[92vh] rounded-2xl border border-line bg-surface shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between border-b border-line bg-paper-flat px-5 py-3.5 sm:px-6 sm:py-4">
           <div className="flex items-center gap-3">
@@ -793,15 +793,6 @@ export function SalesAnalyticsModal({
                 <h2 className="font-serif text-base sm:text-lg font-bold text-ink">
                   {t("salesAnalyticsTitle")}
                 </h2>
-                {isAdmin ? (
-                  <span className="rounded bg-pine-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-pine-deep">
-                    {language === "kn" ? "ನಿರ್ವಾಹಕರ ನೋಟ • ಪೂರ್ಣ ಪ್ರವೇಶ" : "Admin View • All Access"}
-                  </span>
-                ) : (
-                  <span className="rounded bg-blue-50 text-[#1b365d] border border-blue-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-                    {language === "kn" ? "ನನ್ನ ಸಿಬ್ಬಂದಿ ಮಾರಾಟ" : "My Staff Sales"}
-                  </span>
-                )}
               </div>
               <p className="text-xs text-ink-soft">
                 {t("salesAnalyticsSubtitle")}
@@ -850,11 +841,10 @@ export function SalesAnalyticsModal({
                 key={tab.id}
                 type="button"
                 onClick={() => setFilterMode(tab.id as FilterMode)}
-                className={`whitespace-nowrap px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  filterMode === tab.id
-                    ? "bg-pine text-white shadow-xs"
-                    : "bg-paper text-ink-soft hover:bg-line/60 hover:text-ink border border-line"
-                }`}
+                className={`whitespace-nowrap px-3 py-1.5 rounded-lg transition-all cursor-pointer ${filterMode === tab.id
+                  ? "bg-pine text-white shadow-xs"
+                  : "bg-paper text-ink-soft hover:bg-line/60 hover:text-ink border border-line"
+                  }`}
               >
                 {tab.label}
               </button>
@@ -1046,33 +1036,30 @@ export function SalesAnalyticsModal({
               <button
                 type="button"
                 onClick={() => setPaymentModeFilter("all")}
-                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer font-medium ${
-                  paymentModeFilter === "all"
-                    ? "bg-surface text-ink font-semibold shadow-xs"
-                    : "text-ink-soft hover:text-ink"
-                }`}
+                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer font-medium ${paymentModeFilter === "all"
+                  ? "bg-surface text-ink font-semibold shadow-xs"
+                  : "text-ink-soft hover:text-ink"
+                  }`}
               >
                 {t("allModesLabel")}
               </button>
               <button
                 type="button"
                 onClick={() => setPaymentModeFilter("online")}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer font-medium ${
-                  paymentModeFilter === "online"
-                    ? "bg-blue-500 text-white font-semibold shadow-xs"
-                    : "text-ink-soft hover:text-ink"
-                }`}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer font-medium ${paymentModeFilter === "online"
+                  ? "bg-blue-500 text-white font-semibold shadow-xs"
+                  : "text-ink-soft hover:text-ink"
+                  }`}
               >
                 <CreditCard size={12} /> {t("onlineUpiLabel")}
               </button>
               <button
                 type="button"
                 onClick={() => setPaymentModeFilter("cash")}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer font-medium ${
-                  paymentModeFilter === "cash"
-                    ? "bg-emerald-600 text-white font-semibold shadow-xs"
-                    : "text-ink-soft hover:text-ink"
-                }`}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer font-medium ${paymentModeFilter === "cash"
+                  ? "bg-emerald-600 text-white font-semibold shadow-xs"
+                  : "text-ink-soft hover:text-ink"
+                  }`}
               >
                 <Banknote size={12} /> {t("cashOfflineLabel")}
               </button>
@@ -1107,21 +1094,19 @@ export function SalesAnalyticsModal({
             <button
               type="button"
               onClick={() => setShowVisualization(!showVisualization)}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border shadow-xs ${
-                showVisualization
-                  ? "bg-pine text-white border-pine shadow-sm ring-2 ring-pine/20"
-                  : "bg-paper text-ink hover:bg-line/50 border-line-strong"
-              }`}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border shadow-xs ${showVisualization
+                ? "bg-pine text-white border-pine shadow-sm ring-2 ring-pine/20"
+                : "bg-paper text-ink hover:bg-line/50 border-line-strong"
+                }`}
               title="Toggle interactive data visualization charts"
             >
               <BarChart3 size={15} className={showVisualization ? "text-white" : "text-pine"} />
               <span>{showVisualization ? t("hideChartsBtn") : t("visualizeDataBtn")}</span>
               <span
-                className={`rounded px-1.5 py-0.2 text-[10px] font-mono font-bold uppercase tracking-wider ${
-                  showVisualization
-                    ? "bg-white/20 text-white"
-                    : "bg-pine-tint text-pine-deep"
-                }`}
+                className={`rounded px-1.5 py-0.2 text-[10px] font-mono font-bold uppercase tracking-wider ${showVisualization
+                  ? "bg-white/20 text-white"
+                  : "bg-pine-tint text-pine-deep"
+                  }`}
               >
                 {showVisualization ? "ON" : "Charts"}
               </span>
@@ -1260,22 +1245,20 @@ export function SalesAnalyticsModal({
                   <button
                     type="button"
                     onClick={() => setChartMetric("revenue")}
-                    className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${
-                      chartMetric === "revenue"
-                        ? "bg-pine text-white shadow-xs"
-                        : "text-ink-soft hover:text-ink"
-                    }`}
+                    className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${chartMetric === "revenue"
+                      ? "bg-pine text-white shadow-xs"
+                      : "text-ink-soft hover:text-ink"
+                      }`}
                   >
                     {t("revenueModeBtn")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setChartMetric("count")}
-                    className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${
-                      chartMetric === "count"
-                        ? "bg-pine text-white shadow-xs"
-                        : "text-ink-soft hover:text-ink"
-                    }`}
+                    className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${chartMetric === "count"
+                      ? "bg-pine text-white shadow-xs"
+                      : "text-ink-soft hover:text-ink"
+                      }`}
                   >
                     {t("billCountModeBtn")}
                   </button>
@@ -1290,12 +1273,12 @@ export function SalesAnalyticsModal({
                       {filterMode === "today" || filterMode === "yesterday" || filterMode === "date"
                         ? t("timelineTitleHourly")
                         : filterMode === "week"
-                        ? t("timelineTitle7Day")
-                        : filterMode === "month"
-                        ? `${t("timelineTitleDaily")} (${MONTH_NAMES[selectedMonth]} ${selectedYear})`
-                        : filterMode === "year"
-                        ? `${t("timelineTitleMonthly")} (${selectedYear})`
-                        : t("timelineTitleGeneric")}
+                          ? t("timelineTitle7Day")
+                          : filterMode === "month"
+                            ? `${t("timelineTitleDaily")} (${MONTH_NAMES[selectedMonth]} ${selectedYear})`
+                            : filterMode === "year"
+                              ? `${t("timelineTitleMonthly")} (${selectedYear})`
+                              : t("timelineTitleGeneric")}
                     </span>
                     <span className="text-[10px] text-ink-soft font-normal hidden sm:inline">
                       {t("hoverBarsHint")}
@@ -1438,13 +1421,12 @@ export function SalesAnalyticsModal({
                                 <div
                                   data-bar="true"
                                   style={{ height: `${heightPct}%` }}
-                                  className={`w-full max-w-[42px] rounded-t-md overflow-hidden flex flex-col justify-end transition-all duration-300 ${
-                                    val === 0
-                                      ? "bg-line/40"
-                                      : isHovered
+                                  className={`w-full max-w-[42px] rounded-t-md overflow-hidden flex flex-col justify-end transition-all duration-300 ${val === 0
+                                    ? "bg-line/40"
+                                    : isHovered
                                       ? "ring-2 ring-pine ring-offset-1 shadow-md scale-y-[1.02]"
                                       : "shadow-xs"
-                                  }`}
+                                    }`}
                                 >
                                   {/* Cash portion (top of stack) */}
                                   {bucket.cashRevenue > 0 && (
@@ -1464,9 +1446,8 @@ export function SalesAnalyticsModal({
 
                                 {/* X-axis Label */}
                                 <span
-                                  className={`mt-2 text-[10px] truncate max-w-full font-mono transition-colors ${
-                                    isHovered ? "text-pine-deep font-bold" : "text-ink-soft"
-                                  }`}
+                                  className={`mt-2 text-[10px] truncate max-w-full font-mono transition-colors ${isHovered ? "text-pine-deep font-bold" : "text-ink-soft"
+                                    }`}
                                   title={bucket.fullLabel}
                                 >
                                   {bucket.label}
@@ -1833,11 +1814,10 @@ export function SalesAnalyticsModal({
                           </td>
                           <td className="px-4 py-3">
                             <span
-                              className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold ${
-                                isOnline
-                                  ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
-                                  : "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                              }`}
+                              className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold ${isOnline
+                                ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                                : "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                                }`}
                             >
                               {isOnline ? (
                                 <CreditCard size={11} />

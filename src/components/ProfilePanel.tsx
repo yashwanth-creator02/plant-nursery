@@ -93,7 +93,7 @@ export function ProfilePanel({
           setInvoiceVersions(data.versions);
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoadingVersions(false));
   }
 
@@ -185,7 +185,7 @@ export function ProfilePanel({
           });
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }
 
   const isAdmin = user?.role === "admin";
@@ -239,7 +239,7 @@ export function ProfilePanel({
       .then((d) => {
         if (d.nextInvoiceNumber) setNextInvoiceNumber(d.nextInvoiceNumber);
       })
-      .catch(() => {});
+      .catch(() => { });
   }
 
   async function loadQrCode() {
@@ -277,7 +277,7 @@ export function ProfilePanel({
             }
           }
         })
-        .catch(() => {});
+        .catch(() => { });
       loadInvoiceSequence();
       loadQrCode();
       loadLogo();
@@ -563,11 +563,11 @@ export function ProfilePanel({
     const isAdminTarget = targetUser.role === "admin";
     const msg = language === "kn"
       ? (isAdminTarget
-          ? `ನಿರ್ವಾಹಕ "${targetUser.username}" ರನ್ನು ತೆಗೆದುಹಾಕಬೇಕೇ? ಅವರು ಎಲ್ಲಾ ಪ್ರವೇಶವನ್ನು ಕಳೆದುಕೊಳ್ಳುತ್ತಾರೆ.`
-          : `ಬಳಕೆದಾರ "${targetUser.username}" ರನ್ನು ತೆಗೆದುಹಾಕಬೇಕೇ? ಅವರು ಇನ್ನು ಲಾಗಿನ್ ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ.`)
+        ? `ನಿರ್ವಾಹಕ "${targetUser.username}" ರನ್ನು ತೆಗೆದುಹಾಕಬೇಕೇ? ಅವರು ಎಲ್ಲಾ ಪ್ರವೇಶವನ್ನು ಕಳೆದುಕೊಳ್ಳುತ್ತಾರೆ.`
+        : `ಬಳಕೆದಾರ "${targetUser.username}" ರನ್ನು ತೆಗೆದುಹಾಕಬೇಕೇ? ಅವರು ಇನ್ನು ಲಾಗಿನ್ ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ.`)
       : (isAdminTarget
-          ? `Remove admin "${targetUser.username}"? They will lose all admin and account access.`
-          : `Remove user "${targetUser.username}"? They won't be able to log in anymore.`);
+        ? `Remove admin "${targetUser.username}"? They will lose all admin and account access.`
+        : `Remove user "${targetUser.username}"? They won't be able to log in anymore.`);
 
     if (!confirm(msg)) {
       return;
@@ -667,22 +667,20 @@ export function ProfilePanel({
             <button
               type="button"
               onClick={() => setActiveTab("profile")}
-              className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === "profile"
-                  ? "border-pine text-pine-deep bg-surface rounded-t-md font-bold shadow-xs"
-                  : "border-transparent text-ink-soft hover:text-ink"
-              }`}
+              className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs font-semibold transition-all cursor-pointer ${activeTab === "profile"
+                ? "border-pine text-pine-deep bg-surface rounded-t-md font-bold shadow-xs"
+                : "border-transparent text-ink-soft hover:text-ink"
+                }`}
             >
               <User size={14} /> {t("tabProfile")}
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("admin")}
-              className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === "admin"
-                  ? "border-pine text-pine-deep bg-surface rounded-t-md font-bold shadow-xs"
-                  : "border-transparent text-ink-soft hover:text-ink"
-              }`}
+              className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs font-semibold transition-all cursor-pointer ${activeTab === "admin"
+                ? "border-pine text-pine-deep bg-surface rounded-t-md font-bold shadow-xs"
+                : "border-transparent text-ink-soft hover:text-ink"
+                }`}
             >
               <ShieldCheck size={14} /> {t("tabAdmin")}
             </button>
@@ -864,9 +862,6 @@ export function ProfilePanel({
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
                   {t("nurserySalesAnalyticsTitle")}
                 </span>
-                <span className="rounded bg-pine-tint px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-pine-deep">
-                  Live Reports
-                </span>
               </div>
               <p className="text-xs text-ink-soft mb-3">
                 {t("nurserySalesAnalyticsDesc")}
@@ -889,9 +884,6 @@ export function ProfilePanel({
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
                   {t("taxRatesTitle")}
-                </span>
-                <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded">
-                  Live Tax Settings
                 </span>
               </div>
               <p className="text-xs text-ink-soft mb-3">
@@ -996,11 +988,10 @@ export function ProfilePanel({
                     {invoiceVersions.map((v) => (
                       <div
                         key={v.version}
-                        className={`rounded-lg border p-3 text-xs transition-all ${
-                          v.isCurrent
-                            ? "border-pine/50 bg-pine-tint/20 dark:bg-pine-tint/10 shadow-xs"
-                            : "border-line bg-paper-flat/50"
-                        }`}
+                        className={`rounded-lg border p-3 text-xs transition-all ${v.isCurrent
+                          ? "border-pine/50 bg-pine-tint/20 dark:bg-pine-tint/10 shadow-xs"
+                          : "border-line bg-paper-flat/50"
+                          }`}
                       >
                         <div className="flex items-start justify-between gap-2 mb-1.5">
                           <div className="flex items-center gap-1.5 flex-wrap">

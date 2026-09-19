@@ -200,8 +200,8 @@ export default function GalleryPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={
                 language === "kn"
-                  ? "ಸಸ್ಯದ ಹೆಸರು, ವರ್ಗ ಅಥವಾ ವಿವರಣೆಯ ಮೂಲಕ ಹುಡುಕಿ..."
-                  : "Search by plant name, category, or photo description..."
+                  ? "ಹೆಸರು, ವರ್ಗ ಅಥವಾ ವಿವರಣೆ ಹುಡುಕಿ..."
+                  : "Search by plant name, category, or description..."
               }
               className="h-10 w-full rounded-lg border border-line bg-surface pl-10 pr-4 text-xs sm:text-sm text-ink placeholder-ink-soft/60 focus:border-pine focus:outline-none"
             />
@@ -216,12 +216,12 @@ export default function GalleryPage() {
           </div>
 
           {/* Filter Pills */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex max-w-full flex-wrap items-center gap-2">
             {/* Category Filter */}
-            <div className="flex flex-wrap rounded-lg border border-line bg-paper p-0.5 text-xs font-medium shrink-0">
+            <div className="flex max-w-full flex-wrap rounded-lg border border-line bg-paper p-0.5 text-xs font-medium">
               <button
                 onClick={() => setCategoryFilter("all")}
-                className={`rounded px-2.5 py-1 transition-colors cursor-pointer ${
+                className={`whitespace-nowrap rounded px-2 sm:px-2.5 py-1 transition-colors cursor-pointer ${
                   categoryFilter === "all"
                     ? "bg-surface text-pine-deep font-semibold shadow-xs"
                     : "text-ink-soft hover:text-ink"
@@ -235,7 +235,7 @@ export default function GalleryPage() {
                   <button
                     key={c.slug}
                     onClick={() => setCategoryFilter(c.slug)}
-                    className={`rounded px-2.5 py-1 transition-colors cursor-pointer ${
+                    className={`whitespace-nowrap rounded px-2 sm:px-2.5 py-1 transition-colors cursor-pointer ${
                       categoryFilter.toLowerCase() === c.slug.toLowerCase()
                         ? "bg-surface text-pine-deep font-semibold shadow-xs"
                         : "text-ink-soft hover:text-ink"
@@ -248,36 +248,36 @@ export default function GalleryPage() {
             </div>
 
             {/* Photo presence filter */}
-            <div className="flex rounded-lg border border-line bg-paper p-0.5 text-xs font-medium shrink-0">
+            <div className="flex max-w-full overflow-x-auto rounded-lg border border-line bg-paper p-0.5 text-xs font-medium scrollbar-none">
               <button
                 onClick={() => setPhotoFilter("all")}
-                className={`rounded px-2.5 py-1 transition-colors cursor-pointer ${
+                className={`whitespace-nowrap rounded px-2 sm:px-2.5 py-1 transition-colors cursor-pointer ${
                   photoFilter === "all"
                     ? "bg-surface text-pine-deep font-semibold shadow-xs"
                     : "text-ink-soft hover:text-ink"
                 }`}
               >
-                {language === "kn" ? "ಎಲ್ಲವೂ" : "All"} ({items.length})
+                {language === "kn" ? "ಎಲ್ಲಾ" : "All"} ({items.length})
               </button>
               <button
                 onClick={() => setPhotoFilter("with-photos")}
-                className={`rounded px-2.5 py-1 transition-colors cursor-pointer ${
+                className={`whitespace-nowrap rounded px-2 sm:px-2.5 py-1 transition-colors cursor-pointer ${
                   photoFilter === "with-photos"
                     ? "bg-surface text-pine-deep font-semibold shadow-xs"
                     : "text-ink-soft hover:text-ink"
                 }`}
               >
-                {language === "kn" ? "ಫೋಟೋಗಳೊಂದಿಗೆ" : "With Photos"} ({totalWithPhotos})
+                {language === "kn" ? "ಫೋಟೋ ಸಹಿತ" : "With Photos"} ({totalWithPhotos})
               </button>
               <button
                 onClick={() => setPhotoFilter("needs-photos")}
-                className={`rounded px-2.5 py-1 transition-colors cursor-pointer ${
+                className={`whitespace-nowrap rounded px-2 sm:px-2.5 py-1 transition-colors cursor-pointer ${
                   photoFilter === "needs-photos"
                     ? "bg-surface text-pine-deep font-semibold shadow-xs"
                     : "text-ink-soft hover:text-ink"
                 }`}
               >
-                {language === "kn" ? "ಫೋಟೋ ಬೇಕಾಗಿದೆ" : "Needs Photos"} ({items.length - totalWithPhotos})
+                {language === "kn" ? "ಫೋಟೋ ಬೇಕು" : "Needs Photos"} ({items.length - totalWithPhotos})
               </button>
             </div>
           </div>
