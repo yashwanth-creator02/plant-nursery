@@ -50,7 +50,7 @@ export async function GET() {
 
     const activeSettings = allSettings[0] || {
       version: 1,
-      businessName: "Sri Vijaya Lakshmi Nursery",
+      businessName: "Sri Vijayalakshmi Nursery",
       subheading1: "(Approved by Department of Horticulture)",
       subheading2: "(All Kinds of Plants Production and Suppliers)",
       address: "Harige B. H. Road, Shimoga - 577203",
@@ -60,9 +60,9 @@ export async function GET() {
       updatedAt: new Date(),
     };
 
-    const websiteName = (activeSettings.businessName || "Sri Vijaya Lakshmi Nursery").trim();
+    const websiteName = (activeSettings.businessName || "Sri Vijayalakshmi Nursery").trim();
     // Directory-safe website folder name
-    const websiteFolderName = websiteName.replace(/[\\/:*?"<>|]/g, "_").trim() || "Sri_Vijaya_Lakshmi_Nursery";
+    const websiteFolderName = websiteName.replace(/[\\/:*?"<>|]/g, "_").trim() || "Sri_Vijayalakshmi_Nursery";
 
     // 2. Fetch Invoices with Items and Creator
     const allInvoices = await db.query.invoices.findMany({

@@ -15,7 +15,7 @@ async function main() {
     CREATE TABLE IF NOT EXISTS business_settings (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       version INTEGER NOT NULL DEFAULT 1,
-      business_name TEXT NOT NULL DEFAULT 'SRI VIJAYA LAKSHMI NURSERY',
+      business_name TEXT NOT NULL DEFAULT 'SRI VIJAYALAKSHMI NURSERY',
       subheading_1 TEXT NOT NULL DEFAULT '(Approved by Department of Horticulture)',
       subheading_2 TEXT NOT NULL DEFAULT '(All Kinds of Plants Production and Suppliers)',
       address TEXT NOT NULL DEFAULT 'Harige B. H. Road, Shimoga - 577203',

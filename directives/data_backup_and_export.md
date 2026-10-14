@@ -34,7 +34,7 @@ Provide a comprehensive, deterministic backup and export mechanism that packages
 - Health check: `python execution/verify_project_health.py`.
 
 ## Outputs
-- A clean, downloadable ZIP package (or local folder structure) named after the business (e.g. `Sri-Vijaya-Lakshmi-Nursery-Backup-YYYY-MM-DD.zip`).
+- A clean, downloadable ZIP package (or local folder structure) named after the business (e.g. `Sri-Vijayalakshmi-Nursery-Backup-YYYY-MM-DD.zip`).
 - Nested folder architecture:
   - `invoices/`: Individual JSON files for every bill (`INV-0001.json`), plus consolidated `all-invoices.json` and tabular CSV/Excel files.
   - `images/stock/<category>/<subcategory>/`: High-resolution stock plant photos categorized by botanical taxonomy.

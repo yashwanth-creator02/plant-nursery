@@ -8,7 +8,7 @@ import { getSession } from "@/lib/session";
 
 const DEFAULT_SETTINGS = {
   version: 1,
-  businessName: "SRI VIJAYA LAKSHMI NURSERY",
+  businessName: "SRI VIJAYALAKSHMI NURSERY",
   subheading1: "(Approved by Department of Horticulture)",
   subheading2: "(All Kinds of Plants Production and Suppliers)",
   address: "Harige B. H. Road, Shimoga - 577203",
