@@ -176,7 +176,10 @@ plant-nursery/
 │   ├── bilingual_localization.md # Kannada & English guidelines, overflow prevention
 │   ├── invoice_and_billing.md # Invoicing lifecycle, atomic deductions, printable layout
 │   ├── stock_and_gallery_management.md # Stock inventory, Supabase photos, gallery
-│   └── sales_analytics.md     # Sales reporting, timeline visualizations, drawer audits
+│   ├── sales_analytics.md     # Sales reporting, timeline visualizations, drawer audits
+│   ├── business_profile_and_invoice_settings.md # Business details, GST rates, invoice sequence
+│   └── authentication_and_access_control.md # Role-based access, cookie security, 307 loop prevention
+
 ├── execution/                 # Layer 3: Deterministic execution tools
 │   ├── run_typecheck.py       # Type-check runner (tsc --noEmit)
 │   └── verify_project_health.py # Project architecture and gitignore health checker

@@ -13,6 +13,9 @@ You operate within a 3-layer architecture that separates concerns to maximize re
   - `directives/invoice_and_billing.md`: Invoicing lifecycle, atomic stock deductions, printable layout
   - `directives/stock_and_gallery_management.md`: Inventory categorization, Supabase photo storage, gallery
   - `directives/sales_analytics.md`: Financial analytics calculations, visualizations, and exports
+  - `directives/business_profile_and_invoice_settings.md`: Business header details, GST rates, invoice sequencing
+  - `directives/authentication_and_access_control.md`: Role-based access, cookie security, 307 loop prevention
+
 
 **Layer 2: Orchestration (Decision making)**
 - This is the agent. Intelligent routing, intent-to-execution mapping, error recovery.

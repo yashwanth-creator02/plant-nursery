@@ -13,24 +13,27 @@ Provide real-time revenue analytics, invoice count summaries, payment method bre
 - Time range filters: `today`, `yesterday`, `week`, `month`, `year`, or custom `date`.
 - Metric toggles: `revenue` vs `count`.
 
-## Core Features & Architecture
-1. **Financial Metric Calculation**:
-   - Total Gross Revenue, Net Revenue after discounts, Average Order Value (AOV).
-   - Cash vs Online payment split calculation for daily drawer reconciliation.
-2. **Data Visualization**:
-   - Stacked CSS bar chart displaying cash vs online payment composition over the selected time horizon (hourly for today/yesterday, daily for month, monthly for year).
-   - Tooltips on hover displaying bucket label, cash amount, online amount, and total bill count.
-3. **Data Export**:
-   - Export sales summary and line-item details via `ExportDataModal.tsx` for accounting and spreadsheet reporting.
+## Git Safety (If Modifying Code)
+- Develop analytics metrics on a separate feature branch (`feat/analytics-<name>`).
+- Verify timezone calculations and cash breakdown formulas before merging.
+- Explicit confirmation required before merging into `main`.
 
-## Tools / scripts to use
-- Analytics API routes: `src/app/api/analytics/route.ts` or invoice aggregation endpoints.
-- Type check: `npx tsc --noEmit`.
+## Tools / Scripts to Use
+- Analytics endpoints: `src/app/api/analytics/route.ts` or invoice aggregation endpoints.
+- Type check: `python execution/run_typecheck.py`.
+- Health check: `python execution/verify_project_health.py`.
 
 ## Outputs
 - Clean, responsive analytics modal with interactive charts.
 - Verified daily sales reconciliation summaries for nursery management.
 
-## Edge cases
-- Empty periods: Buckets with zero revenue must render cleanly with placeholder indicators without breaking graph layout or scale calculations.
-- Timezone offsets: Always use the nursery's local timezone (`Asia/Kolkata` / IST) when grouping hourly or daily metrics.
+## Edge Cases & Error Handling
+- **Financial Metric Calculations**:
+  - Total Gross Revenue, Net Revenue after discounts, Average Order Value (AOV).
+  - Cash vs Online payment split calculation for daily drawer reconciliation.
+- **Empty Periods**:
+  - Buckets with zero revenue must render cleanly with placeholder indicators without breaking graph layout or scale calculations.
+- **Timezone Offsets**:
+  - Always use the nursery's local timezone (`Asia/Kolkata` / IST) when grouping hourly or daily metrics.
+- **Data Export Formats**:
+  - Export sales summary and line-item details via `ExportDataModal.tsx` for accounting and spreadsheet reporting.
