@@ -41,6 +41,7 @@ Govern the management of inventory items (plants, pottery, seeds, non-plant nurs
 - **Category & Subcategory Taxonomy**:
   - Distinct top-level classification between `plants` and `non-plants` (pots, fertilizers, tools, soil).
   - Dynamic categories and subcategories store both English and Kannada names (`name`, `nameKn`, `slug`) with 1-click on-the-fly translation.
+  - **Item-Level GST Rate**: Non-plant stock items carry a statutory `gst_rate` (numeric percentage, e.g. 0.00, 5.00, 12.00, 18.00, 28.00) configured at the time of addition and editable via inline table edit and detail modal. Live plants remain strictly tax exempt (0.00% GST).
   - Safe deletion: If a category or subcategory contains active stock items, require safe reassignment modal dialog before deletion.
 - **Gallery Interactions & Card Navigation**:
   - Clicking any item card in the Gallery (`/gallery`) opens `StockItemDetailModal.tsx` for immediate item inspection and editing.

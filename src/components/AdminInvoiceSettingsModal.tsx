@@ -34,8 +34,6 @@ export function AdminInvoiceSettingsModal({
   const [address, setAddress] = useState("");
   const [mobiles, setMobiles] = useState("");
   const [gstin, setGstin] = useState("");
-  const [cgstRate, setCgstRate] = useState("2.50");
-  const [sgstRate, setSgstRate] = useState("2.50");
 
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -57,8 +55,6 @@ export function AdminInvoiceSettingsModal({
           setAddress(s.address || "");
           setMobiles(s.mobiles || "");
           setGstin(s.gstin || "");
-          setCgstRate(s.cgstRate !== undefined ? String(s.cgstRate) : "2.50");
-          setSgstRate(s.sgstRate !== undefined ? String(s.sgstRate) : "2.50");
           if (data.versions && Array.isArray(data.versions)) {
             setPastVersions(data.versions);
           }
@@ -84,8 +80,6 @@ export function AdminInvoiceSettingsModal({
           address,
           mobiles,
           gstin,
-          cgstRate,
-          sgstRate,
         }),
       });
       const data = await res.json();
@@ -233,49 +227,6 @@ export function AdminInvoiceSettingsModal({
               />
             </label>
 
-            {/* Non-Plant Goods Tax Rates Configuration */}
-            <div className="rounded-lg border border-line bg-paper/60 p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-ink flex items-center gap-1.5">
-                  {t("taxRatesTitle")}
-                </span>
-                <span className="text-[10px] font-semibold text-pine bg-pine-tint px-2 py-0.5 rounded-full">
-                  {language === "kn" ? "ಲೈವ್ ಸಸಿಗಳು = 0% ತೆರಿಗೆ ಮುಕ್ತ" : "Live Plants = 0% Tax Exempt"}
-                </span>
-              </div>
-              <p className="text-[11px] text-ink-soft leading-tight">
-                {t("taxRatesDesc")}
-              </p>
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <label className="flex flex-col gap-1 text-xs text-ink-soft">
-                  <span className="font-semibold text-ink">{t("cgstRateLabel")}</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    value={cgstRate}
-                    onChange={(e) => setCgstRate(e.target.value)}
-                    className="rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-mono outline-none focus:border-pine"
-                    placeholder="2.50"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-xs text-ink-soft">
-                  <span className="font-semibold text-ink">{t("sgstRateLabel")}</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    value={sgstRate}
-                    onChange={(e) => setSgstRate(e.target.value)}
-                    className="rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-mono outline-none focus:border-pine"
-                    placeholder="2.50"
-                  />
-                </label>
-              </div>
-            </div>
-
             <div className="mt-5 flex justify-end gap-2.5 border-t border-line pt-3">
               <button
                 type="button"
@@ -372,8 +323,6 @@ export function AdminInvoiceSettingsModal({
                           setAddress(v.address || "");
                           setMobiles(v.mobiles || "");
                           setGstin(v.gstin || "");
-                          setCgstRate(v.cgstRate !== undefined ? String(v.cgstRate) : "2.50");
-                          setSgstRate(v.sgstRate !== undefined ? String(v.sgstRate) : "2.50");
                           setActiveTab("edit");
                         }}
                         className="inline-flex items-center gap-1 rounded border border-line bg-surface px-2 py-1 text-[11px] font-medium text-ink hover:bg-line/40 cursor-pointer shadow-xs"

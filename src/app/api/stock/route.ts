@@ -16,6 +16,7 @@ const createSchema = z.object({
   subcategory: z.string().trim().optional().default("other"),
   description: z.string().trim().optional().nullable(),
   descriptionKn: z.string().trim().optional().nullable(),
+  gstRate: z.coerce.number().min(0).max(100).optional().default(0),
 });
 
 export async function GET() {
@@ -46,7 +47,8 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const { name, nameKn, unit, price, quantity, category, subcategory, description, descriptionKn } = parsed.data;
+    const { name, nameKn, unit, price, quantity, category, subcategory, description, descriptionKn, gstRate } = parsed.data;
+    const effectiveGstRate = category === "plants" ? "0.00" : (gstRate ?? 0).toFixed(2);
     const [item] = await db
       .insert(stockItems)
       .values({
@@ -59,6 +61,7 @@ export async function POST(req: NextRequest) {
         subcategory,
         description: description || null,
         descriptionKn: descriptionKn || null,
+        gstRate: effectiveGstRate,
       })
       .returning();
     return NextResponse.json({ item }, { status: 201 });

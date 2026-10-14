@@ -1,12 +1,11 @@
 # Directive: Business Profile & Invoice Configuration
 
 ## Goal
-Manage business branding metadata, custom nursery logo, payment QR codes, tax parameters (GSTIN, CGST/SGST rates), contact addresses, and sequential invoice numbering overrides for printable invoice receipts.
+Manage business branding metadata, custom nursery logo, payment QR codes, contact addresses, and sequential invoice numbering overrides for printable invoice receipts.
 
 ## When this fires
 - Updating business name, subheadings, address, phone numbers, or GSTIN in `AdminInvoiceSettingsModal.tsx`.
 - Uploading or updating the custom nursery logo (vector SVG or raster image) or payment QR code.
-- Adjusting statutory tax rates (CGST / SGST percentages).
 - Overriding or resetting the sequential invoice counter in `CustomInvoiceNumberModal.tsx`.
 - Viewing audit history of past business profile revisions.
 
@@ -15,8 +14,8 @@ Manage business branding metadata, custom nursery logo, payment QR codes, tax pa
   - `businessName`, `subheading1`, `subheading2`, `address`, `mobiles`, `gstin`.
   - `logoData` (base64 Data URI or SVG string) and `logoTitle` metadata.
   - `paymentQrData` (base64 Data URI) for UPI payment scans on receipts.
-  - `cgstRate`, `sgstRate` (default: 2.50% each = 5% total GST).
   - `version` counter tracking historical snapshot changes.
+  - Note: Global CGST/SGST controls have been removed from the Admin Panel; GST rates are configured per item at the stock level for non-plant goods (live plants remain 100% tax exempt).
 - Settings endpoints: `/api/settings/invoice-details`, `/api/settings/invoice-sequence`.
 - Role verification: Admin privileges required.
 

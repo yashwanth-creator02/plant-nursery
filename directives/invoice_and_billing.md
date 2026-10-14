@@ -53,6 +53,14 @@ Manage the creation, draft editing, sequential numbering, finalization, atomic s
 - **Printable Sheet Styling (#invoice-print)**:
   - Always force light mode (`color-scheme: light !important`) with dark blue ink (`#1b365d`) on printable sheets even when the user operates the app in dark mode.
   - Unconstrain scroll containers under `@media print` so multi-item bills print completely without cutoffs.
+- **Item-Level Statutory Taxation (Non-Plants vs Plants)**:
+  - Live plants are 100% tax exempt (0% GST).
+  - Non-plant goods (pots, fertilizers, soils, tools) have individual statutory GST rates (e.g. 0%, 5%, 12%, 18%, 28%) configured when adding or editing stock.
+  - Custom ad-hoc non-plant items also permit specifying a statutory GST percentage during invoice creation.
+  - When calculating invoice totals, discounts apply proportionally across line items before calculating taxes.
+  - On printable receipts and bill previews, items are grouped by their distinct positive GST rate tiers into statutory CGST (rate / 2) and SGST (rate / 2) breakdown rows with their corresponding taxable values.
+  - If all items in an invoice are plants (or 0% GST), no tax rows are rendered and an explicit `* Plants (0% GST Exempt)` notice is displayed.
+  - `invoice_items` stores both `category` and `gst_rate` snapshots directly to preserve historical audit accuracy.
 - **Offline / Cash Drawer Separation**:
   - Explicitly record whether payments were completed via Cash or Online UPI/Card to ensure accurate cashier balance audits.
 - **Strict Invoice Immutability**:

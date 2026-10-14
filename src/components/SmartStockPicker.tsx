@@ -253,6 +253,11 @@ export function SmartStockPicker({
               <span className="shrink-0 font-mono text-xs text-ink-soft">
                 — ₹{formatMoney(Number(selectedItem.price))} ({selectedItem.quantity}{" "}
                 {translateUnit(selectedItem.unit || "pcs", language)})
+                {selectedItem.category !== "plants" && Number(selectedItem.gstRate || 0) > 0 && (
+                  <span className="ml-1 text-[11px] font-medium text-ink-soft">
+                    · {Number(selectedItem.gstRate)}% GST
+                  </span>
+                )}
               </span>
             </div>
           ) : (
@@ -415,13 +420,19 @@ export function SmartStockPicker({
                         </span>
                       )}
 
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span
                           className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.2 text-[10px] font-medium ${info.color}`}
                         >
                           <Icon size={10} />
                           <span>{info.label}</span>
                         </span>
+
+                        {item.category !== "plants" && Number(item.gstRate || 0) > 0 && (
+                          <span className="inline-flex items-center rounded border border-line bg-surface px-1.5 py-0.2 text-[10px] font-mono font-medium text-ink-soft">
+                            {Number(item.gstRate)}% GST
+                          </span>
+                        )}
 
                         <span className="text-[11px] text-ink-soft">
                           {translateUnit(item.unit || "pcs", language)}

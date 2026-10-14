@@ -26,7 +26,6 @@ import {
   History,
   FolderArchive,
   ImageIcon,
-  Percent,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -74,53 +73,17 @@ export function ProfilePanel({
   const [invoiceVersions, setInvoiceVersions] = useState<InvoiceVersionInfo[]>([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
 
-  const [cgstRate, setCgstRate] = useState("2.50");
-  const [sgstRate, setSgstRate] = useState("2.50");
-  const [taxRatesSaving, setTaxRatesSaving] = useState(false);
-  const [taxRatesSuccess, setTaxRatesSuccess] = useState("");
-  const [taxRatesError, setTaxRatesError] = useState("");
-
   function loadInvoiceVersions() {
     setLoadingVersions(true);
     fetch("/api/settings/invoice-details", { cache: "no-store" })
       .then(async (res) => {
         const data = await res.json();
-        if (data.settings) {
-          setCgstRate(data.settings.cgstRate !== undefined ? String(data.settings.cgstRate) : "2.50");
-          setSgstRate(data.settings.sgstRate !== undefined ? String(data.settings.sgstRate) : "2.50");
-        }
         if (data.versions && Array.isArray(data.versions)) {
           setInvoiceVersions(data.versions);
         }
       })
       .catch(() => { })
       .finally(() => setLoadingVersions(false));
-  }
-
-  async function handleSaveTaxRates() {
-    setTaxRatesSaving(true);
-    setTaxRatesError("");
-    setTaxRatesSuccess("");
-    try {
-      const res = await fetch("/api/settings/invoice-details", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cgstRate,
-          sgstRate,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to update tax rates");
-      setTaxRatesSuccess("Tax rates updated successfully!");
-      window.dispatchEvent(new Event("invoiceSettingsUpdated"));
-      loadInvoiceVersions();
-      setTimeout(() => setTaxRatesSuccess(""), 3000);
-    } catch (err) {
-      setTaxRatesError(err instanceof Error ? err.message : "Error saving tax rates");
-    } finally {
-      setTaxRatesSaving(false);
-    }
   }
 
   const [users, setUsers] = useState<ManagedUser[] | null>(null);
@@ -879,75 +842,7 @@ export function ProfilePanel({
               </button>
             </div>
 
-            {/* 1. Admin Tax Rates Configuration (CGST / SGST) */}
-            <div className="px-5 py-4 border-b border-line">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                  {t("taxRatesTitle")}
-                </span>
-              </div>
-              <p className="text-xs text-ink-soft mb-3">
-                {t("taxRatesDesc")}
-              </p>
-
-              <div className="grid grid-cols-2 gap-3 mb-3">
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-ink">{t("cgstRateLabel")}</span>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="50"
-                      value={cgstRate}
-                      onChange={(e) => setCgstRate(e.target.value)}
-                      placeholder="2.50"
-                      className="w-full rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-xs font-mono font-bold text-ink outline-none focus:border-pine pr-7"
-                    />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-ink-soft pointer-events-none">%</span>
-                  </div>
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-ink">{t("sgstRateLabel")}</span>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="50"
-                      value={sgstRate}
-                      onChange={(e) => setSgstRate(e.target.value)}
-                      placeholder="2.50"
-                      className="w-full rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-xs font-mono font-bold text-ink outline-none focus:border-pine pr-7"
-                    />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-ink-soft pointer-events-none">%</span>
-                  </div>
-                </label>
-              </div>
-
-              {taxRatesSuccess && (
-                <div className="mb-2.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded">
-                  {taxRatesSuccess}
-                </div>
-              )}
-              {taxRatesError && (
-                <div className="mb-2.5 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 px-2.5 py-1.5 rounded">
-                  {taxRatesError}
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={handleSaveTaxRates}
-                disabled={taxRatesSaving}
-                className="flex w-full items-center justify-center gap-1.5 rounded-md bg-pine px-3 py-2 text-xs font-semibold text-white shadow-xs hover:bg-pine-deep transition-all cursor-pointer disabled:opacity-50"
-              >
-                <Percent size={14} />
-                <span>{taxRatesSaving ? t("savingTaxRatesBtn") : t("saveTaxRatesBtn")}</span>
-              </button>
-            </div>
-
-            {/* 2. Admin Invoice Header & Details */}
+            {/* Admin Invoice Header & Details */}
             <div className="px-5 py-4">
               <div className="mb-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">

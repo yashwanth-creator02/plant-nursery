@@ -161,6 +161,7 @@ export default function StockPage() {
   const [quantity, setQuantity] = useState("");
   const [category, setCategory] = useState<string>("plants");
   const [subcategory, setSubcategory] = useState("fruit");
+  const [gstRate, setGstRate] = useState("0");
   const [adding, setAdding] = useState(false);
 
   // Inline Edit States
@@ -173,6 +174,7 @@ export default function StockPage() {
     quantity: string;
     category: string;
     subcategory: string;
+    gstRate: string;
   } | null>(null);
   const [translatingInlineName, setTranslatingInlineName] = useState(false);
 
@@ -725,6 +727,7 @@ export default function StockPage() {
           quantity: Number(quantity) || 0,
           category,
           subcategory: chosenSubcategory,
+          gstRate: category === "plants" ? 0 : (Number(gstRate) || 0),
         }),
       });
       const data = await res.json();
@@ -734,6 +737,7 @@ export default function StockPage() {
       setUnit("pcs");
       setPrice("");
       setQuantity("");
+      setGstRate("0");
       load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't add item");
@@ -768,6 +772,7 @@ export default function StockPage() {
       quantity: item.quantity.toString(),
       category: item.category || "plants",
       subcategory: item.subcategory || "other",
+      gstRate: (item.gstRate !== undefined && item.gstRate !== null) ? String(item.gstRate) : "0",
     });
   }
 
@@ -793,6 +798,7 @@ export default function StockPage() {
           quantity: Number(editDraft.quantity) || 0,
           category: editDraft.category,
           subcategory: editDraft.subcategory,
+          gstRate: editDraft.category === "plants" ? 0 : (Number(editDraft.gstRate) || 0),
         }),
       });
       const data = await res.json();
@@ -873,6 +879,9 @@ export default function StockPage() {
                   type="button"
                   onClick={() => {
                     setCategory(c.slug);
+                    if (c.slug === "plants") {
+                      setGstRate("0");
+                    }
                     const catSubs = subcategories.filter(
                       (s) => s.category.toLowerCase() === c.slug.toLowerCase()
                     );
@@ -986,7 +995,7 @@ export default function StockPage() {
                 ) : (
                   <Languages size={11} />
                 )}
-                <span>{language === "kn" ? "ಅನುವಾದಿಸು" : "Translate 🔄"}</span>
+                <span>{language === "kn" ? "ಅನುವಾದಿಸು" : "Translate"}</span>
               </button>
             </div>
             <input
@@ -1034,6 +1043,28 @@ export default function StockPage() {
                 className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine"
               />
             </label>
+            {category !== "plants" && (
+              <label className="flex w-24 flex-col gap-1">
+                <span className="text-xs text-ink-soft">
+                  {language === "kn" ? "ಜಿಎಸ್‌ಟಿ (%)" : "GST (%)"}
+                </span>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="0.01"
+                    value={gstRate}
+                    onChange={(e) => setGstRate(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-sm outline-none focus:border-pine pr-6 font-mono"
+                  />
+                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-ink-soft">
+                    %
+                  </span>
+                </div>
+              </label>
+            )}
             <button
               type="submit"
               disabled={adding}
@@ -1729,6 +1760,7 @@ export default function StockPage() {
                 <th className="px-4 py-2.5 font-medium">{language === "kn" ? "ಘಟಕ" : "Unit"}</th>
                 <th className="px-4 py-2.5 text-right font-medium">{language === "kn" ? "ದರ" : "Price"}</th>
                 <th className="px-4 py-2.5 text-right font-medium">{language === "kn" ? "ಪ್ರಮಾಣ" : "Quantity"}</th>
+                <th className="px-4 py-2.5 text-right font-medium">{language === "kn" ? "ಜಿಎಸ್‌ಟಿ" : "GST"}</th>
                 <th className="w-20 px-4 py-2.5">{language === "kn" ? "ಕ್ರಮಗಳು" : ""}</th>
               </tr>
             </thead>
@@ -1788,7 +1820,7 @@ export default function StockPage() {
                                 ) : (
                                   <Languages size={10} />
                                 )}
-                                <span>{language === "kn" ? "ಅನುವಾದಿಸು" : "Translate 🔄"}</span>
+                                <span>{language === "kn" ? "ಅನುವಾದಿಸು" : "Translate"}</span>
                               </button>
                             </div>
                             <input
@@ -1955,6 +1987,40 @@ export default function StockPage() {
                         >
                           {item.quantity}
                         </span>
+                      )}
+                    </td>
+
+                    {/* GST Rate */}
+                    <td className="px-4 py-2.5 text-right font-mono tabular text-xs">
+                      {editing ? (
+                        (editDraft?.category || "plants") === "plants" ? (
+                          <span className="text-ink-soft">0%</span>
+                        ) : (
+                          <div className="relative inline-block w-16">
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step="0.01"
+                              value={editDraft?.gstRate}
+                              onChange={(e) =>
+                                setEditDraft((d) =>
+                                  d ? { ...d, gstRate: e.target.value } : d
+                                )
+                              }
+                              className="w-full rounded border border-line-strong bg-surface px-1.5 py-1 text-right text-xs outline-none focus:border-pine pr-4 font-mono"
+                            />
+                            <span className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-[10px] text-ink-soft font-bold">
+                              %
+                            </span>
+                          </div>
+                        )
+                      ) : (
+                        (item.category || "plants") === "plants" ? (
+                          <span className="text-ink-soft">0%</span>
+                        ) : (
+                          <span className="font-semibold text-ink">{Number(item.gstRate || 0)}%</span>
+                        )
                       )}
                     </td>
 
