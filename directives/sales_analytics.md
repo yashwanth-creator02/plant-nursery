@@ -26,11 +26,15 @@ Provide real-time revenue analytics, invoice count summaries, payment method bre
 ## Outputs
 - Clean, responsive analytics modal with interactive charts.
 - Verified daily sales reconciliation summaries for nursery management.
+- Complete bilingual support across all 12 preset filters, metric summaries, bar charts, donut charts, and invoice breakdown tables.
 
 ## Edge Cases & Error Handling
 - **Financial Metric Calculations**:
   - Total Gross Revenue, Net Revenue after discounts, Average Order Value (AOV).
   - Cash vs Online payment split calculation for daily drawer reconciliation.
+- **Bilingual Visualizations & Presets**:
+  - All 12 time filter presets (Today, Yesterday, Last 7 Days, This Month, Last Month, This Year, etc.) must be fully localized in `translations.kn`.
+  - Chart legends, tooltip labels, staff performance tables, and data table columns must dynamically render localized labels using `t()` from `useLanguage()`.
 - **Empty Periods**:
   - Buckets with zero revenue must render cleanly with placeholder indicators without breaking graph layout or scale calculations.
 - **Timezone Offsets**:

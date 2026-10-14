@@ -25,14 +25,32 @@ A modern, full-stack internal management application for plant nurseries and ret
   - Real-time subtotal, quantity, and total calculation.
   - Save as **Draft** for later edits or **Finalize** to lock the record.
 
-- **Real-Time Inventory & Dynamic Taxonomy**
+- **Comprehensive Bilingual Localization (Kannada & English)**
+  - Seamless 1-click language toggle across the entire application without layout clipping or horizontal distortion.
+  - **1-Click AI Translation**: On-the-fly Google translation (`translateOnTheFly`) with nursery botanical dictionary fallback for stock items, categories, subcategories, photo descriptions, and custom line items.
+  - **Bilingual Database Storage**: Persists both English and Kannada names (`name`, `nameKn`) and descriptions (`description`, `descriptionKn`) across stock items, categories, subcategories, and gallery images.
+  - Priority Kannada display on mobile cards, desktop tables, and printable customer receipts.
+
+- **Real-Time Inventory, Post-Creation Editing & Dynamic Taxonomy**
   - Comprehensive stock tracking (units, prices, quantities, categories).
-  - **Dynamic Subcategories**: Create custom subcategories on the fly directly from the stock page (`+ Add Type`), persisted in the database with category isolation (plants vs non-plants).
+  - **Post-Creation Item Editing**: Edit inventory items at any time via inline table editing (`/stock`) or through the comprehensive detail modal (`StockItemDetailModal.tsx`) with two-way translation.
+  - **Dynamic Categories & Subcategories**: In-place creation and management with bilingual naming, auto-slugification, and safe reassignment before deletion.
   - **Atomic Stock Deduction**: Finalizing an invoice deducts stock in a single database transaction. If inventory is insufficient, the entire operation safely rolls back.
 
-- **Comprehensive Invoice History**
-  - Filter by status (**Draft** vs **Final**).
+- **Visual Stock Gallery & Photo Explorer**
+  - Browse nursery inventory visually with camera snapshot capture and drag-and-drop file upload.
+  - Tapping plant cards opens the detail modal for full inspection and editing.
+  - Supabase storage integration with automated compression and bilingual photo descriptions.
+
+- **Sales Analytics & Drawer Audit Dashboard**
+  - Real-time revenue analytics across 12 timeframe presets (Today, Yesterday, Last 7 Days, This Month, Last Month, This Year, etc.).
+  - Interactive timeline bar chart, cash vs online payment split donut chart, and ticket size distribution.
+  - Staff contribution table and detailed invoice audit table.
+
+- **Comprehensive Invoice History & Data Export**
+  - Filter by status (**Draft** vs **Final**) and payment mode (Cash vs Online).
   - Staff view personal invoices; Admins view organization-wide invoices with creator attribution.
+  - Full data backup and export tool (`ExportDataModal.tsx`) for local folder export or ZIP download.
 
 - **Native Print & PDF Export**
   - Optimized `@media print` CSS formats invoices cleanly for physical printers or browser "Save as PDF" without bloated third-party PDF dependencies.
@@ -215,20 +233,27 @@ plant-nursery/
 │   │   ├── globals.css        # Global CSS, print stylesheets, and custom utilities
 │   │   └── layout.tsx         # Root layout with session context & shell wrapper
 │   ├── components/
+│   │   ├── AdminInvoiceSettingsModal.tsx # Invoice tax & business details header configuration
 │   │   ├── AppShell.tsx       # Main layout wrapper
+│   │   ├── CustomInvoiceNumberModal.tsx  # Invoice sequence prefix override modal
+│   │   ├── ExportDataModal.tsx # Data backup and complete JSON/CSV export modal
 │   │   ├── InvoiceEditor.tsx  # Dynamic invoice creation/edit form component
+│   │   ├── LanguageToggle.tsx # Compact and standard Kannada/English toggles
 │   │   ├── ProfilePanel.tsx   # User profile drawer & admin user management modal
 │   │   ├── SalesAnalyticsModal.tsx # Sales metrics and data visualization modal
-│   │   ├── StockItemDetailModal.tsx # Stock item inspection modal
-│   │   ├── StockPhotoUploadModal.tsx # Photo upload and camera capture modal
-│   │   └── Sidebar.tsx        # Navigation sidebar
+│   │   ├── Sidebar.tsx        # Clean navigation sidebar with active tab styling
+│   │   ├── SignatureModal.tsx # Digital signature drawing and canvas typing modal
+│   │   ├── SmartStockPicker.tsx # Multi-field searchable inventory combobox
+│   │   ├── StockItemDetailModal.tsx # Stock item inspection and full editing modal
+│   │   └── StockPhotoUploadModal.tsx # Photo upload and camera capture modal
 │   ├── db/
 │   │   ├── client.ts          # Postgres client & Drizzle ORM instance setup
 │   │   └── schema.ts          # Drizzle database tables, enums, & relations definitions
 │   └── lib/
 │       ├── auth.ts            # Session cookies management & password hashing
-│       ├── language-context.tsx # Kannada & English bilingual context
+│       ├── language-context.tsx # Kannada & English bilingual context and dictionaries
 │       ├── plant-translations.ts # Botanical bilingual translation maps
+│       ├── translator.ts      # Google Cloud Translation API client with offline fallback
 │       └── types.ts           # Shared TypeScript interfaces & definitions
 ├── AGENTS.md                  # Layer 2: Agent operating rules and principles
 ├── drizzle.config.ts          # Drizzle Kit configuration
