@@ -497,8 +497,8 @@ export function InvoiceEditor({
 
     const result = Array.from(tiersMap.entries()).map(([gstRate, val]) => {
       const taxable = Math.round(val.taxable * 100) / 100;
-      const cgstRate = gstRate / 2;
-      const sgstRate = gstRate / 2;
+      const cgstRate = Math.round((gstRate / 2) * 100) / 100;
+      const sgstRate = Math.round((gstRate / 2) * 100) / 100;
       const cgst = Math.round(((taxable * cgstRate) / 100) * 100) / 100;
       const sgst = Math.round(((taxable * sgstRate) / 100) * 100) / 100;
       return {
@@ -508,7 +508,7 @@ export function InvoiceEditor({
         taxableAmount: taxable,
         cgstAmount: cgst,
         sgstAmount: sgst,
-        totalTax: cgst + sgst,
+        totalTax: Math.round((cgst + sgst) * 100) / 100,
       };
     });
 
@@ -1328,7 +1328,7 @@ export function InvoiceEditor({
                               {item.category === "non-plants" && (
                                 <div className="flex items-center gap-1">
                                   <span className="text-[11px] text-ink-soft font-medium">GST:</span>
-                                  <div className="relative inline-block w-16">
+                                  <div className="relative inline-block w-[72px]">
                                     <input
                                       type="number"
                                       min={0}
@@ -1445,7 +1445,7 @@ export function InvoiceEditor({
                               </button>
 
                               {item.category === "non-plants" && (
-                                <div className="relative inline-block w-16">
+                                <div className="relative inline-block w-[72px]">
                                   <input
                                     type="number"
                                     min={0}
@@ -1993,7 +1993,7 @@ export function InvoiceEditor({
             {/* ============================================================ */}
             <div className="mt-3 rounded-xl border-2 border-[#1b365d] overflow-hidden bg-white text-[#1b365d]">
               {/* Header Row */}
-              <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-b-2 border-[#1b365d] text-center text-[11px] sm:text-xs font-bold bg-white">
+              <div className="grid grid-cols-[44px_1fr_52px_90px_120px] sm:grid-cols-[48px_1fr_56px_96px_130px] border-b-2 border-[#1b365d] text-center text-[11px] sm:text-xs font-bold bg-white">
                 <div className="py-2 px-1 border-r border-[#1b365d] flex items-center justify-center">
                   <span>{billLanguage === "kn" ? "ಕ್ರ.ಸಂ." : <>Sl.<br />No.</>}</span>
                 </div>
@@ -2014,7 +2014,7 @@ export function InvoiceEditor({
               {/* Table Body: Has fixed minimum height so vertical dividing lines run down */}
               <div className="relative min-h-[360px] sm:min-h-[420px] flex flex-col justify-between">
                 {/* Continuous Vertical Blue Dividing Lines */}
-                <div className="absolute inset-0 grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] pointer-events-none">
+                <div className="absolute inset-0 grid grid-cols-[44px_1fr_52px_90px_120px] sm:grid-cols-[48px_1fr_56px_96px_130px] pointer-events-none">
                   <div className="border-r border-[#1b365d] h-full" />
                   <div className="border-r border-[#1b365d] h-full" />
                   <div className="border-r border-[#1b365d] h-full" />
@@ -2027,7 +2027,7 @@ export function InvoiceEditor({
                   {items.map((item, idx) => (
                     <div
                       key={item.key}
-                      className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] text-xs sm:text-sm border-b border-dotted border-[#1b365d]/40 group items-center"
+                      className="grid grid-cols-[44px_1fr_52px_90px_120px] sm:grid-cols-[48px_1fr_56px_96px_130px] text-xs sm:text-sm border-b border-dotted border-[#1b365d]/40 group items-center"
                     >
                       {/* Sl. No. */}
                       <div className="py-1.5 px-1 text-center font-mono font-medium">
@@ -2075,7 +2075,7 @@ export function InvoiceEditor({
                       </div>
 
                       {/* Rate */}
-                      <div className="py-1.5 px-1 text-right font-mono pr-2">
+                      <div className="py-1.5 px-1 text-right font-mono pr-2 whitespace-nowrap">
                         {status === "final" ? (
                           formatMoney(item.price)
                         ) : (
@@ -2097,7 +2097,7 @@ export function InvoiceEditor({
                       </div>
 
                       {/* Amount */}
-                      <div className="py-1.5 px-2 text-right font-mono font-semibold tabular">
+                      <div className="py-1.5 px-2 text-right font-mono font-semibold tabular whitespace-nowrap">
                         {formatMoney(item.price * item.quantity)}
                       </div>
                     </div>
@@ -2114,16 +2114,16 @@ export function InvoiceEditor({
                 <div className="relative z-10">
                   {/* If discount or non-plant taxes exist, show Subtotal row */}
                   {(discountAmount > 0 || taxableAmount > 0) && (
-                    <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-t-2 border-[#1b365d] bg-white text-xs">
+                    <div className="grid grid-cols-[44px_1fr_52px_90px_120px] sm:grid-cols-[48px_1fr_56px_96px_130px] border-t-2 border-[#1b365d] bg-white text-xs">
                       <div className="border-r border-[#1b365d] py-1.5" />
                       <div className="border-r border-[#1b365d] px-2 py-1.5 font-semibold text-[#1b365d]">
                         {tLang("subtotal", billLanguage)}
                       </div>
                       <div className="border-r border-[#1b365d] py-1.5" />
-                      <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-xs uppercase bg-blue-50/10">
+                      <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-xs uppercase bg-blue-50/10 whitespace-nowrap">
                         {tLang("subtotal", billLanguage)}
                       </div>
-                      <div className="py-1.5 px-2 text-right font-mono font-bold text-xs sm:text-sm tabular bg-blue-50/10">
+                      <div className="py-1.5 px-2 text-right font-mono font-bold text-xs sm:text-sm tabular bg-blue-50/10 whitespace-nowrap">
                         {formatMoney(grossTotal)}
                       </div>
                     </div>
@@ -2131,16 +2131,16 @@ export function InvoiceEditor({
 
                   {/* Discount Row (if discount applied) */}
                   {discountAmount > 0 && (
-                    <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-t border-[#1b365d]/40 bg-white text-xs">
+                    <div className="grid grid-cols-[44px_1fr_52px_90px_120px] sm:grid-cols-[48px_1fr_56px_96px_130px] border-t border-[#1b365d]/40 bg-white text-xs">
                       <div className="border-r border-[#1b365d] py-1.5" />
                       <div className="border-r border-[#1b365d] px-2 py-1.5 font-medium text-[#1b365d] flex items-center justify-between">
                         <span>{tLang("discount", billLanguage)} {discountPercent ? `(${discountPercent}%)` : ""}</span>
                       </div>
                       <div className="border-r border-[#1b365d] py-1.5" />
-                      <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-xs uppercase text-rust">
+                      <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-xs uppercase text-rust whitespace-nowrap">
                         {tLang("discount", billLanguage)}
                       </div>
-                      <div className="py-1.5 px-2 text-right font-mono font-bold text-xs sm:text-sm tabular text-rust">
+                      <div className="py-1.5 px-2 text-right font-mono font-bold text-xs sm:text-sm tabular text-rust whitespace-nowrap">
                         - {formatMoney(discountAmount)}
                       </div>
                     </div>
@@ -2150,35 +2150,35 @@ export function InvoiceEditor({
                   {taxTiers.map((tier) => (
                     <div key={`tier-${tier.gstRate}`}>
                       {/* CGST */}
-                      <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-t border-[#1b365d]/40 bg-white text-xs">
+                      <div className="grid grid-cols-[44px_1fr_52px_90px_120px] sm:grid-cols-[48px_1fr_56px_96px_130px] border-t border-[#1b365d]/40 bg-white text-xs">
                         <div className="border-r border-[#1b365d] py-1.5" />
-                        <div className="border-r border-[#1b365d] px-2 py-1.5 text-[10px] sm:text-xs text-[#1b365d]">
+                        <div className="border-r border-[#1b365d] px-2 py-1.5 text-[10px] sm:text-xs text-[#1b365d] leading-tight">
                           <span>
                             {tLang("cgst", billLanguage)} @ {tier.cgstRate}% ({billLanguage === "kn" ? "ಸಸ್ಯೇತರ ಸರಕುಗಳ ಮೇಲೆ" : "on taxable goods"} ₹{formatMoney(tier.taxableAmount)})
                           </span>
                         </div>
                         <div className="border-r border-[#1b365d] py-1.5" />
-                        <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-[11px] uppercase">
+                        <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-[11px] uppercase whitespace-nowrap">
                           CGST
                         </div>
-                        <div className="py-1.5 px-2 text-right font-mono font-semibold text-xs sm:text-sm tabular">
+                        <div className="py-1.5 px-2 text-right font-mono font-semibold text-xs sm:text-sm tabular whitespace-nowrap">
                           + {formatMoney(tier.cgstAmount)}
                         </div>
                       </div>
 
                       {/* SGST */}
-                      <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-t border-[#1b365d]/40 bg-white text-xs">
+                      <div className="grid grid-cols-[44px_1fr_52px_90px_120px] sm:grid-cols-[48px_1fr_56px_96px_130px] border-t border-[#1b365d]/40 bg-white text-xs">
                         <div className="border-r border-[#1b365d] py-1.5" />
-                        <div className="border-r border-[#1b365d] px-2 py-1.5 text-[10px] sm:text-xs text-[#1b365d]">
+                        <div className="border-r border-[#1b365d] px-2 py-1.5 text-[10px] sm:text-xs text-[#1b365d] leading-tight">
                           <span>
                             {tLang("sgst", billLanguage)} @ {tier.sgstRate}% ({billLanguage === "kn" ? "ಸಸ್ಯೇತರ ಸರಕುಗಳ ಮೇಲೆ" : "on taxable goods"} ₹{formatMoney(tier.taxableAmount)})
                           </span>
                         </div>
                         <div className="border-r border-[#1b365d] py-1.5" />
-                        <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-[11px] uppercase">
+                        <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-[11px] uppercase whitespace-nowrap">
                           SGST
                         </div>
-                        <div className="py-1.5 px-2 text-right font-mono font-semibold text-xs sm:text-sm tabular">
+                        <div className="py-1.5 px-2 text-right font-mono font-semibold text-xs sm:text-sm tabular whitespace-nowrap">
                           + {formatMoney(tier.sgstAmount)}
                         </div>
                       </div>
@@ -2186,13 +2186,13 @@ export function InvoiceEditor({
                   ))}
 
                   {/* Final TOTAL Row */}
-                  <div className={`grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] ${discountAmount > 0 || taxableAmount > 0 ? "border-t border-[#1b365d]" : "border-t-2 border-[#1b365d]"} ${showBillableHighlight ? "bg-emerald-50/40" : "bg-white"}`}>
+                  <div className={`grid grid-cols-[44px_1fr_52px_90px_120px] sm:grid-cols-[48px_1fr_56px_96px_130px] ${discountAmount > 0 || taxableAmount > 0 ? "border-t border-[#1b365d]" : "border-t-2 border-[#1b365d]"} ${showBillableHighlight ? "bg-emerald-50/40" : "bg-white"}`}>
                     {/* Sl. No. blank space */}
                     <div className="border-r border-[#1b365d] py-2" />
 
                     {/* Rs ..................... Amount in words */}
-                    <div className="border-r border-[#1b365d] px-2 py-2 flex flex-col justify-center text-xs sm:text-sm font-semibold">
-                      <div className="flex items-baseline">
+                    <div className="border-r border-[#1b365d] px-2 py-2 flex flex-col justify-center text-xs sm:text-sm font-semibold min-w-0">
+                      <div className="flex items-baseline min-w-0">
                         <span className="font-bold mr-1 shrink-0">{tLang("rsLabel", billLanguage)}</span>
                         <span className="flex-1 border-b border-dotted border-[#1b365d] pb-0.5 text-[11px] sm:text-xs font-normal text-[#1b365d] truncate px-1">
                           {finalTotal > 0
@@ -2211,13 +2211,13 @@ export function InvoiceEditor({
                     <div className="border-r border-[#1b365d] py-2" />
 
                     {/* TOTAL box */}
-                    <div className={`border-r border-[#1b365d] py-2 px-1 text-center font-extrabold text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center ${showBillableHighlight ? "bg-emerald-100 text-emerald-950 font-black" : "bg-blue-50/20"}`}>
+                    <div className={`border-r border-[#1b365d] py-2 px-1 text-center font-extrabold text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center whitespace-nowrap ${showBillableHighlight ? "bg-emerald-100 text-emerald-950 font-black" : "bg-blue-50/20"}`}>
                       {tLang("total", billLanguage)}
                     </div>
 
                     {/* Total amount box */}
-                    <div className={`py-2 px-2 text-right font-mono font-extrabold text-sm sm:text-base tabular flex items-center justify-end ${showBillableHighlight ? "bg-emerald-100 text-emerald-950 font-black" : "bg-blue-50/20"}`}>
-                      {formatMoney(finalTotal)}
+                    <div className={`py-2 px-2 text-right font-mono font-extrabold text-sm sm:text-base tabular flex items-center justify-end whitespace-nowrap overflow-hidden ${showBillableHighlight ? "bg-emerald-100 text-emerald-950 font-black" : "bg-blue-50/20"}`}>
+                      <span className="whitespace-nowrap shrink-0">{formatMoney(finalTotal)}</span>
                     </div>
                   </div>
                 </div>

@@ -53,12 +53,15 @@ Manage the creation, draft editing, sequential numbering, finalization, atomic s
 - **Printable Sheet Styling (#invoice-print)**:
   - Always force light mode (`color-scheme: light !important`) with dark blue ink (`#1b365d`) on printable sheets even when the user operates the app in dark mode.
   - Unconstrain scroll containers under `@media print` so multi-item bills print completely without cutoffs.
+  - Use `grid-cols-[44px_1fr_52px_90px_120px] sm:grid-cols-[48px_1fr_56px_96px_130px]` across all table rows (headers, divider guides, line items, and summary rows) to give sufficient width to the Amount column.
+  - All currency/amount cells (Subtotal, Discount, CGST, SGST, Total) must have `whitespace-nowrap` to strictly prevent line breaks on decimal points (`.`) or commas.
 - **Item-Level Statutory Taxation (Non-Plants vs Plants)**:
   - Live plants are 100% tax exempt (0% GST).
   - Non-plant goods (pots, fertilizers, soils, tools) have individual statutory GST rates (e.g. 0%, 5%, 12%, 18%, 28%) configured when adding or editing stock.
   - Custom ad-hoc non-plant items also permit specifying a statutory GST percentage during invoice creation.
   - When calculating invoice totals, discounts apply proportionally across line items before calculating taxes.
   - On printable receipts and bill previews, items are grouped by their distinct positive GST rate tiers into statutory CGST (rate / 2) and SGST (rate / 2) breakdown rows with their corresponding taxable values.
+  - Round split CGST/SGST rates cleanly via `Math.round((gstRate / 2) * 100) / 100` to prevent JavaScript floating point precision noise (e.g. `5.550000000000001%`).
   - If all items in an invoice are plants (or 0% GST), no tax rows are rendered and an explicit `* Plants (0% GST Exempt)` notice is displayed.
   - `invoice_items` stores both `category` and `gst_rate` snapshots directly to preserve historical audit accuracy.
 - **Offline / Cash Drawer Separation**:
