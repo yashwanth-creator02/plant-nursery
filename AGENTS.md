@@ -15,6 +15,7 @@ You operate within a 3-layer architecture that separates concerns to maximize re
   - `directives/sales_analytics.md`: Financial analytics calculations, visualizations, and exports
   - `directives/business_profile_and_invoice_settings.md`: Business header details, GST rates, invoice sequencing
   - `directives/authentication_and_access_control.md`: Role-based access, cookie security, 307 loop prevention
+  - `directives/data_backup_and_export.md`: Full nursery data backup, nested schema export, and admin download gate
 
 
 **Layer 2: Orchestration (Decision making)**
@@ -46,6 +47,8 @@ Directives are living documents. When discovering API constraints, better patter
 - **Zero glowing or pulsing dots**: Never use neon green dots, pulsing indicator pips, or AI "agent active" dots.
 - **Zero pill-type labels or badges**: Avoid arbitrary pill-shaped labels or floating pill badges unless explicitly requested by the user.
 - **Eliminate AI "vibecoded" cliches**: Reject generic SaaS tropes (decorative blur rings, cookie-cutter purple/neon gradients, meaningless marketing fluff badges). Focus on authentic, functional craft.
+- **Zero redundant badges**: In role-restricted interfaces (such as the Admin Panel), do not redundantly label internal cards or components with "Admin Only" tags.
+- **Single action controls**: Avoid redundant or duplicate buttons performing the same operation (e.g. navigation toggle).
 - **Theme Integrity**: Preserve the plant nursery's custom earthy/pine color palette and typography (do not overwrite with external brand themes unless explicitly instructed).
 
 **5. Git Workflow & Branch Safety**

@@ -1,10 +1,11 @@
 # Directive: Business Profile & Invoice Configuration
 
 ## Goal
-Manage business branding metadata, tax parameters (GSTIN, CGST/SGST rates), contact addresses, and sequential invoice numbering overrides for printable invoice receipts.
+Manage business branding metadata, custom nursery logo, payment QR codes, tax parameters (GSTIN, CGST/SGST rates), contact addresses, and sequential invoice numbering overrides for printable invoice receipts.
 
 ## When this fires
 - Updating business name, subheadings, address, phone numbers, or GSTIN in `AdminInvoiceSettingsModal.tsx`.
+- Uploading or updating the custom nursery logo (vector SVG or raster image) or payment QR code.
 - Adjusting statutory tax rates (CGST / SGST percentages).
 - Overriding or resetting the sequential invoice counter in `CustomInvoiceNumberModal.tsx`.
 - Viewing audit history of past business profile revisions.
@@ -12,9 +13,11 @@ Manage business branding metadata, tax parameters (GSTIN, CGST/SGST rates), cont
 ## Inputs
 - `BusinessSettings` object (`src/lib/types.ts`):
   - `businessName`, `subheading1`, `subheading2`, `address`, `mobiles`, `gstin`.
+  - `logoData` (base64 Data URI or SVG string) and `logoTitle` metadata.
+  - `paymentQrData` (base64 Data URI) for UPI payment scans on receipts.
   - `cgstRate`, `sgstRate` (default: 2.50% each = 5% total GST).
   - `version` counter tracking historical snapshot changes.
-- Sequence endpoints: `/api/settings/invoice-sequence` and `/api/settings/invoice-details`.
+- Settings endpoints: `/api/settings/invoice-details`, `/api/settings/invoice-sequence`.
 - Role verification: Admin privileges required.
 
 ## Git Safety (If Modifying Code)
@@ -27,10 +30,23 @@ Manage business branding metadata, tax parameters (GSTIN, CGST/SGST rates), cont
 - CLI migration tools in `scripts/`.
 
 ## Outputs
-- Updated business metadata in the database settings table.
-- Immutable historical version records for legal tax compliance.
+- Updated business metadata, custom logo, and payment QR in the database settings table.
+- Broadcast custom DOM event `nurseryLogoUpdated` so open invoice builder windows refresh their header previews instantly.
+- Immutable historical version records and snapshots for legal tax compliance.
 - Predictable, formatted invoice IDs (e.g. `INV-00124`) reflecting current sequence configuration.
 
 ## Edge Cases & Error Handling
-- **Historical Invoice Immutability**: Changes to business details (address, GSTIN, tax rates) must not retroactively alter previously finalized invoices. Past invoices store snapshot data or link to their specific version.
-- **Sequence Clashing**: If a user enters a custom invoice number that already exists, return a descriptive conflict error and suggest the next available increment via `incrementInvoiceNumber()`.
+- **Logo Formats & Fallback**:
+  - Accept vector SVG (recommended for highest print resolution) or raster images (PNG, JPG, WEBP under 2MB).
+  - When no custom logo is uploaded, default to the embedded SVG plant leaf icon.
+  - Invoices must always render cleanly in both dark/light screen modes and high-contrast `@media print`.
+- **Strict Historical Invoice Immutability**:
+  - Updating the business profile, address, contact numbers, tax rates, logo, or signatures must NEVER retroactively alter finalized or past printed invoices.
+  - Finalized invoices freeze their exact visual header into `headerSnapshot` (business name, address, mobiles, GSTIN, `logoData`, digital signature).
+  - Profile and logo modifications apply strictly to future new bills and active drafts.
+- **Sequence Clashing**:
+  - If a user enters a custom invoice number that already exists, return a descriptive conflict error and suggest the next available increment via `incrementInvoiceNumber()`.
+- **UI Anti-Clutter & Aesthetics**:
+  - Do not add redundant "Admin Only" badges or pill labels inside panels that are already restricted to administrators.
+  - Avoid duplicate buttons or controls for the same operation.
+  - Zero emojis, zero neon/pulsing dots, and zero unnecessary decorative badges.

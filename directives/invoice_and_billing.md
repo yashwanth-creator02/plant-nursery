@@ -39,7 +39,13 @@ Manage the creation, draft editing, sequential numbering, finalization, atomic s
 - **Stock Shortage & Single Action Button**:
   - If a selected item is out of stock or requested quantity exceeds available stock, the normal `+ Add to bill` button must disappear completely, leaving only the prominent red `Force Add` button (`bg-red-600 text-white`).
   - Shortage warning alerts must use high-contrast red styling (`bg-red-50 border-red-300 text-red-800`).
+  - Shortage and excessive quantity messages must render in Kannada when `language === "kn"`.
   - Pressing Enter in the quantity input must automatically invoke regular addition or force addition based on stock availability.
+- **Bilingual Custom Line Items**:
+  - Support ad-hoc items with both English Name (`customName`) and Kannada Name (`customNameKn`) alongside a 1-click on-the-fly translation button (`translateOnTheFly`).
+  - `InvoiceLineItem` interface in `src/lib/types.ts` must include `nameKn?: string | null` to ensure custom Kannada names are saved in invoice state and draft localStorage.
+  - Prioritize display of Kannada item names in mobile cards, desktop tables, and print receipts:
+    `item.nameKn || stock.find(...)?.nameKn || translateItem(item.name)`
 - **Atomic Stock Deduction**:
   - Finalizing an invoice MUST deduct stock inside a single, atomic database transaction.
   - If stock for any item is insufficient, the transaction must roll back cleanly and return a descriptive error.
@@ -49,5 +55,10 @@ Manage the creation, draft editing, sequential numbering, finalization, atomic s
   - Unconstrain scroll containers under `@media print` so multi-item bills print completely without cutoffs.
 - **Offline / Cash Drawer Separation**:
   - Explicitly record whether payments were completed via Cash or Online UPI/Card to ensure accurate cashier balance audits.
-- **Ad-hoc Custom Line Items**:
-  - Support ad-hoc items that do not map to catalog stock (deducting stock only when linked to a catalog item ID).
+- **Strict Invoice Immutability**:
+  - Finalized and printed invoices are 100% immutable across all attributes: business header details, active nursery logo, digital signatures, line items, pricing, and tax totals.
+  - At the moment of finalization (`action === "finalize"`), the backend freezes `businessName`, `address`, `mobiles`, `gstin`, `logoData`, `signature`, and `isSigned` inside `headerSnapshot`.
+  - Re-printing or viewing historical finalized bills must always render the exact frozen snapshot, completely immune to subsequent admin logo changes, tax adjustments, or user signature modifications.
+  - Future bills and active drafts remain dynamic, adopting the latest active settings and nursery logo.
+  - In `InvoiceEditor.tsx`, finalized views strictly disable signature removal/addition and ignore live `signatureUpdated` and `nurseryLogoUpdated` window events.
+
