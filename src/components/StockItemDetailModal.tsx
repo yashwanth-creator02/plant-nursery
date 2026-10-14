@@ -71,6 +71,7 @@ export function StockItemDetailModal({
   const [editUnit, setEditUnit] = useState("pcs");
   const [editPrice, setEditPrice] = useState("");
   const [editQuantity, setEditQuantity] = useState("");
+  const [editGstRate, setEditGstRate] = useState("0");
   const [translatingNameKn, setTranslatingNameKn] = useState(false);
   const [translatingNameEn, setTranslatingNameEn] = useState(false);
   const [translatingDescKn, setTranslatingDescKn] = useState(false);
@@ -124,6 +125,7 @@ export function StockItemDetailModal({
     setEditUnit(item?.unit || "pcs");
     setEditPrice(item?.price?.toString() || "0");
     setEditQuantity(item?.quantity?.toString() || "0");
+    setEditGstRate(item?.gstRate !== undefined && item?.gstRate !== null ? String(item.gstRate) : "0");
     setActiveDescTab(language === "kn" ? "kn" : "en");
     setAutoTranslatedDescKn("");
     setAutoTranslatedImgDescKn("");
@@ -297,6 +299,7 @@ export function StockItemDetailModal({
 
       const priceNum = Math.max(0, parseFloat(editPrice) || 0);
       const qtyNum = Math.max(0, parseInt(editQuantity, 10) || 0);
+      const gstNum = editCategory === "plants" ? 0 : Math.max(0, parseFloat(editGstRate) || 0);
 
       const res = await fetch(`/api/stock/${item.id}`, {
         method: "PATCH",
@@ -309,6 +312,7 @@ export function StockItemDetailModal({
           unit: editUnit.trim() || item.unit || "pcs",
           price: priceNum,
           quantity: qtyNum,
+          gstRate: gstNum,
           description: editDescEn.trim() || null,
           descriptionKn: editDescKn.trim() || null,
         }),
@@ -323,6 +327,7 @@ export function StockItemDetailModal({
         unit: editUnit.trim() || item.unit || "pcs",
         price: priceNum.toFixed(2),
         quantity: qtyNum,
+        gstRate: gstNum.toFixed(2),
         description: editDescEn.trim() || null,
         descriptionKn: editDescKn.trim() || null,
       };
@@ -544,7 +549,7 @@ export function StockItemDetailModal({
                         ) : (
                           <Sparkles size={11} />
                         )}
-                        <span>Translate to Kannada 🔄</span>
+                        <span>Translate to Kannada</span>
                       </button>
                     </div>
                     <textarea
@@ -644,7 +649,7 @@ export function StockItemDetailModal({
                         ) : (
                           <RotateCw size={11} />
                         )}
-                        <span>{language === "kn" ? "ಕನ್ನಡಕ್ಕೆ ಅನುವಾದಿಸು" : "Translate to Kannada 🔄"}</span>
+                        <span>{language === "kn" ? "ಕನ್ನಡಕ್ಕೆ ಅನುವಾದಿಸು" : "Translate to Kannada"}</span>
                       </button>
                     </div>
                     <input
@@ -672,7 +677,7 @@ export function StockItemDetailModal({
                         ) : (
                           <RotateCw size={11} />
                         )}
-                        <span>{language === "kn" ? "ಇಂಗ್ಲಿಷ್‌ಗೆ ಅನುವಾದಿಸು" : "Translate to English 🔄"}</span>
+                        <span>{language === "kn" ? "ಇಂಗ್ಲಿಷ್‌ಗೆ ಅನುವಾದಿಸು" : "Translate to English"}</span>
                       </button>
                     </div>
                     <input
@@ -695,6 +700,9 @@ export function StockItemDetailModal({
                       onChange={(e) => {
                         const newCat = e.target.value;
                         setEditCategory(newCat);
+                        if (newCat === "plants") {
+                          setEditGstRate("0");
+                        }
                         const catSubs = subcategories.filter(
                           (s) => s.category.toLowerCase() === newCat.toLowerCase()
                         );
@@ -741,8 +749,8 @@ export function StockItemDetailModal({
                   </label>
                 </div>
 
-                {/* Price, Quantity, Unit Fields */}
-                <div className="grid grid-cols-3 gap-3">
+                {/* Price, Quantity, Unit, GST Fields */}
+                <div className={`grid ${editCategory !== "plants" ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"} gap-3`}>
                   <label className="flex flex-col gap-1">
                     <span className="text-xs font-semibold text-ink font-sans">
                       {language === "kn" ? "ಬೆಲೆ (₹ Price)" : "Price (₹)"}
@@ -784,6 +792,29 @@ export function StockItemDetailModal({
                       className="rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-xs sm:text-sm text-ink outline-none focus:border-pine"
                     />
                   </label>
+
+                  {editCategory !== "plants" && (
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs font-semibold text-ink font-sans">
+                        {language === "kn" ? "ಜಿಎಸ್‌ಟಿ (GST %)" : "GST (%)"}
+                      </span>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={editGstRate}
+                          onChange={(e) => setEditGstRate(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-xs sm:text-sm text-ink outline-none focus:border-pine font-mono pr-6"
+                        />
+                        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-ink-soft">
+                          %
+                        </span>
+                      </div>
+                    </label>
+                  )}
                 </div>
 
                 {/* Description Fields */}
@@ -805,7 +836,7 @@ export function StockItemDetailModal({
                         ) : (
                           <Sparkles size={11} />
                         )}
-                        <span>{language === "kn" ? "ಕನ್ನಡಕ್ಕೆ ಅನುವಾದಿಸು" : "Translate to Kannada 🔄"}</span>
+                        <span>{language === "kn" ? "ಕನ್ನಡಕ್ಕೆ ಅನುವಾದಿಸು" : "Translate to Kannada"}</span>
                       </button>
                     </div>
                     <textarea
@@ -834,7 +865,7 @@ export function StockItemDetailModal({
                         ) : (
                           <Sparkles size={11} />
                         )}
-                        <span>{language === "kn" ? "ಇಂಗ್ಲಿಷ್‌ಗೆ ಅನುವಾದಿಸು" : "Translate to English 🔄"}</span>
+                        <span>{language === "kn" ? "ಇಂಗ್ಲಿಷ್‌ಗೆ ಅನುವಾದಿಸು" : "Translate to English"}</span>
                       </button>
                     </div>
                     <textarea
@@ -859,6 +890,7 @@ export function StockItemDetailModal({
                       setEditUnit(item.unit || "pcs");
                       setEditPrice(item.price?.toString() || "0");
                       setEditQuantity(item.quantity?.toString() || "0");
+                      setEditGstRate(item.gstRate !== undefined && item.gstRate !== null ? String(item.gstRate) : "0");
                       setEditDescEn(item.description || "");
                       setEditDescKn(item.descriptionKn || "");
                       setEditingBilingual(false);
@@ -971,12 +1003,12 @@ export function StockItemDetailModal({
                 </button>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               <div>
                 <span className="block text-[11px] text-ink-soft">
                   {language === "kn" ? "ಬೆಲೆ" : "Price"}
                 </span>
-                <span className="font-semibold text-ink">₹{item.price}</span>
+                <span className="font-semibold text-ink font-mono">₹{item.price}</span>
               </div>
               <div>
                 <span className="block text-[11px] text-ink-soft">
@@ -1000,6 +1032,16 @@ export function StockItemDetailModal({
                 </span>
                 <span className="font-medium capitalize text-ink">
                   {translateSubcategory(item.subcategory || "other", language)}
+                </span>
+              </div>
+              <div>
+                <span className="block text-[11px] text-ink-soft">
+                  {language === "kn" ? "ಜಿಎಸ್‌ಟಿ" : "GST Rate"}
+                </span>
+                <span className="font-semibold text-ink font-mono">
+                  {(item.category || "plants") === "plants"
+                    ? "0% (Exempt)"
+                    : `${Number(item.gstRate || 0)}%`}
                 </span>
               </div>
             </div>

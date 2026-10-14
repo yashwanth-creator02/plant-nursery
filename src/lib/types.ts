@@ -9,6 +9,7 @@ export type StockItem = {
   subcategory?: string | null;
   description?: string | null;
   descriptionKn?: string | null;
+  gstRate?: string | number | null;
 };
 
 export type StockItemImage = {
@@ -51,6 +52,7 @@ export type InvoiceLineItem = {
   price: number;
   quantity: number;
   category?: "plants" | "non-plants" | string;
+  gstRate?: number;
 };
 
 export type BusinessSettings = {
@@ -92,6 +94,8 @@ export type InvoiceRecord = {
     price: string;
     quantity: number;
     lineTotal: string;
+    category?: string | null;
+    gstRate?: string | null;
   }[];
 };
 

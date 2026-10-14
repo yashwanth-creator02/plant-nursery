@@ -12,7 +12,8 @@ const lineItemSchema = z.object({
   name: z.string().trim().optional().default("Item"),
   price: z.coerce.number().min(0).optional().default(0),
   quantity: z.coerce.number().int().min(0).optional().default(1),
-  category: z.string().optional(),
+  category: z.string().optional().default("plants"),
+  gstRate: z.coerce.number().min(0).max(100).optional().default(0),
 });
 
 const createSchema = z.object({
@@ -191,6 +192,8 @@ export async function POST(req: NextRequest) {
             price: (li.price ?? 0).toFixed(2),
             quantity: li.quantity ?? 1,
             lineTotal: ((li.price ?? 0) * (li.quantity ?? 1)).toFixed(2),
+            category: li.category || "plants",
+            gstRate: (li.category === "plants" ? 0 : (li.gstRate ?? 0)).toFixed(2),
           }))
         );
       }

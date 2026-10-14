@@ -48,8 +48,6 @@ const DEFAULT_HEADER = {
   address: "Harige B. H. Road, Shimoga - 577203",
   mobiles: "7353025302, 9448140483, 9606602194",
   gstin: "29ADXPV1295N2Z6",
-  cgstRate: "2.50",
-  sgstRate: "2.50",
   discount: 0,
   logoData: null as string | null,
 };
@@ -145,9 +143,15 @@ export function InvoiceEditor({
       key: newKey(),
       stockItemId: i.stockItemId,
       name: i.name,
+      nameKn: (i as any).nameKn || (i as any).stockItem?.nameKn || null,
       price: Number(i.price),
       quantity: i.quantity,
-      category: (i as any).category || "plants",
+      category: (i as any).category || (i as any).stockItem?.category || "plants",
+      gstRate: (i as any).gstRate !== undefined && (i as any).gstRate !== null
+        ? Number((i as any).gstRate)
+        : (i as any).stockItem?.gstRate !== undefined && (i as any).stockItem?.gstRate !== null
+        ? Number((i as any).stockItem.gstRate)
+        : 0,
     })) ?? [],
   );
 
@@ -162,6 +166,7 @@ export function InvoiceEditor({
   const [customPrice, setCustomPrice] = useState("");
   const [customQty, setCustomQty] = useState("1");
   const [customCategory, setCustomCategory] = useState<"plants" | "non-plants">("plants");
+  const [customGstRate, setCustomGstRate] = useState<string>("0");
 
   // Step 2 Discount state (supports both % and ₹)
   const initialDiscount = Number(parsedInitialHeader.discount) || 0;
@@ -269,6 +274,8 @@ export function InvoiceEditor({
             if (parsed.customNameKn !== undefined) setCustomNameKn(parsed.customNameKn);
             if (parsed.customPrice !== undefined) setCustomPrice(parsed.customPrice);
             if (parsed.customQty !== undefined) setCustomQty(parsed.customQty);
+            if (parsed.customCategory !== undefined) setCustomCategory(parsed.customCategory);
+            if (parsed.customGstRate !== undefined) setCustomGstRate(parsed.customGstRate);
             if (parsed.customMode !== undefined) setCustomMode(parsed.customMode);
             setRestoredDraft(true);
           }
@@ -318,6 +325,8 @@ export function InvoiceEditor({
             customNameKn,
             customPrice,
             customQty,
+            customCategory,
+            customGstRate,
             customMode,
             savedAt: Date.now(),
           }),
@@ -465,33 +474,72 @@ export function InvoiceEditor({
     return 0;
   }, [discountMoney, discountPercent, grossTotal]);
 
-  // Discount proportion applied to non-plants
-  const discountOnNonPlants = useMemo(() => {
-    if (grossTotal <= 0 || nonPlantsSubtotal <= 0 || discountAmount <= 0) return 0;
-    return (discountAmount * nonPlantsSubtotal) / grossTotal;
-  }, [discountAmount, grossTotal, nonPlantsSubtotal]);
+  // 3. Item-level Taxes (Live plants are 100% tax exempt 0% GST; Non-plants use their individual GST rates)
+  const taxTiers = useMemo(() => {
+    // Discount ratio
+    const discountFactor = grossTotal > 0 ? (grossTotal - discountAmount) / grossTotal : 1;
 
-  // 3. Taxes (Exclusive to non-plant goods; live plants are 100% tax exempt)
-  const taxableAmount = Math.max(0, nonPlantsSubtotal - discountOnNonPlants);
+    // Group non-plant items with positive GST rates
+    const tiersMap = new Map<number, { taxable: number }>();
 
-  const cgstRateNum = parseFloat(String(headerDetails.cgstRate ?? "2.50")) || 0;
-  const sgstRateNum = parseFloat(String(headerDetails.sgstRate ?? "2.50")) || 0;
+    for (const item of items) {
+      const isPlant = !item.category || item.category === "plants";
+      const gst = isPlant ? 0 : Number(item.gstRate || 0);
+      if (isPlant || gst <= 0) continue;
 
-  const cgstAmount = useMemo(() => {
-    if (taxableAmount <= 0 || cgstRateNum <= 0) return 0;
-    return Math.round(((taxableAmount * cgstRateNum) / 100) * 100) / 100;
-  }, [taxableAmount, cgstRateNum]);
+      const itemGross = (Number(item.price) || 0) * (Number(item.quantity) || 0);
+      const itemTaxable = Math.max(0, itemGross * discountFactor);
 
-  const sgstAmount = useMemo(() => {
-    if (taxableAmount <= 0 || sgstRateNum <= 0) return 0;
-    return Math.round(((taxableAmount * sgstRateNum) / 100) * 100) / 100;
-  }, [taxableAmount, sgstRateNum]);
+      const existing = tiersMap.get(gst) || { taxable: 0 };
+      existing.taxable += itemTaxable;
+      tiersMap.set(gst, existing);
+    }
+
+    const result = Array.from(tiersMap.entries()).map(([gstRate, val]) => {
+      const taxable = Math.round(val.taxable * 100) / 100;
+      const cgstRate = gstRate / 2;
+      const sgstRate = gstRate / 2;
+      const cgst = Math.round(((taxable * cgstRate) / 100) * 100) / 100;
+      const sgst = Math.round(((taxable * sgstRate) / 100) * 100) / 100;
+      return {
+        gstRate,
+        cgstRate,
+        sgstRate,
+        taxableAmount: taxable,
+        cgstAmount: cgst,
+        sgstAmount: sgst,
+        totalTax: cgst + sgst,
+      };
+    });
+
+    return result.sort((a, b) => a.gstRate - b.gstRate);
+  }, [items, grossTotal, discountAmount]);
+
+  const taxableAmount = useMemo(
+    () => taxTiers.reduce((sum, t) => sum + t.taxableAmount, 0),
+    [taxTiers]
+  );
+
+  const cgstAmount = useMemo(
+    () => taxTiers.reduce((sum, t) => sum + t.cgstAmount, 0),
+    [taxTiers]
+  );
+
+  const sgstAmount = useMemo(
+    () => taxTiers.reduce((sum, t) => sum + t.sgstAmount, 0),
+    [taxTiers]
+  );
+
+  const totalTaxAmount = useMemo(
+    () => taxTiers.reduce((sum, t) => sum + t.totalTax, 0),
+    [taxTiers]
+  );
 
   // 4. Net Final Billable Total
   const finalTotal = useMemo(() => {
-    const raw = grossTotal - discountAmount + cgstAmount + sgstAmount;
+    const raw = grossTotal - discountAmount + totalTaxAmount;
     return Math.max(0, Math.round(raw * 100) / 100);
-  }, [grossTotal, discountAmount, cgstAmount, sgstAmount]);
+  }, [grossTotal, discountAmount, totalTaxAmount]);
 
   // Backward-compatible alias for existing total references
   const total = finalTotal;
@@ -578,6 +626,7 @@ export function InvoiceEditor({
       updateItem(existingInBill.key, {
         quantity: totalRequested,
         nameKn: existingInBill.nameKn || stockItem.nameKn || null,
+        gstRate: stockItem.category === "plants" ? 0 : (Number(stockItem.gstRate) || 0),
       });
     } else {
       setItems((prev) => [
@@ -590,6 +639,7 @@ export function InvoiceEditor({
           price: Number(stockItem.price) || 0,
           quantity: qty,
           category: stockItem.category || "plants",
+          gstRate: stockItem.category === "plants" ? 0 : (Number(stockItem.gstRate) || 0),
         },
       ]);
     }
@@ -602,6 +652,7 @@ export function InvoiceEditor({
     const nameKn = customNameKn.trim() || null;
     const price = customPrice === "" ? 0 : Math.max(0, Number(customPrice) || 0);
     const quantity = customQty === "" ? 1 : Math.max(0, Number(customQty) || 1);
+    const rate = customCategory === "plants" ? 0 : Math.max(0, parseFloat(customGstRate) || 0);
     setItems((prev) => [
       ...prev,
       {
@@ -612,6 +663,7 @@ export function InvoiceEditor({
         price,
         quantity,
         category: customCategory,
+        gstRate: rate,
       },
     ]);
     setCustomName("");
@@ -619,6 +671,7 @@ export function InvoiceEditor({
     setCustomPrice("");
     setCustomQty("1");
     setCustomCategory("plants");
+    setCustomGstRate("0");
     setCustomMode(false);
   }
 
@@ -728,6 +781,7 @@ export function InvoiceEditor({
           price: Number(i.price) || 0,
           quantity: Number(i.quantity) || 0,
           category: i.category || "plants",
+          gstRate: i.category === "plants" ? 0 : (Number(i.gstRate) || 0),
         })),
       };
 
@@ -1091,7 +1145,7 @@ export function InvoiceEditor({
                           ) : (
                             <Languages size={11} />
                           )}
-                          <span>{isTranslatingCustom ? t("translating") : (language === "kn" ? "ಅನುವಾದಿಸು 🔄" : "Translate 🔄")}</span>
+                          <span>{isTranslatingCustom ? t("translating") : (language === "kn" ? "ಅನುವಾದಿಸು" : "Translate")}</span>
                         </button>
                       </div>
                       <input
@@ -1110,7 +1164,10 @@ export function InvoiceEditor({
                     </span>
                     <button
                       type="button"
-                      onClick={() => setCustomCategory("plants")}
+                      onClick={() => {
+                        setCustomCategory("plants");
+                        setCustomGstRate("0");
+                      }}
                       className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer border ${
                         customCategory === "plants"
                           ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
@@ -1131,6 +1188,50 @@ export function InvoiceEditor({
                       {t("customItemTypeNonPlant")}
                     </button>
                   </div>
+
+                  {customCategory === "non-plants" && (
+                    <div className="flex flex-col gap-1.5 rounded-lg border border-line bg-paper-flat p-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-ink">
+                          {language === "kn" ? "ಜಿಎಸ್‌ಟಿ ದರ (GST %)" : "GST Rate (%)"}
+                        </span>
+                        <span className="text-[11px] text-ink-soft">
+                          {language === "kn" ? "ಅನ್ವಯವಾಗುವ ಜಿಎಸ್‌ಟಿ ಆಯ್ಕೆಮಾಡಿ" : "Statutory non-plant tax tier"}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {["0", "5", "12", "18", "28"].map((rate) => (
+                          <button
+                            key={rate}
+                            type="button"
+                            onClick={() => setCustomGstRate(rate)}
+                            className={`rounded px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer border ${
+                              customGstRate === rate
+                                ? "bg-pine text-white border-pine shadow-xs"
+                                : "bg-surface text-ink border-line hover:bg-line/40"
+                            }`}
+                          >
+                            {rate}%
+                          </button>
+                        ))}
+                        <div className="relative ml-auto flex items-center w-24">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            value={customGstRate}
+                            onChange={(e) => setCustomGstRate(e.target.value)}
+                            placeholder="0.00"
+                            className="w-full rounded border border-line-strong bg-surface px-2 py-1 text-xs font-mono outline-none focus:border-pine pr-5"
+                          />
+                          <span className="pointer-events-none absolute right-1.5 text-[11px] font-bold text-ink-soft">
+                            %
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex flex-wrap sm:flex-nowrap items-end gap-2">
                     <label className="flex flex-col gap-1 w-20 shrink-0">
@@ -1201,14 +1302,17 @@ export function InvoiceEditor({
                             <div className="text-xs text-ink-soft mt-1">
                               ₹ {formatMoney(item.price)} × {item.quantity} = <strong className="font-mono font-bold text-pine-deep text-sm">₹ {formatMoney(item.price * item.quantity)}</strong>
                             </div>
-                            <div className="mt-1.5 flex items-center gap-1.5">
+                            <div className="mt-1.5 flex items-center gap-2 flex-wrap">
                               <button
                                 type="button"
-                                onClick={() =>
+                                onClick={() => {
+                                  const nextCat = item.category === "non-plants" ? "plants" : "non-plants";
+                                  const defaultGst = nextCat === "plants" ? 0 : (stock.find((s) => s.id === item.stockItemId)?.gstRate ? Number(stock.find((s) => s.id === item.stockItemId)?.gstRate) : 18);
                                   updateItem(item.key, {
-                                    category: item.category === "non-plants" ? "plants" : "non-plants",
-                                  })
-                                }
+                                    category: nextCat,
+                                    gstRate: defaultGst,
+                                  });
+                                }}
                                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer border ${
                                   item.category === "non-plants"
                                     ? "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100"
@@ -1217,9 +1321,33 @@ export function InvoiceEditor({
                                 title="Click to toggle between Plant (0% GST) and Non-Plant (Taxable)"
                               >
                                 {item.category === "non-plants"
-                                  ? (language === "kn" ? "📦 ಸಸ್ಯೇತರ (ತೆರಿಗೆ)" : "📦 Non-Plant (Taxable)")
-                                  : (language === "kn" ? "🌱 ಸಸ್ಯ (0% ಜಿಎಸ್‌ಟಿ)" : "🌱 Plant (0% GST)")}
+                                  ? (language === "kn" ? "ಸಸ್ಯೇತರ (ತೆರಿಗೆ)" : "Non-Plant (Taxable)")
+                                  : (language === "kn" ? "ಸಸ್ಯ (0% ಜಿಎಸ್‌ಟಿ ವಿನಾಯಿತಿ)" : "Plant (0% GST)")}
                               </button>
+
+                              {item.category === "non-plants" && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[11px] text-ink-soft font-medium">GST:</span>
+                                  <div className="relative inline-block w-16">
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={100}
+                                      step="0.01"
+                                      value={item.gstRate !== undefined && item.gstRate !== null ? item.gstRate : 0}
+                                      onChange={(e) =>
+                                        updateItem(item.key, {
+                                          gstRate: e.target.value === "" ? 0 : Math.max(0, parseFloat(e.target.value)),
+                                        })
+                                      }
+                                      className="w-full rounded border border-line-strong bg-paper-flat px-1.5 py-0.5 text-right font-mono text-xs text-ink outline-none focus:border-pine pr-4"
+                                    />
+                                    <span className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-[10px] text-ink-soft font-bold">
+                                      %
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1296,11 +1424,14 @@ export function InvoiceEditor({
                               </span>
                               <button
                                 type="button"
-                                onClick={() =>
+                                onClick={() => {
+                                  const nextCat = item.category === "non-plants" ? "plants" : "non-plants";
+                                  const defaultGst = nextCat === "plants" ? 0 : (stock.find((s) => s.id === item.stockItemId)?.gstRate ? Number(stock.find((s) => s.id === item.stockItemId)?.gstRate) : 18);
                                   updateItem(item.key, {
-                                    category: item.category === "non-plants" ? "plants" : "non-plants",
-                                  })
-                                }
+                                    category: nextCat,
+                                    gstRate: defaultGst,
+                                  });
+                                }}
                                 className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold transition-colors cursor-pointer border ${
                                   item.category === "non-plants"
                                     ? "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100"
@@ -1309,9 +1440,31 @@ export function InvoiceEditor({
                                 title="Click to toggle between Plant (0% GST) and Non-Plant (Taxable)"
                               >
                                 {item.category === "non-plants"
-                                  ? (language === "kn" ? "📦 ಸಸ್ಯೇತರ" : "📦 Non-Plant")
-                                  : (language === "kn" ? "🌱 ಸಸ್ಯ (0%)" : "🌱 Plant (0%)")}
+                                  ? (language === "kn" ? "ಸಸ್ಯೇತರ" : "Non-Plant")
+                                  : (language === "kn" ? "ಸಸ್ಯ (0%)" : "Plant (0%)")}
                               </button>
+
+                              {item.category === "non-plants" && (
+                                <div className="relative inline-block w-16">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    step="0.01"
+                                    value={item.gstRate !== undefined && item.gstRate !== null ? item.gstRate : 0}
+                                    onChange={(e) =>
+                                      updateItem(item.key, {
+                                        gstRate: e.target.value === "" ? 0 : Math.max(0, parseFloat(e.target.value)),
+                                      })
+                                    }
+                                    className="w-full rounded border border-line-strong/60 bg-surface px-1 py-0.5 text-right font-mono text-[11px] text-ink outline-none focus:border-pine pr-4"
+                                    title="Item statutory GST rate"
+                                  />
+                                  <span className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-[10px] text-ink-soft font-bold">
+                                    %
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </td>
                           <td className="py-2 px-2 text-center">
@@ -1993,21 +2146,23 @@ export function InvoiceEditor({
                     </div>
                   )}
 
-                  {/* CGST & SGST Rows (applied strictly to non-plants) */}
-                  {taxableAmount > 0 && (
-                    <>
+                  {/* Item-level CGST & SGST Rows (applied strictly to non-plants) */}
+                  {taxTiers.map((tier) => (
+                    <div key={`tier-${tier.gstRate}`}>
                       {/* CGST */}
                       <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-t border-[#1b365d]/40 bg-white text-xs">
                         <div className="border-r border-[#1b365d] py-1.5" />
                         <div className="border-r border-[#1b365d] px-2 py-1.5 text-[10px] sm:text-xs text-[#1b365d]">
-                          <span>{tLang("cgst", billLanguage)} @ {cgstRateNum}% ({billLanguage === "kn" ? "ಸಸ್ಯೇತರ ಸರಕುಗಳ ಮೇಲೆ" : "on non-plants"} ₹{formatMoney(taxableAmount)})</span>
+                          <span>
+                            {tLang("cgst", billLanguage)} @ {tier.cgstRate}% ({billLanguage === "kn" ? "ಸಸ್ಯೇತರ ಸರಕುಗಳ ಮೇಲೆ" : "on taxable goods"} ₹{formatMoney(tier.taxableAmount)})
+                          </span>
                         </div>
                         <div className="border-r border-[#1b365d] py-1.5" />
                         <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-[11px] uppercase">
                           CGST
                         </div>
                         <div className="py-1.5 px-2 text-right font-mono font-semibold text-xs sm:text-sm tabular">
-                          + {formatMoney(cgstAmount)}
+                          + {formatMoney(tier.cgstAmount)}
                         </div>
                       </div>
 
@@ -2015,18 +2170,20 @@ export function InvoiceEditor({
                       <div className="grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] border-t border-[#1b365d]/40 bg-white text-xs">
                         <div className="border-r border-[#1b365d] py-1.5" />
                         <div className="border-r border-[#1b365d] px-2 py-1.5 text-[10px] sm:text-xs text-[#1b365d]">
-                          <span>{tLang("sgst", billLanguage)} @ {sgstRateNum}% ({billLanguage === "kn" ? "ಸಸ್ಯೇತರ ಸರಕುಗಳ ಮೇಲೆ" : "on non-plants"} ₹{formatMoney(taxableAmount)})</span>
+                          <span>
+                            {tLang("sgst", billLanguage)} @ {tier.sgstRate}% ({billLanguage === "kn" ? "ಸಸ್ಯೇತರ ಸರಕುಗಳ ಮೇಲೆ" : "on taxable goods"} ₹{formatMoney(tier.taxableAmount)})
+                          </span>
                         </div>
                         <div className="border-r border-[#1b365d] py-1.5" />
                         <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-[11px] uppercase">
                           SGST
                         </div>
                         <div className="py-1.5 px-2 text-right font-mono font-semibold text-xs sm:text-sm tabular">
-                          + {formatMoney(sgstAmount)}
+                          + {formatMoney(tier.sgstAmount)}
                         </div>
                       </div>
-                    </>
-                  )}
+                    </div>
+                  ))}
 
                   {/* Final TOTAL Row */}
                   <div className={`grid grid-cols-[44px_1fr_60px_84px_100px] sm:grid-cols-[48px_1fr_68px_90px_110px] ${discountAmount > 0 || taxableAmount > 0 ? "border-t border-[#1b365d]" : "border-t-2 border-[#1b365d]"} ${showBillableHighlight ? "bg-emerald-50/40" : "bg-white"}`}>

@@ -170,6 +170,21 @@ async function main() {
     ADD COLUMN IF NOT EXISTS description_kn TEXT;
   `;
 
+  await sql`
+    ALTER TABLE stock_items
+    ADD COLUMN IF NOT EXISTS gst_rate NUMERIC(5, 2) NOT NULL DEFAULT 0.00;
+  `;
+
+  await sql`
+    ALTER TABLE invoice_items
+    ADD COLUMN IF NOT EXISTS gst_rate NUMERIC(5, 2) NOT NULL DEFAULT 0.00;
+  `;
+
+  await sql`
+    ALTER TABLE invoice_items
+    ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT 'plants';
+  `;
+
   // Backfill existing stock_items with Kannada names if null
   try {
     const { translateItemName } = await import("../src/lib/plant-translations");

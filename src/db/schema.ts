@@ -33,6 +33,7 @@ export const stockItems = pgTable("stock_items", {
   description: text("description"),
   nameKn: text("name_kn"),
   descriptionKn: text("description_kn"),
+  gstRate: numeric("gst_rate", { precision: 5, scale: 2 }).notNull().default("0.00"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -107,6 +108,8 @@ export const invoiceItems = pgTable("invoice_items", {
   price: numeric("price", { precision: 12, scale: 2 }).notNull(),
   quantity: integer("quantity").notNull(),
   lineTotal: numeric("line_total", { precision: 12, scale: 2 }).notNull(),
+  category: text("category").notNull().default("plants"),
+  gstRate: numeric("gst_rate", { precision: 5, scale: 2 }).notNull().default("0.00"),
 });
 
 export const stockItemImages = pgTable("stock_item_images", {

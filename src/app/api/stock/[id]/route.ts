@@ -10,12 +10,13 @@ const updateSchema = z.object({
   name: z.string().trim().min(1).optional(),
   nameKn: z.string().trim().optional().nullable(),
   unit: z.string().trim().optional(),
-  price: z.number().nonnegative().optional(),
-  quantity: z.number().int().nonnegative().optional(),
+  price: z.coerce.number().min(0).optional(),
+  quantity: z.coerce.number().int().min(0).optional(),
   category: z.string().trim().min(1).optional(),
   subcategory: z.string().trim().optional(),
   description: z.string().trim().optional().nullable(),
   descriptionKn: z.string().trim().optional().nullable(),
+  gstRate: z.coerce.number().min(0).max(100).optional(),
 });
 
 export async function PATCH(
@@ -50,6 +51,10 @@ export async function PATCH(
       values.description = parsed.data.description;
     if (parsed.data.descriptionKn !== undefined)
       values.descriptionKn = parsed.data.descriptionKn;
+    if (parsed.data.gstRate !== undefined)
+      values.gstRate = parsed.data.gstRate.toFixed(2);
+    if (parsed.data.category === "plants")
+      values.gstRate = "0.00";
 
     const [item] = await db
       .update(stockItems)

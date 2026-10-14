@@ -12,7 +12,8 @@ const lineItemSchema = z.object({
   name: z.string().trim().optional().default("Item"),
   price: z.coerce.number().min(0).optional().default(0),
   quantity: z.coerce.number().int().min(0).optional().default(1),
-  category: z.string().optional(),
+  category: z.string().optional().default("plants"),
+  gstRate: z.coerce.number().min(0).max(100).optional().default(0),
 });
 
 const updateSchema = z.object({
@@ -51,7 +52,14 @@ class InvoiceNumberConflictError extends Error {
 async function loadInvoiceForUser(id: string, userId: string, isAdmin: boolean) {
   const invoice = await db.query.invoices.findFirst({
     where: eq(invoices.id, id),
-    with: { items: true, createdByUser: { columns: { username: true } } },
+    with: {
+      items: {
+        with: {
+          stockItem: true,
+        },
+      },
+      createdByUser: { columns: { username: true } },
+    },
   });
   if (!invoice) return null;
   if (!isAdmin && invoice.createdBy !== userId) {
@@ -164,6 +172,8 @@ export async function PATCH(
               price: (li.price ?? 0).toFixed(2),
               quantity: li.quantity ?? 1,
               lineTotal: ((li.price ?? 0) * (li.quantity ?? 1)).toFixed(2),
+              category: li.category || "plants",
+              gstRate: (li.category === "plants" ? 0 : (li.gstRate ?? 0)).toFixed(2),
             }))
           );
         }
@@ -240,7 +250,14 @@ export async function PATCH(
 
       return db.query.invoices.findFirst({
         where: eq(invoices.id, id),
-        with: { items: true, createdByUser: { columns: { username: true } } },
+        with: {
+          items: {
+            with: {
+              stockItem: true,
+            },
+          },
+          createdByUser: { columns: { username: true } },
+        },
       });
     });
 
