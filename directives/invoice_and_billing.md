@@ -55,3 +55,10 @@ Manage the creation, draft editing, sequential numbering, finalization, atomic s
   - Unconstrain scroll containers under `@media print` so multi-item bills print completely without cutoffs.
 - **Offline / Cash Drawer Separation**:
   - Explicitly record whether payments were completed via Cash or Online UPI/Card to ensure accurate cashier balance audits.
+- **Strict Invoice Immutability**:
+  - Finalized and printed invoices are 100% immutable across all attributes: business header details, active nursery logo, digital signatures, line items, pricing, and tax totals.
+  - At the moment of finalization (`action === "finalize"`), the backend freezes `businessName`, `address`, `mobiles`, `gstin`, `logoData`, `signature`, and `isSigned` inside `headerSnapshot`.
+  - Re-printing or viewing historical finalized bills must always render the exact frozen snapshot, completely immune to subsequent admin logo changes, tax adjustments, or user signature modifications.
+  - Future bills and active drafts remain dynamic, adopting the latest active settings and nursery logo.
+  - In `InvoiceEditor.tsx`, finalized views strictly disable signature removal/addition and ignore live `signatureUpdated` and `nurseryLogoUpdated` window events.
+

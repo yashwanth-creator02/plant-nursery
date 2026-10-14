@@ -16,14 +16,22 @@ A modern, full-stack internal management application for plant nurseries and ret
   - Secured with `iron-session` signed, HTTP-only encrypted cookies (7-day duration).
   - Admin & Staff user roles.
   - Admin management panel to add, edit, or revoke user credentials directly inside the app.
+  - Zero redundant badges: Admin panels maintain clean layouts without repeating role tags on internal cards.
 
 - **Interactive Invoice Builder & Smart Combobox**
-  - Paper-style live invoice interface.
+  - Paper-style live invoice interface with single-action controls.
   - **Smart Stock Picker**: Instant multi-field searchable combobox filtering by plant/item name, category, subcategory, unit, or price.
   - **Single Action Shortage Handling**: When an item is out of stock, the regular Add button dynamically swaps to a prominent Force Add button with high-contrast red alerts.
   - Quick-add items from active inventory or create ad-hoc custom line items.
   - Real-time subtotal, quantity, and total calculation.
   - Save as **Draft** for later edits or **Finalize** to lock the record.
+  - **Strict Invoice Immutability**: Historical printed and finalized invoices freeze their exact visual header state (`headerSnapshot`), preserving business name, address, phone numbers, GSTIN, custom logo, and digital signature. Logo updates or profile edits strictly apply to future bills and editable drafts.
+
+- **Branding, Custom Logo & Payment QR Configuration**
+  - Admin-only custom logo management supporting vector SVG (ideal for crisp printing) and raster formats (PNG, JPG, WEBP).
+  - Fallback to embedded botanical SVG leaf logo when no custom logo is uploaded.
+  - Live preview synchronization across active invoice builder tabs via DOM events (`nurseryLogoUpdated`) without full page reloads.
+  - Payment QR code card configuration for UPI payment scans directly on printed receipts.
 
 - **Comprehensive Bilingual Localization (Kannada & English)**
   - Seamless 1-click language toggle across the entire application without layout clipping or horizontal distortion.
@@ -44,13 +52,18 @@ A modern, full-stack internal management application for plant nurseries and ret
 
 - **Sales Analytics & Drawer Audit Dashboard**
   - Real-time revenue analytics across 12 timeframe presets (Today, Yesterday, Last 7 Days, This Month, Last Month, This Year, etc.).
-  - Interactive timeline bar chart, cash vs online payment split donut chart, and ticket size distribution.
+  - Interactive timeline bar chart with boundary-safe tooltips that prevent clipping.
+  - Cash vs online payment split donut chart and ticket size distribution.
   - Staff contribution table and detailed invoice audit table.
 
-- **Comprehensive Invoice History & Data Export**
-  - Filter by status (**Draft** vs **Final**) and payment mode (Cash vs Online).
-  - Staff view personal invoices; Admins view organization-wide invoices with creator attribution.
-  - Full data backup and export tool (`ExportDataModal.tsx`) for local folder export or ZIP download.
+- **Full Nursery Data Backup & Structured Export**
+  - Admin-only full data backup packaged as a structured ZIP named after the nursery.
+  - Clean nested folder schema: printable HTML invoices (`invoices/`), organized stock imagery (`images/stock/<cat>/<subcat>/`), digital signatures (`images/signatures/`), JSON database tables (`business-details/`), and `export-manifest.json`.
+  - Secure server-side image proxying (`/api/export/image`) preventing CORS cross-origin download failures.
+
+- **Collapsible Navigation & Shell**
+  - Desktop sidebar with smooth collapse toggle (`w-56` to `w-16`), tooltips, and persistent state in `localStorage`.
+  - Keyboard shortcut (`Ctrl+B`) and clean single-button header control (`PanelLeftClose`/`PanelLeftOpen`).
 
 - **Native Print & PDF Export**
   - Optimized `@media print` CSS formats invoices cleanly for physical printers or browser "Save as PDF" without bloated third-party PDF dependencies.
@@ -94,6 +107,7 @@ A modern, full-stack internal management application for plant nurseries and ret
 2. **Atomic Stock Finalization**: Stock is only deducted when an invoice transitions from `draft` → `final`.
 3. **Immutability of Finalized Records**: Finalized invoices are permanently locked from modifications or deletions to maintain accounting integrity.
 4. **Dynamic Subcategory Taxonomies**: Stock items map to subcategories stored in `stock_subcategories` with a unique index on `(category, slug)`, supporting runtime addition without schema alteration.
+5. **Header & Visual Snapshot Immutability**: When an invoice is finalized or printed, the full visual header state (business details, tax registration, custom logo, and digital signature) is frozen into `headerSnapshot`. Subsequent modifications to business details or logos in the Admin portal strictly affect future bills and active drafts, ensuring historical printable receipts remain 100% reproducible and legally tamper-proof.
 
 ---
 
@@ -206,7 +220,8 @@ plant-nursery/
 │   ├── stock_and_gallery_management.md # Stock inventory, Supabase photos, gallery
 │   ├── sales_analytics.md     # Sales reporting, timeline visualizations, drawer audits
 │   ├── business_profile_and_invoice_settings.md # Business details, GST rates, invoice sequence
-│   └── authentication_and_access_control.md # Role-based access, cookie security, 307 loop prevention
+│   ├── authentication_and_access_control.md # Role-based access, cookie security, 307 loop prevention
+│   └── data_backup_and_export.md # Full nursery data backup, nested schema export, admin gate
 
 ├── execution/                 # Layer 3: Deterministic execution tools
 │   ├── run_typecheck.py       # Type-check runner (tsc --noEmit)
