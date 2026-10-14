@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
     const startDateParam = searchParams.get("startDate");
     const endDateParam = searchParams.get("endDate");
     const paymentModeParam = searchParams.get("paymentMode");
+    const categoryParam = searchParams.get("category"); // "all" | "plants" | "non-plants"
     const userIdParam = searchParams.get("userId");
     const searchParam = searchParams.get("search")?.trim().toLowerCase();
 
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest) {
 
     const whereClause = and(...conditions);
 
-    // Fetch matching invoices with staff details
+    // Fetch matching invoices with staff details and line items
     const rows = await db.query.invoices.findMany({
       where: whereClause,
       orderBy: [desc(invoices.createdAt)],
@@ -62,27 +63,140 @@ export async function GET(req: NextRequest) {
             role: true,
           },
         },
+        items: {
+          columns: {
+            id: true,
+            name: true,
+            price: true,
+            quantity: true,
+            lineTotal: true,
+            category: true,
+            gstRate: true,
+          },
+          with: {
+            stockItem: {
+              columns: {
+                id: true,
+                category: true,
+                subcategory: true,
+              },
+            },
+          },
+        },
       },
     });
 
-    // Compute aggregations
+    // Compute category breakdown per invoice
+    const processedRows = rows.map((row) => {
+      let rowPlantGross = 0;
+      let rowNonPlantGross = 0;
+
+      if (row.items && row.items.length > 0) {
+        for (const item of row.items) {
+          const isPlant =
+            item.category === "plants" ||
+            (!item.category && (!item.stockItem || item.stockItem.category === "plants"));
+          const lineAmt =
+            Number(item.lineTotal) ||
+            (Number(item.price) * Number(item.quantity)) ||
+            0;
+          if (isPlant) {
+            rowPlantGross += lineAmt;
+          } else {
+            rowNonPlantGross += lineAmt;
+          }
+        }
+      } else {
+        // Fallback for bills with no items recorded
+        rowPlantGross = Number(row.total) || 0;
+      }
+
+      const rowTotalGross = rowPlantGross + rowNonPlantGross;
+      const rowTotal = Number(row.total) || 0;
+
+      let rowPlantsTotal = 0;
+      let rowNonPlantsTotal = 0;
+
+      if (rowTotalGross <= 0) {
+        rowPlantsTotal = rowTotal;
+        rowNonPlantsTotal = 0;
+      } else if (rowNonPlantGross === 0) {
+        rowPlantsTotal = rowTotal;
+        rowNonPlantsTotal = 0;
+      } else if (rowPlantGross === 0) {
+        rowPlantsTotal = 0;
+        rowNonPlantsTotal = rowTotal;
+      } else {
+        let discountAmt = 0;
+        if (row.headerSnapshot) {
+          try {
+            const snap = JSON.parse(row.headerSnapshot);
+            discountAmt = Number(snap.discount) || 0;
+          } catch {}
+        }
+        const discountFactor = Math.max(0, (rowTotalGross - discountAmt) / rowTotalGross);
+        rowPlantsTotal = Math.round(rowPlantGross * discountFactor * 100) / 100;
+        rowNonPlantsTotal = Math.max(0, Math.round((rowTotal - rowPlantsTotal) * 100) / 100);
+      }
+
+      const hasPlants = rowPlantGross > 0 || (rowTotalGross === 0 && rowTotal > 0);
+      const hasNonPlants = rowNonPlantGross > 0;
+      const categoryType = hasPlants && hasNonPlants ? "mixed" : hasNonPlants ? "non-plants" : "plants";
+
+      return {
+        ...row,
+        plantsTotal: rowPlantsTotal,
+        nonPlantsTotal: rowNonPlantsTotal,
+        hasPlants,
+        hasNonPlants,
+        categoryType,
+      };
+    });
+
+    // Compute overall category sales totals before category filtering
+    let allPlantsRevenue = 0;
+    let allPlantsCount = 0;
+    let allNonPlantsRevenue = 0;
+    let allNonPlantsCount = 0;
+
+    for (const r of processedRows) {
+      allPlantsRevenue += r.plantsTotal;
+      if (r.hasPlants) allPlantsCount++;
+      allNonPlantsRevenue += r.nonPlantsTotal;
+      if (r.hasNonPlants) allNonPlantsCount++;
+    }
+
+    // Filter rows by category if requested
+    const categoryFilteredRows =
+      categoryParam === "plants"
+        ? processedRows.filter((r) => r.hasPlants)
+        : categoryParam === "non-plants"
+        ? processedRows.filter((r) => r.hasNonPlants)
+        : processedRows;
+
+    const filteredRows = searchParam
+      ? categoryFilteredRows.filter(
+          (r) =>
+            r.invoiceNumber?.toLowerCase().includes(searchParam) ||
+            r.customerName?.toLowerCase().includes(searchParam) ||
+            r.customerDetails?.toLowerCase().includes(searchParam)
+        )
+      : categoryFilteredRows;
+
     let totalRevenue = 0;
     let onlineRevenue = 0;
     let onlineCount = 0;
     let cashRevenue = 0;
     let cashCount = 0;
 
-    const filteredRows = searchParam
-      ? rows.filter(
-          (r) =>
-            r.invoiceNumber?.toLowerCase().includes(searchParam) ||
-            r.customerName?.toLowerCase().includes(searchParam) ||
-            r.customerDetails?.toLowerCase().includes(searchParam)
-        )
-      : rows;
+    for (const row of categoryFilteredRows) {
+      const amount =
+        categoryParam === "plants"
+          ? row.plantsTotal
+          : categoryParam === "non-plants"
+          ? row.nonPlantsTotal
+          : (Number(row.total) || 0);
 
-    for (const row of rows) {
-      const amount = Number(row.total) || 0;
       totalRevenue += amount;
       if (row.paymentMode === "online") {
         onlineRevenue += amount;
@@ -93,7 +207,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const totalInvoices = rows.length;
+    const totalInvoices = categoryFilteredRows.length;
     const averageInvoiceValue = totalInvoices > 0 ? totalRevenue / totalInvoices : 0;
 
     // Fetch staff list for admin dropdown
@@ -137,13 +251,18 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       summary: {
-        totalRevenue,
-        onlineRevenue,
+        totalRevenue: Math.round(totalRevenue * 100) / 100,
+        onlineRevenue: Math.round(onlineRevenue * 100) / 100,
         onlineCount,
-        cashRevenue,
+        cashRevenue: Math.round(cashRevenue * 100) / 100,
         cashCount,
         totalInvoices,
-        averageInvoiceValue,
+        averageInvoiceValue: Math.round(averageInvoiceValue * 100) / 100,
+        plantsRevenue: Math.round(allPlantsRevenue * 100) / 100,
+        plantsCount: allPlantsCount,
+        nonPlantsRevenue: Math.round(allNonPlantsRevenue * 100) / 100,
+        nonPlantsCount: allNonPlantsCount,
+        selectedCategory: categoryParam || "all",
       },
       invoices: filteredRows,
       staffList,

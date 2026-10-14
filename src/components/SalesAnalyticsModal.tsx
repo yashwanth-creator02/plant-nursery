@@ -26,6 +26,8 @@ import {
   Eye,
   EyeOff,
   Info,
+  Sprout,
+  Package,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -53,6 +55,11 @@ type InvoiceSummary = {
   cashCount: number;
   totalInvoices: number;
   averageInvoiceValue: number;
+  plantsRevenue?: number;
+  plantsCount?: number;
+  nonPlantsRevenue?: number;
+  nonPlantsCount?: number;
+  selectedCategory?: string;
 };
 
 type InvoiceItemRecord = {
@@ -70,6 +77,11 @@ type InvoiceItemRecord = {
     username: string;
     role: string;
   };
+  plantsTotal?: number;
+  nonPlantsTotal?: number;
+  hasPlants?: boolean;
+  hasNonPlants?: boolean;
+  categoryType?: "plants" | "non-plants" | "mixed";
 };
 
 type StaffMember = {
@@ -159,6 +171,7 @@ export function SalesAnalyticsModal({
   const [customEndDate, setCustomEndDate] = useState<string>(getTodayString());
 
   const [paymentModeFilter, setPaymentModeFilter] = useState<"all" | "online" | "cash">("all");
+  const [categoryFilter, setCategoryFilter] = useState<"all" | "plants" | "non-plants">("all");
   const [selectedUserId, setSelectedUserId] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -179,6 +192,17 @@ export function SalesAnalyticsModal({
   const [availableYears, setAvailableYears] = useState<number[]>([
     new Date().getFullYear(),
   ]);
+
+  // Helper to extract category-specific or overall invoice amount
+  const getInvoiceAmount = (inv: InvoiceItemRecord): number => {
+    if (categoryFilter === "plants") {
+      return inv.plantsTotal ?? (Number(inv.total) || 0);
+    }
+    if (categoryFilter === "non-plants") {
+      return inv.nonPlantsTotal ?? 0;
+    }
+    return Number(inv.total) || 0;
+  };
 
   // Data Visualization State
   const [showVisualization, setShowVisualization] = useState<boolean>(false);
@@ -298,6 +322,7 @@ export function SalesAnalyticsModal({
       if (startDateISO) params.set("startDate", startDateISO);
       if (endDateISO) params.set("endDate", endDateISO);
       if (paymentModeFilter !== "all") params.set("paymentMode", paymentModeFilter);
+      if (categoryFilter !== "all") params.set("category", categoryFilter);
       if (isAdmin && selectedUserId !== "all") params.set("userId", selectedUserId);
 
       const res = await fetch(`/api/sales/analytics?${params.toString()}`, {
@@ -330,6 +355,7 @@ export function SalesAnalyticsModal({
     startDateISO,
     endDateISO,
     paymentModeFilter,
+    categoryFilter,
     selectedUserId,
   ]);
 
@@ -355,6 +381,15 @@ export function SalesAnalyticsModal({
     summary.totalRevenue > 0
       ? Math.round((summary.cashRevenue / summary.totalRevenue) * 100)
       : 0;
+
+  // Category sales split percentages
+  const overallCategoryRevenue = (summary.plantsRevenue || 0) + (summary.nonPlantsRevenue || 0);
+  const plantsSplitPercent =
+    overallCategoryRevenue > 0
+      ? Math.round(((summary.plantsRevenue || 0) / overallCategoryRevenue) * 100)
+      : 0;
+  const nonPlantsSplitPercent =
+    overallCategoryRevenue > 0 ? Math.max(0, 100 - plantsSplitPercent) : 0;
 
   // Timeline series aggregation for interactive charts
   type TimelineBucket = {
@@ -402,7 +437,7 @@ export function SalesAnalyticsModal({
       filteredInvoices.forEach((inv) => {
         const d = new Date(inv.createdAt);
         const hour = d.getHours();
-        const amt = Number(inv.total) || 0;
+        const amt = getInvoiceAmount(inv);
         const isOnline = inv.paymentMode === "online";
 
         const slotIndex = intervals.findIndex((s) => hour >= s.start && hour < s.end);
@@ -455,7 +490,7 @@ export function SalesAnalyticsModal({
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         const bucket = buckets.find((b) => b.key === key);
         if (bucket) {
-          const amt = Number(inv.total) || 0;
+          const amt = getInvoiceAmount(inv);
           bucket.totalRevenue += amt;
           bucket.totalCount += 1;
           if (inv.paymentMode === "online") {
@@ -500,7 +535,7 @@ export function SalesAnalyticsModal({
           if (m >= startMonth && m < startMonth + 3) {
             const bucket = buckets[m - startMonth];
             if (bucket) {
-              const amt = Number(inv.total) || 0;
+              const amt = getInvoiceAmount(inv);
               bucket.totalRevenue += amt;
               bucket.totalCount += 1;
               if (inv.paymentMode === "online") {
@@ -547,7 +582,7 @@ export function SalesAnalyticsModal({
           if (m >= startMonth && m < startMonth + 6) {
             const bucket = buckets[m - startMonth];
             if (bucket) {
-              const amt = Number(inv.total) || 0;
+              const amt = getInvoiceAmount(inv);
               bucket.totalRevenue += amt;
               bucket.totalCount += 1;
               if (inv.paymentMode === "online") {
@@ -591,7 +626,7 @@ export function SalesAnalyticsModal({
           const m = d.getMonth();
           const bucket = buckets[m];
           if (bucket) {
-            const amt = Number(inv.total) || 0;
+            const amt = getInvoiceAmount(inv);
             bucket.totalRevenue += amt;
             bucket.totalCount += 1;
             if (inv.paymentMode === "online") {
@@ -638,7 +673,7 @@ export function SalesAnalyticsModal({
           const dayIdx = d.getDate() - 1;
           const bucket = buckets[dayIdx];
           if (bucket) {
-            const amt = Number(inv.total) || 0;
+            const amt = getInvoiceAmount(inv);
             bucket.totalRevenue += amt;
             bucket.totalCount += 1;
             if (inv.paymentMode === "online") {
@@ -679,7 +714,7 @@ export function SalesAnalyticsModal({
         });
       }
       const b = map.get(dateKey)!;
-      const amt = Number(inv.total) || 0;
+      const amt = getInvoiceAmount(inv);
       b.totalRevenue += amt;
       b.totalCount += 1;
       if (inv.paymentMode === "online") {
@@ -692,7 +727,7 @@ export function SalesAnalyticsModal({
     });
 
     return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
-  }, [filteredInvoices, filterMode, selectedYear, selectedMonth, selectedQuarter, selectedHalf]);
+  }, [filteredInvoices, filterMode, selectedYear, selectedMonth, selectedQuarter, selectedHalf, categoryFilter]);
 
   // Max value in timeline data for scaling bar heights
   const maxTimelineVal = useMemo(() => {
@@ -708,7 +743,7 @@ export function SalesAnalyticsModal({
     let large = { count: 0, revenue: 0 };
 
     filteredInvoices.forEach((inv) => {
-      const amt = Number(inv.total) || 0;
+      const amt = getInvoiceAmount(inv);
       if (amt < 500) {
         small.count += 1;
         small.revenue += amt;
@@ -748,7 +783,7 @@ export function SalesAnalyticsModal({
         barColor: "bg-amber-500",
       },
     ];
-  }, [filteredInvoices]);
+  }, [filteredInvoices, categoryFilter]);
 
   // Staff sales leaderboard for admin view
   const staffSalesData = useMemo(() => {
@@ -762,7 +797,7 @@ export function SalesAnalyticsModal({
       const uId = inv.createdByUser?.id;
       if (uId && staffMap.has(uId)) {
         const item = staffMap.get(uId)!;
-        item.revenue += Number(inv.total) || 0;
+        item.revenue += getInvoiceAmount(inv);
         item.count += 1;
       }
     });
@@ -774,7 +809,7 @@ export function SalesAnalyticsModal({
         percent: Math.round((s.revenue / totalRev) * 100),
       }))
       .sort((a, b) => b.revenue - a.revenue);
-  }, [isAdmin, staffList, filteredInvoices, summary.totalRevenue]);
+  }, [isAdmin, staffList, filteredInvoices, summary.totalRevenue, categoryFilter]);
 
   if (!open) return null;
 
@@ -1031,6 +1066,42 @@ export function SalesAnalyticsModal({
               </div>
             )}
 
+            {/* Category Type Filter (Plants vs Non-Plants) */}
+            <div className="flex items-center rounded-lg border border-line bg-paper p-0.5">
+              <button
+                type="button"
+                onClick={() => setCategoryFilter("all")}
+                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer font-medium ${paymentModeFilter === "all" && categoryFilter === "all"
+                  ? "bg-surface text-ink font-semibold shadow-xs"
+                  : categoryFilter === "all"
+                    ? "bg-surface text-ink font-semibold shadow-xs"
+                    : "text-ink-soft hover:text-ink"
+                  }`}
+              >
+                {t("filterAllCategories")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setCategoryFilter("plants")}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all cursor-pointer font-medium ${categoryFilter === "plants"
+                  ? "bg-pine text-white font-semibold shadow-xs"
+                  : "text-ink-soft hover:text-ink"
+                  }`}
+              >
+                <Sprout size={12} /> {t("filterPlantsOnly")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setCategoryFilter("non-plants")}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all cursor-pointer font-medium ${categoryFilter === "non-plants"
+                  ? "bg-amber-600 text-white font-semibold shadow-xs"
+                  : "text-ink-soft hover:text-ink"
+                  }`}
+              >
+                <Package size={12} /> {t("filterNonPlantsOnly")}
+              </button>
+            </div>
+
             {/* Payment Mode Filter */}
             <div className="flex items-center rounded-lg border border-line bg-paper p-0.5 ml-auto">
               <button
@@ -1115,14 +1186,24 @@ export function SalesAnalyticsModal({
 
           {/* KPI Stat Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-            {/* Total Revenue Card */}
+            {/* Total / Filtered Revenue Card */}
             <div className="relative overflow-hidden rounded-xl border border-line bg-paper-flat p-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                  {t("totalSalesMetric")}
+                  {categoryFilter === "plants"
+                    ? t("plantsRevenueMetric")
+                    : categoryFilter === "non-plants"
+                      ? t("nonPlantsRevenueMetric")
+                      : t("totalSalesMetric")}
                 </span>
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-pine/10 text-pine-deep">
-                  <Receipt size={16} />
+                  {categoryFilter === "plants" ? (
+                    <Sprout size={16} />
+                  ) : categoryFilter === "non-plants" ? (
+                    <Package size={16} />
+                  ) : (
+                    <Receipt size={16} />
+                  )}
                 </span>
               </div>
               <div className="mt-2.5 font-serif text-2xl font-bold text-pine-deep">
@@ -1191,30 +1272,63 @@ export function SalesAnalyticsModal({
             </div>
           </div>
 
-          {/* Payment Split Ratio Bar */}
-          {summary.totalRevenue > 0 && (
-            <div className="rounded-xl border border-line bg-paper p-4 space-y-2">
-              <div className="flex items-center justify-between text-xs font-semibold">
-                <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
-                  <span className="h-2.5 w-2.5 rounded-full bg-blue-500"></span>
-                  <span>{t("onlineUpiLabel")} ({onlinePercent}%)</span>
+          {/* Split Ratio Bars Grid (Payment Split & Category Split) */}
+          {(summary.totalRevenue > 0 || overallCategoryRevenue > 0) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {/* Payment Split Ratio Bar */}
+              <div className="rounded-xl border border-line bg-paper p-4 space-y-2">
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
+                    <span className="h-2.5 w-2.5 rounded-full bg-blue-500"></span>
+                    <span>{t("onlineUpiLabel")} ({onlinePercent}%)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                    <span>{t("cashOfflineLabel")} ({cashPercent}%)</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-                  <span>{t("cashOfflineLabel")} ({cashPercent}%)</span>
+                <div className="h-3 w-full rounded-full bg-line overflow-hidden flex">
+                  <div
+                    style={{ width: `${onlinePercent}%` }}
+                    className="bg-blue-500 transition-all duration-500"
+                    title={`Online: ${onlinePercent}%`}
+                  />
+                  <div
+                    style={{ width: `${cashPercent}%` }}
+                    className="bg-emerald-500 transition-all duration-500"
+                    title={`Cash: ${cashPercent}%`}
+                  />
                 </div>
               </div>
-              <div className="h-3 w-full rounded-full bg-line overflow-hidden flex">
-                <div
-                  style={{ width: `${onlinePercent}%` }}
-                  className="bg-blue-500 transition-all duration-500"
-                  title={`Online: ${onlinePercent}%`}
-                />
-                <div
-                  style={{ width: `${cashPercent}%` }}
-                  className="bg-emerald-500 transition-all duration-500"
-                  title={`Cash: ${cashPercent}%`}
-                />
+
+              {/* Plants vs Non-Plants Category Split Ratio Bar */}
+              <div className="rounded-xl border border-line bg-paper p-4 space-y-2">
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <div className="flex items-center gap-1.5 text-pine-deep dark:text-pine">
+                    <span className="h-2.5 w-2.5 rounded-full bg-pine"></span>
+                    <span className="flex items-center gap-1">
+                      <Sprout size={12} /> {t("categoryPlantsBadge")} ({plantsSplitPercent}%)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
+                    <span className="h-2.5 w-2.5 rounded-full bg-amber-600"></span>
+                    <span className="flex items-center gap-1">
+                      <Package size={12} /> {t("categoryNonPlantsBadge")} ({nonPlantsSplitPercent}%)
+                    </span>
+                  </div>
+                </div>
+                <div className="h-3 w-full rounded-full bg-line overflow-hidden flex">
+                  <div
+                    style={{ width: `${plantsSplitPercent}%` }}
+                    className="bg-pine transition-all duration-500"
+                    title={`Plants: ${formatCurrency(summary.plantsRevenue || 0)} (${plantsSplitPercent}%)`}
+                  />
+                  <div
+                    style={{ width: `${nonPlantsSplitPercent}%` }}
+                    className="bg-amber-600 transition-all duration-500"
+                    title={`Non-Plants: ${formatCurrency(summary.nonPlantsRevenue || 0)} (${nonPlantsSplitPercent}%)`}
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -1775,6 +1889,7 @@ export function SalesAnalyticsModal({
                       <th className="px-4 py-2.5">{t("colInvoiceNo")}</th>
                       <th className="px-4 py-2.5">{t("colCustomer")}</th>
                       <th className="px-4 py-2.5">{t("colDateTime")}</th>
+                      <th className="px-4 py-2.5">{t("colCategoryType")}</th>
                       <th className="px-4 py-2.5">{t("colPaymentMode")}</th>
                       {isAdmin && <th className="px-4 py-2.5">{t("colBilledBy")}</th>}
                       <th className="px-4 py-2.5 text-right">{t("colAmount")}</th>
@@ -1813,6 +1928,24 @@ export function SalesAnalyticsModal({
                             {formatDate(inv.createdAt)}
                           </td>
                           <td className="px-4 py-3">
+                            {inv.categoryType === "plants" ? (
+                              <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold bg-pine/10 text-pine-deep border border-pine/20">
+                                <Sprout size={11} />
+                                <span>{t("categoryPlantsBadge")}</span>
+                              </span>
+                            ) : inv.categoryType === "non-plants" ? (
+                              <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
+                                <Package size={11} />
+                                <span>{t("categoryNonPlantsBadge")}</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800">
+                                <Layers size={11} />
+                                <span>{t("categoryMixedBadge")}</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
                             <span
                               className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold ${isOnline
                                 ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
@@ -1835,7 +1968,14 @@ export function SalesAnalyticsModal({
                             </td>
                           )}
                           <td className="px-4 py-3 text-right font-mono font-bold text-ink sm:text-sm">
-                            ₹{Number(inv.total || 0).toLocaleString("en-IN")}
+                            <div>
+                              ₹{Number(getInvoiceAmount(inv) || 0).toLocaleString("en-IN")}
+                            </div>
+                            {inv.categoryType === "mixed" && categoryFilter !== "all" && (
+                              <div className="text-[10px] text-ink-soft font-normal">
+                                ({t("total")}: ₹{Number(inv.total || 0).toLocaleString("en-IN")})
+                              </div>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-center">
                             <button
