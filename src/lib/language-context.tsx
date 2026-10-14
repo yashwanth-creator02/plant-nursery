@@ -210,6 +210,16 @@ export interface Translations {
   viewInvoiceBtn: string;
   exportCsvBtn: string;
   walkInCustomer: string;
+  filterAllCategories: string;
+  filterPlantsOnly: string;
+  filterNonPlantsOnly: string;
+  plantsRevenueMetric: string;
+  nonPlantsRevenueMetric: string;
+  categorySplitTitle: string;
+  colCategoryType: string;
+  categoryPlantsBadge: string;
+  categoryNonPlantsBadge: string;
+  categoryMixedBadge: string;
 
   // Profile & Admin Panel
   profileTitleAdmin: string;
@@ -489,6 +499,16 @@ export const translations: Record<Language, Translations> = {
     viewInvoiceBtn: "View Bill",
     exportCsvBtn: "Export CSV",
     walkInCustomer: "Walk-in Customer",
+    filterAllCategories: "All Items",
+    filterPlantsOnly: "Plants",
+    filterNonPlantsOnly: "Non-Plants",
+    plantsRevenueMetric: "Plants Sales",
+    nonPlantsRevenueMetric: "Non-Plants Sales",
+    categorySplitTitle: "Category Sales Split",
+    colCategoryType: "Category",
+    categoryPlantsBadge: "Plants",
+    categoryNonPlantsBadge: "Non-Plants",
+    categoryMixedBadge: "Mixed",
 
     // Profile & Admin Panel
     profileTitleAdmin: "Account & Settings",
@@ -557,8 +577,8 @@ export const translations: Record<Language, Translations> = {
     customItemKannadaNameLabel: "Item Name in Kannada (ಕನ್ನಡ)",
     translating: "Translating...",
     translateToKannada: "Translate to Kannada (AI)",
-    customItemTypePlant: "🌱 Plant (0% GST)",
-    customItemTypeNonPlant: "📦 Non-Plant (Taxable)",
+    customItemTypePlant: "Plant (0% GST)",
+    customItemTypeNonPlant: "Non-Plant (Taxable)",
     customInvoiceModalTitle: "Set Custom Invoice Number",
     customInvoiceModalDesc: "Set your custom starting invoice number. Subsequent invoices will automatically continue from this number series.",
     seriesPreviewLabel: "Series preview:",
@@ -767,6 +787,16 @@ export const translations: Record<Language, Translations> = {
     viewInvoiceBtn: "ಬಿಲ್ ವೀಕ್ಷಿಸಿ",
     exportCsvBtn: "CSV ಗೆ ರಫ್ತು ಮಾಡಿ",
     walkInCustomer: "ಸ್ಥಳೀಯ ಗ್ರಾಹಕರು",
+    filterAllCategories: "ಎಲ್ಲಾ ಸರಕುಗಳು",
+    filterPlantsOnly: "ಗಿಡಗಳು / ಸಸ್ಯಗಳು",
+    filterNonPlantsOnly: "ಸಸ್ಯೇತರ ಸಾಮಗ್ರಿಗಳು",
+    plantsRevenueMetric: "ಸಸ್ಯಗಳ ಮಾರಾಟ",
+    nonPlantsRevenueMetric: "ಸಸ್ಯೇತರ ಮಾರಾಟ",
+    categorySplitTitle: "ಸರಕುಗಳ ಪ್ರಕಾರದ ಪಾಲು",
+    colCategoryType: "ಪ್ರಕಾರ",
+    categoryPlantsBadge: "ಸಸ್ಯಗಳು",
+    categoryNonPlantsBadge: "ಸಸ್ಯೇತರ",
+    categoryMixedBadge: "ಮಿಶ್ರಿತ",
 
     // Profile & Admin Panel
     profileTitleAdmin: "ಖಾತೆ ಮತ್ತು ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
@@ -835,8 +865,8 @@ export const translations: Record<Language, Translations> = {
     customItemKannadaNameLabel: "ಕನ್ನಡದಲ್ಲಿ ವಸ್ತುವಿನ ಹೆಸರು",
     translating: "ಅನುವಾದಿಸಲಾಗುತ್ತಿದೆ...",
     translateToKannada: "ಕನ್ನಡಕ್ಕೆ ಅನುವಾದಿಸಿ (AI)",
-    customItemTypePlant: "🌱 ಸಸ್ಯ (0% ಜಿಎಸ್‌ಟಿ)",
-    customItemTypeNonPlant: "📦 ಇತರ ವಸ್ತು (ತೆರಿಗೆ ಸಹಿತ)",
+    customItemTypePlant: "ಸಸ್ಯ (0% ಜಿಎಸ್‌ಟಿ)",
+    customItemTypeNonPlant: "ಇತರ ವಸ್ತು (ತೆರಿಗೆ ಸಹಿತ)",
     customInvoiceModalTitle: "ಕಸ್ಟಮ್ ಬಿಲ್ ಸಂಖ್ಯೆಯನ್ನು ಹೊಂದಿಸಿ",
     customInvoiceModalDesc: "ಆರಂಭಿಕ ಬಿಲ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ. ನಂತರದ ಬಿಲ್‌ಗಳು ಈ ಸರಣಿಯಿಂದ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಮುಂದುವರಿಯುತ್ತವೆ.",
     seriesPreviewLabel: "ಸರಣಿ ಮುನ್ನೋಟ:",

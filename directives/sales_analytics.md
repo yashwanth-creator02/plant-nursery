@@ -9,26 +9,39 @@ Provide real-time revenue analytics, invoice count summaries, payment method bre
 - Updating aggregation queries or chart visualizations.
 
 ## Inputs
-- Finalized invoice records with associated creation timestamps, grand totals, and payment methods.
+- Finalized invoice records with associated creation timestamps, grand totals, payment methods, and eager-loaded line item categories (`plants` vs `non-plants`).
 - Time range filters: `today`, `yesterday`, `week`, `month`, `year`, or custom `date`.
+- Category filter: `all`, `plants`, `non-plants`.
 - Metric toggles: `revenue` vs `count`.
 
 ## Git Safety (If Modifying Code)
-- Develop analytics metrics on a separate feature branch (`feat/analytics-<name>`).
-- Verify timezone calculations and cash breakdown formulas before merging.
+- Develop analytics metrics on a separate feature branch (`feat/<feature-name>`).
+- Verify timezone calculations, category allocation, and cash breakdown formulas before merging.
 - Explicit confirmation required before merging into `main`.
 
 ## Tools / Scripts to Use
-- Analytics endpoints: `src/app/api/analytics/route.ts` or invoice aggregation endpoints.
+- Analytics endpoints: `src/app/api/sales/analytics/route.ts`.
 - Type check: `python execution/run_typecheck.py`.
 - Health check: `python execution/verify_project_health.py`.
 
 ## Outputs
 - Clean, responsive analytics modal with interactive charts.
+- Category sales filter (All Sales, Plants with Sprout icon, Non-Plants with Package icon).
+- Dual split ratio bars: Payment Split (Online UPI vs Cash) and Category Split (Live Plants vs Non-Plants Goods).
+- Adaptive KPI stat cards reflecting category-filtered revenue.
+- Invoice breakdown table with explicit category tags (`Plants`, `Non-Plants`, `Mixed`) and effective category sales portion.
 - Verified daily sales reconciliation summaries for nursery management.
 - Complete bilingual support across all 12 preset filters, metric summaries, bar charts, donut charts, and invoice breakdown tables.
 
 ## Edge Cases & Error Handling
+- **Plants vs Non-Plants Category Separation**:
+  - Item category is determined by `invoiceItems.category` (with fallback to `stockItems.category` or `"plants"` for legacy records).
+  - GST rates: Plants are 0% exempt under Indian GST law; non-plant items carry item-specific GST (e.g. 5%, 12%, 18%).
+- **Proportional Discount Allocation for Mixed Bills**:
+  - When an invoice contains both plants and non-plant goods alongside an invoice-level discount, the discount factor is computed as `discountFactor = Math.max(0, (totalGross - discountAmt) / totalGross)`.
+  - Plant sales portion = `Math.round(plantGross * discountFactor * 100) / 100`.
+  - Non-plant sales portion = `Math.max(0, Math.round((invoice.total - plantSalesPortion) * 100) / 100)`.
+  - This ensures `plantSalesPortion + nonPlantSalesPortion === invoice.total` to the exact paisa with zero rounding drift.
 - **Financial Metric Calculations**:
   - Total Gross Revenue, Net Revenue after discounts, Average Order Value (AOV).
   - Cash vs Online payment split calculation for daily drawer reconciliation.
@@ -47,3 +60,4 @@ Provide real-time revenue analytics, invoice count summaries, payment method bre
   - Always use the nursery's local timezone (`Asia/Kolkata` / IST) when grouping hourly or daily metrics.
 - **Data Export Formats**:
   - Export sales summary and line-item details via `ExportDataModal.tsx` for accounting and spreadsheet reporting.
+
