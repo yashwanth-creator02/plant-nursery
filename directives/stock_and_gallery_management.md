@@ -9,7 +9,7 @@ Govern the management of inventory items (plants, pottery, seeds, non-plant nurs
 - Modifying stock item schema or image metadata.
 
 ## Inputs
-- Stock database records in `stock_items` and `stock_images` tables.
+- Stock database records in `stock_items`, `stock_subcategories`, and `stock_images` tables.
 - Supabase storage client (`src/lib/supabase.ts`) and `plant-photos` storage bucket.
 - Photo files (PNG, JPEG, WebP) uploaded via file picker, drag-and-drop, or live device camera.
 
@@ -19,17 +19,24 @@ Govern the management of inventory items (plants, pottery, seeds, non-plant nurs
 - Explicit confirmation required before merging to `main`.
 
 ## Tools / Scripts to Use
+- Subcategories API: `src/app/api/stock/subcategories/route.ts`.
 - Gallery verification tool: `scripts/verify-gallery.ts`.
 - Bulk inventory ingestion script: `scripts/seed-plants-from-list.ts`.
+- Database schema migration: `scripts/migrate-schema.ts`.
 - Storage diagnostics: `scripts/test-storage.ts` & `scripts/test-signature-storage.ts`.
 - Type check: `python execution/run_typecheck.py`.
 
 ## Outputs
 - Accurate inventory stock counts.
+- Dynamic, database-persisted subcategory taxonomy across inventory and billing.
 - High-performance, responsive visual stock gallery for staff and customers.
 
 ## Edge Cases & Error Handling
-- **Category Separation**: Distinct classification between `plants` and `non-plants` (pots, fertilizers, tools) with responsive, non-overflowing filter pills.
+- **Category & Subcategory Taxonomy**:
+  - Distinct top-level classification between `plants` and `non-plants` (pots, fertilizers, tools, soil).
+  - Dynamic subcategories are stored in `stock_subcategories` with a composite unique index on `(category, slug)`.
+  - In-place `+` addition directly from the stock page filter bar must slugify inputs, prevent duplicates, auto-select newly added types, and immediately reflect in the database and Add Item form.
+  - Safe deletion: A subcategory cannot be deleted if active stock items reference it (`category` and `subcategory == slug`).
 - **Photo Upload & Compression**:
   - Compress or resize large mobile camera photos before pushing to Supabase storage to optimize storage and loading times.
   - Attach bilingual descriptions (`description` and `descriptionKn`) to gallery images.

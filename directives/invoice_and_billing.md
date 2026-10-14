@@ -22,6 +22,7 @@ Manage the creation, draft editing, sequential numbering, finalization, atomic s
 
 ## Tools / Scripts to Use
 - Invoice API endpoints: `src/app/api/invoices/route.ts` and `src/app/api/invoices/[id]/route.ts`.
+- Stock item selection combobox: `src/components/SmartStockPicker.tsx`.
 - Database schema push: `npm run db:push`.
 - Type check: `python execution/run_typecheck.py`.
 
@@ -31,6 +32,14 @@ Manage the creation, draft editing, sequential numbering, finalization, atomic s
 - Pixel-perfect printed receipts for customers.
 
 ## Edge Cases & Error Handling
+- **Smart Stock Selection & Quick Entry**:
+  - The stock item picker (`SmartStockPicker.tsx`) must provide instant multi-field search (matching name, category, subcategory, unit, or price) with category tabs (`All`, `Plants`, `Non-Plants`).
+  - When an item is selected, the input displays only the clean item name, price, and stock count (omitting subcategory tags in the input to avoid truncating long plant names, while keeping tags in dropdown cards).
+  - Selecting an item must automatically shift focus to the quantity input.
+- **Stock Shortage & Single Action Button**:
+  - If a selected item is out of stock or requested quantity exceeds available stock, the normal `+ Add to bill` button must disappear completely, leaving only the prominent red `Force Add` button (`bg-red-600 text-white`).
+  - Shortage warning alerts must use high-contrast red styling (`bg-red-50 border-red-300 text-red-800`).
+  - Pressing Enter in the quantity input must automatically invoke regular addition or force addition based on stock availability.
 - **Atomic Stock Deduction**:
   - Finalizing an invoice MUST deduct stock inside a single, atomic database transaction.
   - If stock for any item is insufficient, the transaction must roll back cleanly and return a descriptive error.
