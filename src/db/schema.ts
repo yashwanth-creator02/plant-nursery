@@ -58,7 +58,7 @@ export const stockSubcategories = pgTable("stock_subcategories", {
 export const businessSettings = pgTable("business_settings", {
   id: uuid("id").defaultRandom().primaryKey(),
   version: integer("version").notNull().default(1),
-  businessName: text("business_name").notNull().default("SRI VIJAYA LAKSHMI NURSERY"),
+  businessName: text("business_name").notNull().default("SRI VIJAYALAKSHMI NURSERY"),
   subheading1: text("subheading_1").notNull().default("(Approved by Department of Horticulture)"),
   subheading2: text("subheading_2").notNull().default("(All Kinds of Plants Production and Suppliers)"),
   address: text("address").notNull().default("Harige B. H. Road, Shimoga - 577203"),

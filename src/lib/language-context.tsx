@@ -313,9 +313,9 @@ export interface Translations {
 export const translations: Record<Language, Translations> = {
   en: {
     // Brand & Nursery Header
-    brandName: "Sri Vijaya Lakshmi",
+    brandName: "Sri Vijayalakshmi",
     brandSubtitle: "Nursery & Farm",
-    brandFullName: "Sri Vijaya Lakshmi Nursery",
+    brandFullName: "Sri Vijayalakshmi Nursery",
     subheading1: "(Approved by Department of Horticulture)",
     subheading2: "(All Kinds of Plants Production and Suppliers)",
     nurseryAddress: "Harige B. H. Road, Shimoga - 577203",
@@ -344,7 +344,7 @@ export const translations: Record<Language, Translations> = {
     amountInWords: "Amount in words:",
     rsLabel: "Rs",
     digitallySigned: "Digitally Signed",
-    forNursery: "For Sri Vijaya Lakshmi Nursery",
+    forNursery: "For Sri Vijayalakshmi Nursery",
     authorizedSignatory: "Authorized Signatory",
     proprietor: "Proprietor",
     termsConditions: "Terms & Conditions",
@@ -421,7 +421,7 @@ export const translations: Record<Language, Translations> = {
     kanLabel: "ಕನ್ನಡ",
 
     // Login Page
-    loginTitle: "Sri Vijaya Lakshmi Nursery",
+    loginTitle: "Sri Vijayalakshmi Nursery",
     loginSubtitle: "Bill of Suppliers & Stock Management",
     usernameLabel: "Username",
     passwordLabel: "Password",

@@ -42,7 +42,7 @@ import { numberToKannadaWords } from "@/lib/plant-translations";
 import { translateOnTheFly } from "@/lib/translator";
 
 const DEFAULT_HEADER = {
-  businessName: "SRI VIJAYA LAKSHMI NURSERY",
+  businessName: "SRI VIJAYALAKSHMI NURSERY",
   subheading1: "(Approved by Department of Horticulture)",
   subheading2: "(All Kinds of Plants Production and Suppliers)",
   address: "Harige B. H. Road, Shimoga - 577203",
@@ -435,7 +435,7 @@ export function InvoiceEditor({
       document.title = getInvoicePdfFileName(customerName, effectiveInvoiceNumber);
     }
     return () => {
-      document.title = "Sri Vijaya Lakshmi Nursery — Invoices & Stock";
+      document.title = "Sri Vijayalakshmi Nursery — Invoices & Stock";
     };
   }, [customerName, effectiveInvoiceNumber, step, initialInvoice]);
 
@@ -1842,7 +1842,7 @@ export function InvoiceEditor({
               <div
                 id="nursery-logo-placeholder"
                 className="flex items-center justify-center shrink-0"
-                title={headerDetails.logoData ? (billLanguage === "kn" ? "ಶ್ರೀ ವಿಜಯಲಕ್ಷ್ಮಿ ನರ್ಸರಿ ಲಾಂಛನ" : "Sri Vijaya Lakshmi Nursery Logo") : "Logo Placeholder"}
+                title={headerDetails.logoData ? (billLanguage === "kn" ? "ಶ್ರೀ ವಿಜಯಲಕ್ಷ್ಮಿ ನರ್ಸರಿ ಲಾಂಛನ" : "Sri Vijayalakshmi Nursery Logo") : "Logo Placeholder"}
               >
                 {headerDetails.logoData ? (
                   headerDetails.logoData.trim().startsWith("<svg") ? (
@@ -2271,7 +2271,7 @@ export function InvoiceEditor({
                 <p className="font-bold text-xs sm:text-sm tracking-tight">
                   {billLanguage === "kn"
                     ? tLang("forNursery", "kn")
-                    : `For ${headerDetails.businessName.includes("NURSERY") ? headerDetails.businessName : "Sri VijayaLakshmi Nursery & Farm"}`}
+                    : `For ${headerDetails.businessName.includes("NURSERY") ? headerDetails.businessName : "Sri Vijayalakshmi Nursery & Farm"}`}
                 </p>
 
               <div className="min-h-[56px] sm:min-h-[64px] flex items-center justify-end py-1">

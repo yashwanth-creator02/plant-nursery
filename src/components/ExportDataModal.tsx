@@ -461,7 +461,7 @@ export function ExportDataModal({ open, onClose }: ExportDataModalProps) {
                 <span>{language === "kn" ? "ಗಮ್ಯಸ್ಥಾನ ಫೋಲ್ಡರ್ ಹೆಸರು" : "Destination Folder Name"}</span>
               </div>
               <div className="mt-1 font-mono text-sm font-bold text-ink">
-                /{data?.websiteFolderName || "Sri_Vijaya_Lakshmi_Nursery"}/
+                /{data?.websiteFolderName || "Sri_Vijayalakshmi_Nursery"}/
               </div>
               <p className="mt-1 text-[11px] text-ink-soft leading-relaxed">
                 {language === "kn"

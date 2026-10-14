@@ -23,8 +23,8 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "Sri Vijaya Lakshmi Nursery — Invoices & Stock",
-  description: "Sri Vijaya Lakshmi Nursery, Harige B. H. Road, Shimoga — Invoicing & Stock Management",
+  title: "Sri Vijayalakshmi Nursery — Invoices & Stock",
+  description: "Sri Vijayalakshmi Nursery, Harige B. H. Road, Shimoga — Invoicing & Stock Management",
   icons: {
     icon: "/icon.svg",
   },

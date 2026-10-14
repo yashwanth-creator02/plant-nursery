@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
             isSigned: effectiveIsSigned,
           })
         : JSON.stringify({
-            businessName: "SRI VIJAYA LAKSHMI NURSERY",
+            businessName: "SRI VIJAYALAKSHMI NURSERY",
             subheading1: "(Approved by Department of Horticulture)",
             subheading2: "(All Kinds of Plants Production and Suppliers)",
             address: "Harige B. H. Road, Shimoga - 577203",
