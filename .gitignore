@@ -45,3 +45,4 @@ next-env.d.ts
 
 # brand-leo-utils: managed skills (source of truth lives in the brand-leo-utils repo)
 .agent/skills/
+.tmp/

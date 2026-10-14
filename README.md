@@ -162,32 +162,58 @@ Open [http://localhost:3000](http://localhost:3000) in your browser and sign in.
 
 ---
 
-## Repository Structure
+## Repository Structure & 3-Layer Architecture
+
+The project operates under a deterministic 3-layer architecture:
+- **Layer 1: Directives (`directives/`)**: Living Markdown SOPs defining business goals, procedures, and edge cases.
+- **Layer 2: Orchestration (`AGENTS.md`)**: Operational guidelines, anti-vibecoding standards, and decision-making logic.
+- **Layer 3: Execution (`execution/` & `scripts/`)**: Deterministic tools, migration scripts, and validation runners.
 
 ```
 plant-nursery/
-├── scripts/
-│   └── seed-admin.ts          # CLI script to bootstrap the primary admin account
+├── directives/                # Layer 1: Standard Operating Procedures (SOPs)
+│   ├── git_workflow.md        # Branch isolation, merge gates, and testing rules
+│   ├── bilingual_localization.md # Kannada & English guidelines, overflow prevention
+│   ├── invoice_and_billing.md # Invoicing lifecycle, atomic deductions, printable layout
+│   ├── stock_and_gallery_management.md # Stock inventory, Supabase photos, gallery
+│   └── sales_analytics.md     # Sales reporting, timeline visualizations, drawer audits
+├── execution/                 # Layer 3: Deterministic execution tools
+│   ├── run_typecheck.py       # Type-check runner (tsc --noEmit)
+│   └── verify_project_health.py # Project architecture and gitignore health checker
+├── .tmp/                      # Intermediate scratch files (gitignored)
+├── .agents/skills/            # Central disposable skills (brand-leo-utils synced, gitignored)
+├── scripts/                   # CLI maintenance and database migration scripts
+│   ├── seed-admin.ts          # CLI script to bootstrap the primary admin account
+│   ├── migrate-categories-kn.ts # Category migration script
+│   ├── migrate-schema.ts      # Database schema migration runner
+│   └── translate-all-descriptions.ts # Description translation utility
 ├── src/
 │   ├── app/
-│   │   ├── api/               # REST API endpoints (auth, invoices, stock, users)
+│   │   ├── api/               # REST API endpoints (auth, invoices, stock, users, gallery)
 │   │   ├── invoice/           # Live interactive invoice editor page
 │   │   ├── invoices/          # Invoices history list & detail viewer ([id])
 │   │   ├── login/             # Login gate view
 │   │   ├── stock/             # Inventory and stock management page
-│   │   ├── globals.css        # Global CSS & print stylesheets
+│   │   ├── gallery/           # Stock gallery and photo explorer
+│   │   ├── globals.css        # Global CSS, print stylesheets, and custom utilities
 │   │   └── layout.tsx         # Root layout with session context & shell wrapper
 │   ├── components/
 │   │   ├── AppShell.tsx       # Main layout wrapper
 │   │   ├── InvoiceEditor.tsx  # Dynamic invoice creation/edit form component
 │   │   ├── ProfilePanel.tsx   # User profile drawer & admin user management modal
+│   │   ├── SalesAnalyticsModal.tsx # Sales metrics and data visualization modal
+│   │   ├── StockItemDetailModal.tsx # Stock item inspection modal
+│   │   ├── StockPhotoUploadModal.tsx # Photo upload and camera capture modal
 │   │   └── Sidebar.tsx        # Navigation sidebar
 │   ├── db/
 │   │   ├── client.ts          # Postgres client & Drizzle ORM instance setup
 │   │   └── schema.ts          # Drizzle database tables, enums, & relations definitions
 │   └── lib/
 │       ├── auth.ts            # Session cookies management & password hashing
+│       ├── language-context.tsx # Kannada & English bilingual context
+│       ├── plant-translations.ts # Botanical bilingual translation maps
 │       └── types.ts           # Shared TypeScript interfaces & definitions
+├── AGENTS.md                  # Layer 2: Agent operating rules and principles
 ├── drizzle.config.ts          # Drizzle Kit configuration
 ├── next.config.ts             # Next.js configuration
 └── package.json               # Dependencies and scripts
