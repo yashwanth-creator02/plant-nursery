@@ -2487,6 +2487,9 @@ export function InvoiceEditor({
               <p className={`text-[11px] font-semibold leading-tight ${billLanguage === "en" ? "invoice-script" : "font-serif"}`}>
                 {tLang("invoiceFooterNote", billLanguage)}
               </p>
+              <p className="mt-1 text-[8px] font-semibold uppercase tracking-[0.08em] opacity-80">
+                {tLang("saveNatureNote", billLanguage)}
+              </p>
               <p className="mt-0.5 text-[7px] font-normal opacity-50 print:hidden">
                 Version {invoiceVersion}
               </p>

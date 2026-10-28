@@ -63,7 +63,7 @@ Manage the creation, draft editing, sequential numbering, finalization, atomic s
   - Use `--invoice-ink`, `--invoice-line`, `--invoice-fill`, and `--invoice-total` CSS variables defined on `#invoice-print`. Keep the dark blue `#1b365d` ink, light gray header fills, and a dark filled `TOTAL AMOUNT` row with white text.
   - The summary box contains Subtotal, Discount (-), per-tier CGST/SGST rows when applicable, and `TOTAL AMOUNT`. The amount-in-words box uses `numberToIndianWords` for English and `numberToKannadaWords` for Kannada.
   - The notes box renders `term1` through `term5` with a leaf icon; the signature block shows the frozen digital signature or fallback, a horizontal rule, `Authorised Signatory`, the invoice snapshot's proprietor name when present, and `Proprietor`.
-  - The footer uses the script font for English only (Kannada uses serif), with leaf sprigs and a screen-only version watermark. Add `break-inside-avoid` to the header, summary, notes/signature, and footer blocks so they do not split across pages.
+  - The footer uses the script font for English only (Kannada uses serif), with leaf sprigs, the thank-you note, the `saveNatureNote` line ("SAVE NATURE AND NATURE WILL SAVE YOUR LIFE AND FUTURE."), and a screen-only version watermark. Add `break-inside-avoid` to the header, summary, notes/signature, and footer blocks so they do not split across pages.
   - All currency/amount cells (Subtotal, Discount, CGST, SGST, Total) must have `whitespace-nowrap` to strictly prevent line breaks on decimal points (`.`) or commas.
 - **Item-Level Statutory Taxation (Non-Plants vs Plants)**:
   - Live plants are 100% tax exempt (0% GST).

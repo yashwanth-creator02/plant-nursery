@@ -21,7 +21,7 @@ A modern, full-stack internal management application for plant nurseries and ret
 
 - **Interactive Invoice Builder & Smart Combobox**
   - Paper-style live invoice interface with single-action controls.
-  - Classic A4 bill-book print sheet with a logo-left header, centered invocation line, ruled wordmark, category strip, GSTIN/mobiles/email row, payment-mode checkboxes, six-column table with a Unit column and 10-row minimum, amount in words, GST summary, notes, signature block with the finalizing user's proprietor name, and script footer.
+  - Classic A4 bill-book print sheet with a logo-left header, centered invocation line, ruled wordmark, category strip, GSTIN/mobiles/email row, payment-mode checkboxes, six-column table with a Unit column and 10-row minimum, amount in words, GST summary, notes, signature block with the finalizing user's proprietor name, and a script footer with the thank-you and save-nature notes.
   - Step 1 records Cash, UPI, Card, or Credit; step 2 uses one Finalize Bill action. Legacy `online` invoices remain readable and map to UPI.
   - **Smart Stock Picker**: Instant multi-field searchable combobox filtering by plant/item name, category, subcategory, unit, or price.
   - **Single Action Shortage Handling**: When an item is out of stock, the regular Add button dynamically swaps to a prominent Force Add button with high-contrast red alerts.

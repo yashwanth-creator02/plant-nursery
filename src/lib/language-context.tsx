@@ -80,6 +80,7 @@ export interface Translations {
   term4: string;
   term5: string;
   invoiceFooterNote: string;
+  saveNatureNote: string;
   thankYouNote: string;
   cgst: string;
   sgst: string;
@@ -389,6 +390,7 @@ export const translations: Record<Language, Translations> = {
     term4: "4. Thank you for shopping with us!",
     term5: "5. For any queries feel free to contact us.",
     invoiceFooterNote: "Thank you for shopping with Sri Vijayalakshmi Nursery",
+    saveNatureNote: "SAVE NATURE AND NATURE WILL SAVE YOUR LIFE AND FUTURE.",
     thankYouNote: "Thank you for shopping with us! Visit again",
     cgst: "CGST",
     sgst: "SGST",
@@ -697,6 +699,7 @@ export const translations: Record<Language, Translations> = {
     term4: "೪. ನಮ್ಮಲ್ಲಿ ಖರೀದಿಸಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು!",
     term5: "೫. ಯಾವುದೇ ಪ್ರಶ್ನೆಗಳಿದ್ದರೆ ದಯವಿಟ್ಟು ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ.",
     invoiceFooterNote: "ಶ್ರೀ ವಿಜಯಲಕ್ಷ್ಮಿ ನರ್ಸರಿಯಲ್ಲಿ ಖರೀದಿಸಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು",
+    saveNatureNote: "ಪ್ರಕೃತಿಯನ್ನು ಉಳಿಸಿ, ಪ್ರಕೃತಿ ನಿಮ್ಮ ಜೀವನ ಮತ್ತು ಭವಿಷ್ಯವನ್ನು ಉಳಿಸುತ್ತದೆ.",
     thankYouNote: "ನಮ್ಮಲ್ಲಿ ಖರೀದಿಸಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು! ಮತ್ತೆ ಭೇಟಿ ನೀಡಿ",
     cgst: "ಸಿ.ಜಿ.ಎಸ್.ಟಿ (CGST)",
     sgst: "ಎಸ್.ಜಿ.ಎಸ್.ಟಿ (SGST)",
