@@ -4,7 +4,7 @@
 Manage business branding metadata, custom nursery logo, payment QR codes, contact addresses, and sequential invoice numbering overrides for printable invoice receipts.
 
 ## When this fires
-- Updating business name, subheadings, address, phone numbers, or GSTIN in `AdminInvoiceSettingsModal.tsx`.
+- Updating business name, subheadings, address, phone numbers, GSTIN, email, or invocation in `AdminInvoiceSettingsModal.tsx`.
 - Uploading or updating the custom nursery logo (vector SVG or raster image) or payment QR code.
 - Overriding or resetting the sequential invoice counter in `CustomInvoiceNumberModal.tsx`.
 - Viewing audit history of past business profile revisions.
@@ -12,6 +12,7 @@ Manage business branding metadata, custom nursery logo, payment QR codes, contac
 ## Inputs
 - `BusinessSettings` object (`src/lib/types.ts`):
   - `businessName`, `subheading1`, `subheading2`, `address`, `mobiles`, `gstin`.
+  - `email` (default `vijayalakshminurseryfarm@gmail.com`) and `invocation` (default `|| Shree gurugundanjaneya prasanna ||`).
   - `logoData` (base64 Data URI or SVG string) and `logoTitle` metadata.
   - `paymentQrData` (base64 Data URI) for UPI payment scans on receipts.
   - `version` counter tracking historical snapshot changes.
@@ -29,7 +30,8 @@ Manage business branding metadata, custom nursery logo, payment QR codes, contac
 - CLI migration tools in `scripts/`.
 
 ## Outputs
-- Updated business metadata, custom logo, and payment QR in the database settings table.
+- Updated business metadata, custom logo, email, invocation, and payment QR in the database settings table.
+- Proprietor display name stored on the signed-in user (`users.proprietor_name`) and editable from the Profile tab via `/api/users/profile`. Do not hardcode a proprietor name in the invoice component.
 - Broadcast custom DOM event `nurseryLogoUpdated` so open invoice builder windows refresh their header previews instantly.
 - Immutable historical version records and snapshots for legal tax compliance.
 - Predictable, formatted invoice IDs (e.g. `INV-00124`) reflecting current sequence configuration.
@@ -41,7 +43,7 @@ Manage business branding metadata, custom nursery logo, payment QR codes, contac
   - Invoices must always render cleanly in both dark/light screen modes and high-contrast `@media print`.
 - **Strict Historical Invoice Immutability**:
   - Updating the business profile, address, contact numbers, tax rates, logo, or signatures must NEVER retroactively alter finalized or past printed invoices.
-  - Finalized invoices freeze their exact visual header into `headerSnapshot` (business name, address, mobiles, GSTIN, `logoData`, digital signature).
+  - Finalized invoices freeze their exact visual header into `headerSnapshot` (business name, subheadings, address, mobiles, GSTIN, email, invocation, `logoData`, the finalizing user's proprietor name, digital signature).
   - Profile and logo modifications apply strictly to future new bills and active drafts.
 - **Sequence Clashing**:
   - If a user enters a custom invoice number that already exists, return a descriptive conflict error and suggest the next available increment via `incrementInvoiceNumber()`.
@@ -49,3 +51,7 @@ Manage business branding metadata, custom nursery logo, payment QR codes, contac
   - Do not add redundant "Admin Only" badges or pill labels inside panels that are already restricted to administrators.
   - Avoid duplicate buttons or controls for the same operation.
   - Zero emojis, zero neon/pulsing dots, and zero unnecessary decorative badges.
+- **Proprietor Name**:
+  - The proprietor name is a user-profile field, not a business-settings field. Each user can set their own display name in the Profile tab.
+  - Finalized invoices snapshot the finalizing user's proprietor name so later profile edits do not alter historical bills.
+  - Leave the field blank when no name is configured; the print sheet must render only the existing `Proprietor` label.

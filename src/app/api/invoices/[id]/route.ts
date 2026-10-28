@@ -23,7 +23,7 @@ const updateSchema = z.object({
   notes: z.string().trim().optional(),
   items: z.array(lineItemSchema).optional(),
   action: z.enum(["save", "finalize"]).default("save"),
-  paymentMode: z.enum(["cash", "online"]).optional(),
+  paymentMode: z.enum(["cash", "online", "upi", "card", "credit"]).optional(),
   force: z.boolean().optional().default(false),
   discount: z.coerce.number().min(0).optional(),
   total: z.coerce.number().min(0).optional(),
@@ -189,13 +189,17 @@ export async function PATCH(
           const activeLogo = activeSettings?.logoData || null;
 
           let effectiveSig: string | null = signature !== undefined ? signature : null;
-          if (signature === undefined && user.id) {
+          let effectiveProprietor: string | null = null;
+          if (user.id) {
             const userRow = await tx
-              .select({ signature: users.signature })
+              .select({ signature: users.signature, proprietorName: users.proprietorName })
               .from(users)
               .where(eq(users.id, user.id))
               .limit(1);
-            effectiveSig = userRow.length > 0 ? userRow[0].signature : null;
+            if (signature === undefined) {
+              effectiveSig = userRow.length > 0 ? userRow[0].signature : null;
+            }
+            effectiveProprietor = userRow.length > 0 ? userRow[0].proprietorName : null;
           }
 
           const effectiveIsSigned = isSigned !== undefined ? isSigned : true;
@@ -208,6 +212,9 @@ export async function PATCH(
               address: activeSettings.address,
               mobiles: activeSettings.mobiles,
               gstin: activeSettings.gstin,
+              email: activeSettings.email || "vijayalakshminurseryfarm@gmail.com",
+              invocation: activeSettings.invocation || "|| Shree gurugundanjaneya prasanna ||",
+              proprietor: effectiveProprietor,
               cgstRate: activeSettings.cgstRate || "2.50",
               sgstRate: activeSettings.sgstRate || "2.50",
               discount: parsed.data.discount || 0,
@@ -243,6 +250,9 @@ export async function PATCH(
             customerName: customerName ?? existing.customerName,
             customerDetails: customerDetails ?? existing.customerDetails,
             notes: notes ?? existing.notes,
+            paymentMode: paymentMode ?? existing.paymentMode ?? "cash",
+            status: action === "finalize" ? "final" : existing.status,
+            finalizedAt: action === "finalize" ? new Date() : existing.finalizedAt,
             updatedAt: new Date(),
           })
           .where(eq(invoices.id, id));

@@ -56,6 +56,8 @@ export async function GET() {
       address: "Harige B. H. Road, Shimoga - 577203, Karnataka",
       mobiles: "7353025302, 9448140483, 9606602194",
       gstin: "29ADXPV1295N2Z6",
+      email: "vijayalakshminurseryfarm@gmail.com",
+      invocation: "|| Shree gurugundanjaneya prasanna ||",
       qrCodeData: null,
       updatedAt: new Date(),
     };
@@ -96,6 +98,7 @@ export async function GET() {
         username: users.username,
         role: users.role,
         signature: users.signature,
+        proprietorName: users.proprietorName,
         createdAt: users.createdAt,
       })
       .from(users)
@@ -328,6 +331,8 @@ Active Version: Version ${activeSettings.version}
 GSTIN: ${activeSettings.gstin || "N/A"}
 Contact: ${activeSettings.mobiles || "N/A"}
 Address: ${activeSettings.address || "N/A"}
+Email: ${activeSettings.email || "N/A"}
+Invocation: ${activeSettings.invocation || "N/A"}
 
 SUMMARY OF EXPORTED CONTENTS:
 -----------------------------------------------------

@@ -65,6 +65,8 @@ export type BusinessSettings = {
   address: string;
   mobiles: string;
   gstin: string;
+  email: string;
+  invocation: string;
   cgstRate?: string | number;
   sgstRate?: string | number;
   qrCodeData?: string | null;
@@ -82,7 +84,7 @@ export type InvoiceRecord = {
   version: number;
   headerSnapshot?: string | null;
   total: string;
-  paymentMode?: "cash" | "online";
+  paymentMode?: "cash" | "online" | "upi" | "card" | "credit";
   createdBy: string;
   createdByUser?: { username: string };
   finalizedAt: string | null;

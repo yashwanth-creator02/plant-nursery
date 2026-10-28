@@ -12,7 +12,6 @@ import {
   Trash2,
   X,
   AlertTriangle,
-  Banknote,
   QrCode,
   Check,
   Loader2,
@@ -45,6 +44,9 @@ const DEFAULT_HEADER = {
   address: "Harige B. H. Road, Shimoga - 577203, Karnataka",
   mobiles: "7353025302, 9448140483, 9606602194",
   gstin: "29ADXPV1295N2Z6",
+  email: "vijayalakshminurseryfarm@gmail.com",
+  invocation: "|| Shree gurugundanjaneya prasanna ||",
+  proprietor: null as string | null,
   discount: 0,
   logoData: null as string | null,
 };
@@ -105,6 +107,16 @@ function joinCustomerDetails(address: string, phone: string) {
   if (!cleanPhone) return cleanAddress;
   if (!cleanAddress) return cleanPhone;
   return `${cleanAddress}, ${cleanPhone}`;
+}
+
+type PaymentMode = "cash" | "upi" | "card" | "credit";
+
+function normalizePaymentMode(mode?: string | null): PaymentMode {
+  const value = (mode || "").toLowerCase();
+  if (value === "credit") return "credit";
+  if (value === "card") return "card";
+  if (value === "upi" || value === "online") return "upi";
+  return "cash";
 }
 
 function InvoiceSprig({ className = "" }: { className?: string }) {
@@ -228,7 +240,9 @@ export function InvoiceEditor({
   const [customerDetails, setCustomerDetails] = useState(initialCustomer.address);
   const [customerPhone, setCustomerPhone] = useState(initialCustomer.phone);
   const [notes, setNotes] = useState(initialInvoice?.notes ?? "");
-  const [paymentMode, setPaymentMode] = useState<"CASH" | "CREDIT">("CASH");
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>(
+    normalizePaymentMode(initialInvoice?.paymentMode),
+  );
   // Invoice version & header snapshot
   let parsedInitialHeader: typeof DEFAULT_HEADER & {
     signature?: string | null;
@@ -236,10 +250,16 @@ export function InvoiceEditor({
   } = DEFAULT_HEADER;
   if (initialInvoice?.headerSnapshot) {
     try {
+      const snapshot = JSON.parse(initialInvoice.headerSnapshot) as Record<string, unknown>;
       parsedInitialHeader = {
         ...DEFAULT_HEADER,
-        ...JSON.parse(initialInvoice.headerSnapshot),
-      };
+        ...snapshot,
+      } as typeof parsedInitialHeader;
+      if (isFinal) {
+        if (!("email" in snapshot)) parsedInitialHeader.email = "";
+        if (!("invocation" in snapshot)) parsedInitialHeader.invocation = "";
+        if (!("proprietor" in snapshot)) parsedInitialHeader.proprietor = null;
+      }
     } catch {}
   }
 
@@ -248,9 +268,6 @@ export function InvoiceEditor({
   );
   const [headerDetails, setHeaderDetails] = useState(parsedInitialHeader);
 
-  const [paymentTag, setPaymentTag] = useState<"cash" | "online">(
-    initialInvoice?.paymentMode ?? "cash",
-  );
   const [isSigned, setIsSigned] = useState(
     isFinal
       ? (parsedInitialHeader.isSigned ?? true)
@@ -402,8 +419,7 @@ export function InvoiceEditor({
               setCustomerPhone(restoredCustomer.phone);
             }
             if (parsed.notes !== undefined) setNotes(parsed.notes);
-            if (parsed.paymentMode) setPaymentMode(parsed.paymentMode);
-            if (parsed.paymentTag) setPaymentTag(parsed.paymentTag);
+            setPaymentMode(normalizePaymentMode(parsed.paymentMode ?? parsed.paymentTag));
             if (parsed.isSigned !== undefined) setIsSigned(parsed.isSigned);
             if (Array.isArray(parsed.items) && parsed.items.length > 0) {
               setItems(parsed.items);
@@ -458,7 +474,6 @@ export function InvoiceEditor({
             customerPhone,
             notes,
             paymentMode,
-            paymentTag,
             isSigned,
             items,
             customName,
@@ -492,7 +507,6 @@ export function InvoiceEditor({
     customCategory,
     customGstRate,
     customMode,
-    paymentTag,
   ]);
 
   useEffect(() => {
@@ -555,12 +569,42 @@ export function InvoiceEditor({
     };
   }, [isFinal, initialInvoice]);
 
+  useEffect(() => {
+    fetch("/api/settings/logo", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.logoData) {
+          setHeaderDetails((prev) =>
+            prev.logoData ? prev : { ...prev, logoData: d.logoData },
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const effectiveInvoiceNumber = invoiceNumber || suggestedInvoiceNumber || "Invoice";
 
-  const handlePrint = (overrideNum?: string | null) => {
+  const handlePrint = async (overrideNum?: string | null) => {
     const num = overrideNum || invoiceNumber || suggestedInvoiceNumber;
     const pdfName = getInvoicePdfFileName(customerName, num);
     document.title = pdfName;
+
+    const printRoot = document.getElementById("invoice-print");
+    const images = Array.from(printRoot?.querySelectorAll("img") ?? []);
+    await Promise.all(
+      images.map(async (image) => {
+        if (!image.complete) {
+          await new Promise<void>((resolve) => {
+            image.addEventListener("load", () => resolve(), { once: true });
+            image.addEventListener("error", () => resolve(), { once: true });
+          });
+        }
+        try {
+          await image.decode();
+        } catch {}
+      }),
+    );
+
     window.print();
   };
 
@@ -694,9 +738,10 @@ export function InvoiceEditor({
     headerDetails.businessName || tLang("brandFullName", billLanguage),
   );
   const tableRowCount = Math.max(10, items.length);
-  const isCreditPayment = paymentMode === "CREDIT";
-  const isUpiPayment = !isCreditPayment && paymentTag === "online";
-  const isCashPayment = !isCreditPayment && paymentTag === "cash";
+  const isCreditPayment = paymentMode === "credit";
+  const isUpiPayment = paymentMode === "upi";
+  const isCardPayment = paymentMode === "card";
+  const isCashPayment = paymentMode === "cash";
   const amountInWords =
     finalTotal > 0
       ? billLanguage === "kn"
@@ -883,10 +928,10 @@ export function InvoiceEditor({
     }
   }
 
-  async function persist(action: "draft" | "final", selectedPaymentMode?: "cash" | "online") {
+  async function persist(action: "draft" | "final", selectedPaymentMode?: PaymentMode) {
     setSaving(action);
     setError("");
-    const modeToSave = selectedPaymentMode ?? paymentTag ?? "cash";
+    const modeToSave = selectedPaymentMode ?? paymentMode;
     try {
       const hasShortage = items.some((i) => {
         if (!i.stockItemId) return false;
@@ -942,12 +987,7 @@ export function InvoiceEditor({
       setInvoiceId(saved.id);
       setInvoiceNumber(saved.invoiceNumber);
       setStatus(saved.status);
-      if (saved.paymentMode) {
-        setPaymentTag(saved.paymentMode);
-      } else if (selectedPaymentMode) {
-        setPaymentTag(selectedPaymentMode);
-      }
-      if (selectedPaymentMode) setPaymentMode("CASH");
+      setPaymentMode(normalizePaymentMode(saved.paymentMode ?? modeToSave));
       if (saved.version) setInvoiceVersion(saved.version);
       if (saved.headerSnapshot) {
         try {
@@ -1090,32 +1130,29 @@ export function InvoiceEditor({
                 </div>
               </label>
 
-              {/* Payment Type CASH / CREDIT */}
+              {/* Payment Type: Cash / UPI / Card / Credit */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs font-medium text-ink">{t("paymentMode")}</span>
-                <div className="flex items-center rounded-md border border-line-strong bg-paper-flat p-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMode("CASH")}
-                    className={`flex-1 py-1.5 text-xs font-bold rounded cursor-pointer transition-colors ${
-                      paymentMode === "CASH"
-                        ? "bg-[#1b365d] text-white shadow-xs"
-                        : "text-ink-soft hover:text-ink"
-                    }`}
-                  >
-                    {t("cash")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMode("CREDIT")}
-                    className={`flex-1 py-1.5 text-xs font-bold rounded cursor-pointer transition-colors ${
-                      paymentMode === "CREDIT"
-                        ? "bg-[#1b365d] text-white shadow-xs"
-                        : "text-ink-soft hover:text-ink"
-                    }`}
-                  >
-                    {t("credit")}
-                  </button>
+                <div className="grid grid-cols-4 items-center rounded-md border border-line-strong bg-paper-flat p-0.5">
+                  {([
+                    ["cash", t("cash")],
+                    ["upi", t("upi")],
+                    ["card", t("card")],
+                    ["credit", t("credit")],
+                  ] as const).map(([mode, label]) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setPaymentMode(mode)}
+                      className={`rounded px-1 py-1.5 text-[11px] font-bold transition-colors cursor-pointer ${
+                        paymentMode === mode
+                          ? "bg-[#1b365d] text-white shadow-xs"
+                          : "text-ink-soft hover:text-ink"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -1977,7 +2014,13 @@ export function InvoiceEditor({
             {/* PRINT SHEET: CLASSIC BILL-BOOK LAYOUT                         */}
             {/* ============================================================ */}
 
-            {/* Brand Header: logo left, centered wordmark, script tagline right */}
+            {headerDetails.invocation ? (
+              <p className="mb-1.5 text-center text-[10px] font-bold tracking-[0.12em] text-[var(--invoice-ink)]">
+                {headerDetails.invocation}
+              </p>
+            ) : null}
+
+            {/* Brand Header: logo left, centered wordmark */}
             <div className="relative flex break-inside-avoid items-start gap-3">
               <div className="flex w-[82px] shrink-0 items-start justify-start pt-1">
                 <div
@@ -1995,6 +2038,8 @@ export function InvoiceEditor({
                       <img
                         src={headerDetails.logoData}
                         alt="Nursery Logo"
+                        loading="eager"
+                        decoding="sync"
                         className="h-full w-full object-contain"
                       />
                     )
@@ -2028,16 +2073,7 @@ export function InvoiceEditor({
                 </p>
               </div>
 
-              <div className="flex w-[82px] shrink-0 flex-col items-center pt-2 text-center">
-                <div
-                  className={`text-[11px] font-semibold leading-[1.15] text-[var(--invoice-ink)] ${
-                    billLanguage === "en" ? "invoice-script" : "font-serif"
-                  }`}
-                >
-                  {tLang("tagline", billLanguage)}
-                </div>
-                <InvoiceSprig className="mt-1 h-5 w-14 text-[var(--invoice-ink)]/60" />
-              </div>
+              <div className="w-[82px] shrink-0" aria-hidden="true" />
             </div>
 
             {/* Category strip */}
@@ -2065,6 +2101,12 @@ export function InvoiceEditor({
               <span className="min-w-0 truncate">{tLang("gstinLabel", billLanguage)} {headerDetails.gstin}</span>
               <span className="min-w-0 truncate text-right">{tLang("mobilesLabel", billLanguage)} {headerDetails.mobiles}</span>
             </div>
+
+            {headerDetails.email ? (
+              <p className="mt-1 text-center text-[8.5px] font-semibold tracking-tight text-[var(--invoice-ink)]">
+                {tLang("emailLabel", billLanguage)}: {headerDetails.email}
+              </p>
+            ) : null}
 
             {/* Document title */}
             <div className="mt-2 flex justify-center">
@@ -2117,7 +2159,7 @@ export function InvoiceEditor({
                     <span className="capitalize">{tLang("upi", billLanguage)}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <InvoiceCheck checked={false} />
+                    <InvoiceCheck checked={isCardPayment} />
                     <span>{tLang("card", billLanguage)}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -2367,7 +2409,7 @@ export function InvoiceEditor({
                   <span className="text-[9px] font-bold uppercase tracking-wide">{tLang("invoiceNotes", billLanguage)}</span>
                 </div>
                 <ul className="space-y-0.5 px-2.5 py-1.5 text-[8.5px] leading-snug">
-                  {[tLang("term1", billLanguage), tLang("term2", billLanguage), tLang("term3", billLanguage), tLang("term4", billLanguage)].map((term, index) => (
+                  {[tLang("term1", billLanguage), tLang("term2", billLanguage), tLang("term3", billLanguage), tLang("term4", billLanguage), tLang("term5", billLanguage)].map((term, index) => (
                     <li key={`term-${index}`} className="flex gap-1">
                       <span className="shrink-0">•</span>
                       <span>{term.replace(/^\d+\.\s*/, "")}</span>
@@ -2430,6 +2472,9 @@ export function InvoiceEditor({
 
                 <div className="mt-1 border-t border-[var(--invoice-line)] pt-1">
                   <p className="text-[9px] font-bold uppercase tracking-wide">{tLang("authorizedSignatory", billLanguage)}</p>
+                  {headerDetails.proprietor ? (
+                    <p className="text-[8.5px] font-semibold">{headerDetails.proprietor}</p>
+                  ) : null}
                   <p className="text-[8.5px] font-medium">{tLang("proprietor", billLanguage)}</p>
                 </div>
               </div>
@@ -2511,27 +2556,29 @@ export function InvoiceEditor({
             <div className="flex items-center gap-2">
               {status !== "final" ? (
                 <>
-                  <button
-                    type="button"
-                    onClick={() => persist("final", "cash")}
-                    disabled={saving !== null}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md border border-pine bg-surface px-4 py-2.5 text-xs sm:text-sm font-semibold text-pine-deep shadow-xs transition-colors hover:bg-pine-tint/40 disabled:opacity-50 cursor-pointer whitespace-nowrap"
-                  >
-                    <Banknote size={16} />
-                    {saving === "final" && paymentTag === "cash" ? t("finalizing") : t("payWithCash")}
-                  </button>
+                  {paymentMode === "upi" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        loadQrCode();
+                        setQrModalOpen(true);
+                      }}
+                      disabled={saving !== null}
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md border border-line-strong px-3.5 py-2.5 text-xs sm:text-sm font-medium text-ink transition-colors hover:bg-line/50 disabled:opacity-50 cursor-pointer whitespace-nowrap"
+                    >
+                      <QrCode size={16} />
+                      {t("scanAndPay")}
+                    </button>
+                  )}
 
                   <button
                     type="button"
-                    onClick={() => {
-                      loadQrCode();
-                      setQrModalOpen(true);
-                    }}
+                    onClick={() => persist("final")}
                     disabled={saving !== null}
                     className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-md bg-pine px-4 py-2.5 text-xs sm:text-sm font-semibold text-surface shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer whitespace-nowrap"
                   >
-                    <QrCode size={16} />
-                    {saving === "final" && paymentTag === "online" ? t("finalizing") : t("payOnline")}
+                    <Check size={16} />
+                    {saving === "final" ? t("finalizing") : t("finalizeBill")}
                   </button>
                 </>
               ) : (
@@ -2627,15 +2674,11 @@ export function InvoiceEditor({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setQrModalOpen(false);
-                  persist("final", "online");
-                }}
-                disabled={saving !== null}
-                className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-2 text-xs font-semibold text-surface shadow-sm hover:opacity-90 cursor-pointer disabled:opacity-50"
+                onClick={() => setQrModalOpen(false)}
+                className="flex items-center gap-1.5 rounded-md bg-pine px-4 py-2 text-xs font-semibold text-surface shadow-sm hover:opacity-90 cursor-pointer"
               >
                 <Check size={14} />
-                Done (Received &amp; Print)
+                {t("close")}
               </button>
             </div>
           </div>

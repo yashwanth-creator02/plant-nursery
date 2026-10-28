@@ -5,12 +5,12 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { FileText, Search, X, Banknote, QrCode } from "lucide-react";
+import { FileText, Search, X, Banknote, QrCode, Receipt } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useLanguage } from "@/lib/language-context";
 import { formatMoney, InvoiceRecord } from "@/lib/types";
 
-type Filter = "all" | "draft" | "final" | "cash" | "online";
+type Filter = "all" | "draft" | "final" | "cash" | "online" | "credit";
 
 function InvoicesContent() {
   const { user } = useAuth();
@@ -50,7 +50,13 @@ function InvoicesContent() {
       if (filter === "draft" && inv.status !== "draft") return false;
       if (filter === "final" && inv.status !== "final") return false;
       if (filter === "cash" && inv.paymentMode !== "cash") return false;
-      if (filter === "online" && inv.paymentMode !== "online") return false;
+      if (
+        filter === "online" &&
+        !["online", "upi", "card"].includes(inv.paymentMode || "")
+      ) {
+        return false;
+      }
+      if (filter === "credit" && inv.paymentMode !== "credit") return false;
       if (versionFilter !== "all" && String(inv.version || 1) !== versionFilter) {
         return false;
       }
@@ -183,6 +189,18 @@ function InvoicesContent() {
             >
               <QrCode size={13} />
               <span>{language === "kn" ? "ಆನ್‌ಲೈನ್" : "Online"}</span>
+            </button>
+            <button
+              onClick={() => setFilter("credit")}
+              className={`flex items-center gap-1 rounded px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer ${
+                filter === "credit"
+                  ? "bg-pine text-surface font-semibold shadow-xs"
+                  : "text-ink-soft hover:bg-line/50"
+              }`}
+              title={language === "kn" ? "ಉದ್ದರಿ ಪಾವತಿಯ ಪ್ರಕಾರ ಫಿಲ್ಟರ್ ಮಾಡಿ" : "Filter by Credit payment"}
+            >
+              <Receipt size={13} />
+              <span>{language === "kn" ? "ಉದ್ದರಿ" : "Credit"}</span>
             </button>
 
             {availableVersions.length > 1 && (
@@ -330,14 +348,32 @@ function InvoicesContent() {
                           : inv.status}
                       </span>
                       {inv.paymentMode && (
-                        <span className="rounded bg-blue-50 border border-blue-200/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#1b365d]">
+                        <span
+                          className={`rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                            inv.paymentMode === "cash"
+                              ? "border-emerald-200/80 bg-emerald-50 text-emerald-700"
+                              : inv.paymentMode === "credit"
+                                ? "border-amber-200/80 bg-amber-50 text-amber-700"
+                                : "border-blue-200/80 bg-blue-50 text-[#1b365d]"
+                          }`}
+                        >
                           {language === "kn"
                             ? inv.paymentMode === "cash"
                               ? "ನಗದು"
-                              : inv.paymentMode === "online"
-                              ? "ಆನ್‌ಲೈನ್"
-                              : inv.paymentMode
-                            : inv.paymentMode}
+                              : inv.paymentMode === "credit"
+                                ? "ಉದ್ದರಿ"
+                                : ["online", "upi", "card"].includes(inv.paymentMode)
+                                  ? "ಆನ್‌ಲೈನ್"
+                                  : inv.paymentMode
+                            : inv.paymentMode === "upi"
+                              ? "UPI"
+                              : inv.paymentMode === "card"
+                                ? "Card"
+                                : inv.paymentMode === "online"
+                                  ? "Online"
+                                  : inv.paymentMode === "credit"
+                                    ? "Credit"
+                                    : "Cash"}
                         </span>
                       )}
                     </div>

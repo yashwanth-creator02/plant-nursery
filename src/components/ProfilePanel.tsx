@@ -52,6 +52,8 @@ type InvoiceVersionInfo = {
   address: string;
   mobiles?: string | null;
   gstin?: string | null;
+  email?: string | null;
+  invocation?: string | null;
   updatedAt?: string | Date;
   isCurrent?: boolean;
   invoiceCount?: number;
@@ -117,6 +119,10 @@ export function ProfilePanel({
   const [adminSettingsModalOpen, setAdminSettingsModalOpen] = useState(false);
   const [customNumberModalOpen, setCustomNumberModalOpen] = useState(false);
   const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
+  const [proprietorName, setProprietorName] = useState("");
+  const [savingProprietor, setSavingProprietor] = useState(false);
+  const [proprietorSaved, setProprietorSaved] = useState(false);
+  const [proprietorError, setProprietorError] = useState("");
   const [nextInvoiceNumber, setNextInvoiceNumber] = useState<string>("");
   const [, setSavingSignature] = useState(false);
   const [salesModalOpen, setSalesModalOpen] = useState(false);
@@ -125,6 +131,7 @@ export function ProfilePanel({
     total: number;
     online: number;
     cash: number;
+    credit: number;
     count: number;
   } | null>(null);
 
@@ -144,6 +151,7 @@ export function ProfilePanel({
             total: d.summary.totalRevenue || 0,
             online: d.summary.onlineRevenue || 0,
             cash: d.summary.cashRevenue || 0,
+            credit: d.summary.creditRevenue || 0,
             count: d.summary.totalInvoices || 0,
           });
         }
@@ -196,6 +204,30 @@ export function ProfilePanel({
     }
   }
 
+  async function handleSaveProprietor() {
+    setSavingProprietor(true);
+    setProprietorError("");
+    setProprietorSaved(false);
+    try {
+      const res = await fetch("/api/users/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ proprietorName: proprietorName.trim() || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save proprietor name");
+
+      setProprietorName(data.proprietorName || "");
+      await refresh();
+      setProprietorSaved(true);
+      window.dispatchEvent(new Event("profileUpdated"));
+    } catch (err) {
+      setProprietorError(err instanceof Error ? err.message : "Failed to save proprietor name.");
+    } finally {
+      setSavingProprietor(false);
+    }
+  }
+
   function loadInvoiceSequence() {
     fetch("/api/settings/invoice-sequence")
       .then((r) => r.json())
@@ -227,6 +259,9 @@ export function ProfilePanel({
       setIsDark(document.documentElement.classList.contains("dark"));
       const initialSig = user?.signature || localStorage.getItem("svl_digital_signature");
       setSignaturePreview(initialSig);
+      setProprietorName(user?.proprietorName || "");
+      setProprietorSaved(false);
+      setProprietorError("");
       fetch("/api/users/signature")
         .then(async (r) => {
           if (!r.ok) return;
@@ -672,6 +707,49 @@ export function ProfilePanel({
 
 
 
+            {/* Proprietor Name Section */}
+            <div className="border-b border-line px-5 py-3.5">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+                  {language === "kn" ? "ಮಾಲೀಕರ ಹೆಸರು" : "Proprietor Name"}
+                </span>
+                {proprietorSaved && (
+                  <span className="text-[10px] font-medium text-pine-deep">
+                    {language === "kn" ? "ಉಳಿಸಲಾಗಿದೆ" : "Saved"}
+                  </span>
+                )}
+              </div>
+              <p className="mb-2 text-xs text-ink-soft/80">
+                {language === "kn"
+                  ? "ಇನ್‌ವಾಯ್ಸ್‌ನ ಸಹಿ ವಿಭಾಗದಲ್ಲಿ ಅಧಿಕೃತ ಸಹಿ ಹೆಸರಿನ ಮೇಲೆ ಕಾಣಿಸುತ್ತದೆ."
+                  : "Shown above the Authorised Signatory line on invoices."}
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  value={proprietorName}
+                  onChange={(e) => {
+                    setProprietorName(e.target.value);
+                    setProprietorSaved(false);
+                  }}
+                  placeholder={language === "kn" ? "ಮಾಲೀಕರ ಹೆಸರು" : "e.g. Veeranna K."}
+                  className="min-w-0 flex-1 rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm outline-none focus:border-pine"
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveProprietor}
+                  disabled={savingProprietor}
+                  className="rounded-md bg-pine px-3 py-1.5 text-xs font-semibold text-surface hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                >
+                  {savingProprietor
+                    ? language === "kn" ? "ಉಳಿಸಲಾಗುತ್ತಿದೆ..." : "Saving..."
+                    : language === "kn" ? "ಉಳಿಸಿ" : "Save"}
+                </button>
+              </div>
+              {proprietorError && (
+                <p className="mt-1.5 text-xs text-rust">{proprietorError}</p>
+              )}
+            </div>
+
             {/* Digital Signature Section */}
             <div className="border-b border-line px-5 py-3.5">
               <div className="flex items-center justify-between mb-1.5">
@@ -746,7 +824,7 @@ export function ProfilePanel({
                   ₹{Number(todaySalesSummary?.total || 0).toLocaleString("en-IN")}
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-line/60 text-xs">
+                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-line/60 text-xs">
                   <div className="flex items-center gap-1.5 overflow-hidden">
                     <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0"></span>
                     <span className="text-ink-soft truncate">{t("onlineUpiLabel")}:</span>
@@ -759,6 +837,13 @@ export function ProfilePanel({
                     <span className="text-ink-soft truncate">{t("cashOfflineLabel")}:</span>
                     <span className="font-bold text-emerald-700 dark:text-emerald-400 font-mono ml-auto">
                       ₹{Number(todaySalesSummary?.cash || 0).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 overflow-hidden">
+                    <span className="h-2 w-2 rounded-full bg-rust shrink-0"></span>
+                    <span className="text-ink-soft truncate">{t("credit")}:</span>
+                    <span className="font-bold text-rust font-mono ml-auto">
+                      ₹{Number(todaySalesSummary?.credit || 0).toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
@@ -926,6 +1011,12 @@ export function ProfilePanel({
                             {v.gstin && <span>GSTIN: {v.gstin}</span>}
                             {v.mobiles && <span>{t("mobilesLabel")} {v.mobiles}</span>}
                           </div>
+                          {(v.email || v.invocation) && (
+                            <div className="space-y-0.5 text-[10px] text-ink-soft/80">
+                              {v.email && <div className="truncate">{v.email}</div>}
+                              {v.invocation && <div className="italic truncate">{v.invocation}</div>}
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex items-center justify-between border-t border-line/60 pt-2 text-[11px]">

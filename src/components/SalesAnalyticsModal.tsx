@@ -47,12 +47,49 @@ type FilterMode =
   | "custom"
   | "all";
 
+type PaymentBucket = "online" | "cash" | "credit";
+
+function getPaymentBucket(mode?: string | null): PaymentBucket {
+  if (mode === "credit") return "credit";
+  if (mode === "online" || mode === "upi" || mode === "card") return "online";
+  return "cash";
+}
+
+type PaymentTotals = {
+  onlineRevenue: number;
+  onlineCount: number;
+  cashRevenue: number;
+  cashCount: number;
+  creditRevenue: number;
+  creditCount: number;
+};
+
+function addPaymentAmount<T extends PaymentTotals>(
+  target: T,
+  mode: string | null | undefined,
+  amount: number,
+) {
+  const bucket = getPaymentBucket(mode);
+  if (bucket === "online") {
+    target.onlineRevenue += amount;
+    target.onlineCount += 1;
+  } else if (bucket === "credit") {
+    target.creditRevenue += amount;
+    target.creditCount += 1;
+  } else {
+    target.cashRevenue += amount;
+    target.cashCount += 1;
+  }
+}
+
 type InvoiceSummary = {
   totalRevenue: number;
   onlineRevenue: number;
   onlineCount: number;
   cashRevenue: number;
   cashCount: number;
+  creditRevenue: number;
+  creditCount: number;
   totalInvoices: number;
   averageInvoiceValue: number;
   plantsRevenue?: number;
@@ -170,7 +207,7 @@ export function SalesAnalyticsModal({
   const [customStartDate, setCustomStartDate] = useState<string>(getTodayString());
   const [customEndDate, setCustomEndDate] = useState<string>(getTodayString());
 
-  const [paymentModeFilter, setPaymentModeFilter] = useState<"all" | "online" | "cash">("all");
+  const [paymentModeFilter, setPaymentModeFilter] = useState<"all" | "online" | "cash" | "credit">("all");
   const [categoryFilter, setCategoryFilter] = useState<"all" | "plants" | "non-plants">("all");
   const [selectedUserId, setSelectedUserId] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -184,6 +221,8 @@ export function SalesAnalyticsModal({
     onlineCount: 0,
     cashRevenue: 0,
     cashCount: 0,
+    creditRevenue: 0,
+    creditCount: 0,
     totalInvoices: 0,
     averageInvoiceValue: 0,
   });
@@ -381,6 +420,10 @@ export function SalesAnalyticsModal({
     summary.totalRevenue > 0
       ? Math.round((summary.cashRevenue / summary.totalRevenue) * 100)
       : 0;
+  const creditPercent =
+    summary.totalRevenue > 0
+      ? Math.round((summary.creditRevenue / summary.totalRevenue) * 100)
+      : 0;
 
   // Category sales split percentages
   const overallCategoryRevenue = (summary.plantsRevenue || 0) + (summary.nonPlantsRevenue || 0);
@@ -399,9 +442,11 @@ export function SalesAnalyticsModal({
     totalRevenue: number;
     onlineRevenue: number;
     cashRevenue: number;
+    creditRevenue: number;
     totalCount: number;
     onlineCount: number;
     cashCount: number;
+    creditCount: number;
   };
 
   const timelineData: TimelineBucket[] = useMemo(() => {
@@ -429,29 +474,24 @@ export function SalesAnalyticsModal({
         totalRevenue: 0,
         onlineRevenue: 0,
         cashRevenue: 0,
+        creditRevenue: 0,
         totalCount: 0,
         onlineCount: 0,
         cashCount: 0,
+        creditCount: 0,
       }));
 
       filteredInvoices.forEach((inv) => {
         const d = new Date(inv.createdAt);
         const hour = d.getHours();
         const amt = getInvoiceAmount(inv);
-        const isOnline = inv.paymentMode === "online";
 
         const slotIndex = intervals.findIndex((s) => hour >= s.start && hour < s.end);
         const target = slotIndex >= 0 ? buckets[slotIndex] : buckets[buckets.length - 1];
         if (target) {
           target.totalRevenue += amt;
           target.totalCount += 1;
-          if (isOnline) {
-            target.onlineRevenue += amt;
-            target.onlineCount += 1;
-          } else {
-            target.cashRevenue += amt;
-            target.cashCount += 1;
-          }
+          addPaymentAmount(target, inv.paymentMode, amt);
         }
       });
 
@@ -479,9 +519,11 @@ export function SalesAnalyticsModal({
           totalRevenue: 0,
           onlineRevenue: 0,
           cashRevenue: 0,
+          creditRevenue: 0,
           totalCount: 0,
           onlineCount: 0,
           cashCount: 0,
+          creditCount: 0,
         });
       }
 
@@ -493,13 +535,7 @@ export function SalesAnalyticsModal({
           const amt = getInvoiceAmount(inv);
           bucket.totalRevenue += amt;
           bucket.totalCount += 1;
-          if (inv.paymentMode === "online") {
-            bucket.onlineRevenue += amt;
-            bucket.onlineCount += 1;
-          } else {
-            bucket.cashRevenue += amt;
-            bucket.cashCount += 1;
-          }
+          addPaymentAmount(bucket, inv.paymentMode, amt);
         }
       });
 
@@ -522,9 +558,11 @@ export function SalesAnalyticsModal({
           totalRevenue: 0,
           onlineRevenue: 0,
           cashRevenue: 0,
+          creditRevenue: 0,
           totalCount: 0,
           onlineCount: 0,
           cashCount: 0,
+          creditCount: 0,
         });
       }
 
@@ -538,13 +576,7 @@ export function SalesAnalyticsModal({
               const amt = getInvoiceAmount(inv);
               bucket.totalRevenue += amt;
               bucket.totalCount += 1;
-              if (inv.paymentMode === "online") {
-                bucket.onlineRevenue += amt;
-                bucket.onlineCount += 1;
-              } else {
-                bucket.cashRevenue += amt;
-                bucket.cashCount += 1;
-              }
+              addPaymentAmount(bucket, inv.paymentMode, amt);
             }
           }
         }
@@ -569,9 +601,11 @@ export function SalesAnalyticsModal({
           totalRevenue: 0,
           onlineRevenue: 0,
           cashRevenue: 0,
+          creditRevenue: 0,
           totalCount: 0,
           onlineCount: 0,
           cashCount: 0,
+          creditCount: 0,
         });
       }
 
@@ -585,13 +619,7 @@ export function SalesAnalyticsModal({
               const amt = getInvoiceAmount(inv);
               bucket.totalRevenue += amt;
               bucket.totalCount += 1;
-              if (inv.paymentMode === "online") {
-                bucket.onlineRevenue += amt;
-                bucket.onlineCount += 1;
-              } else {
-                bucket.cashRevenue += amt;
-                bucket.cashCount += 1;
-              }
+              addPaymentAmount(bucket, inv.paymentMode, amt);
             }
           }
         }
@@ -614,9 +642,11 @@ export function SalesAnalyticsModal({
           totalRevenue: 0,
           onlineRevenue: 0,
           cashRevenue: 0,
+          creditRevenue: 0,
           totalCount: 0,
           onlineCount: 0,
           cashCount: 0,
+          creditCount: 0,
         });
       }
 
@@ -629,13 +659,7 @@ export function SalesAnalyticsModal({
             const amt = getInvoiceAmount(inv);
             bucket.totalRevenue += amt;
             bucket.totalCount += 1;
-            if (inv.paymentMode === "online") {
-              bucket.onlineRevenue += amt;
-              bucket.onlineCount += 1;
-            } else {
-              bucket.cashRevenue += amt;
-              bucket.cashCount += 1;
-            }
+            addPaymentAmount(bucket, inv.paymentMode, amt);
           }
         }
       });
@@ -661,9 +685,11 @@ export function SalesAnalyticsModal({
           totalRevenue: 0,
           onlineRevenue: 0,
           cashRevenue: 0,
+          creditRevenue: 0,
           totalCount: 0,
           onlineCount: 0,
           cashCount: 0,
+          creditCount: 0,
         });
       }
 
@@ -676,13 +702,7 @@ export function SalesAnalyticsModal({
             const amt = getInvoiceAmount(inv);
             bucket.totalRevenue += amt;
             bucket.totalCount += 1;
-            if (inv.paymentMode === "online") {
-              bucket.onlineRevenue += amt;
-              bucket.onlineCount += 1;
-            } else {
-              bucket.cashRevenue += amt;
-              bucket.cashCount += 1;
-            }
+            addPaymentAmount(bucket, inv.paymentMode, amt);
           }
         }
       });
@@ -708,22 +728,18 @@ export function SalesAnalyticsModal({
           totalRevenue: 0,
           onlineRevenue: 0,
           cashRevenue: 0,
+          creditRevenue: 0,
           totalCount: 0,
           onlineCount: 0,
           cashCount: 0,
+          creditCount: 0,
         });
       }
       const b = map.get(dateKey)!;
       const amt = getInvoiceAmount(inv);
       b.totalRevenue += amt;
       b.totalCount += 1;
-      if (inv.paymentMode === "online") {
-        b.onlineRevenue += amt;
-        b.onlineCount += 1;
-      } else {
-        b.cashRevenue += amt;
-        b.cashCount += 1;
-      }
+      addPaymentAmount(b, inv.paymentMode, amt);
     });
 
     return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
@@ -1134,6 +1150,16 @@ export function SalesAnalyticsModal({
               >
                 <Banknote size={12} /> {t("cashOfflineLabel")}
               </button>
+              <button
+                type="button"
+                onClick={() => setPaymentModeFilter("credit")}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer font-medium ${paymentModeFilter === "credit"
+                  ? "bg-amber-600 text-white font-semibold shadow-xs"
+                  : "text-ink-soft hover:text-ink"
+                  }`}
+              >
+                <Receipt size={12} /> {t("credit")}
+              </button>
             </div>
           </div>
         </div>
@@ -1185,7 +1211,7 @@ export function SalesAnalyticsModal({
           </div>
 
           {/* KPI Stat Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
             {/* Total / Filtered Revenue Card */}
             <div className="relative overflow-hidden rounded-xl border border-line bg-paper-flat p-4 shadow-xs">
               <div className="flex items-center justify-between">
@@ -1253,6 +1279,25 @@ export function SalesAnalyticsModal({
               </div>
             </div>
 
+            {/* Credit Sales Card */}
+            <div className="relative overflow-hidden rounded-xl border border-amber-200/80 bg-amber-50/40 dark:bg-amber-950/20 p-4 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                  {t("credit")}
+                </span>
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                  <Receipt size={16} />
+                </span>
+              </div>
+              <div className="mt-2.5 font-serif text-2xl font-bold text-amber-700 dark:text-amber-300">
+                {formatCurrency(summary.creditRevenue)}
+              </div>
+              <div className="mt-1 flex items-center justify-between text-xs text-amber-800/80 dark:text-amber-400">
+                <span>{summary.creditCount} {t("billsBadge")}</span>
+                <span className="font-semibold">{creditPercent}%</span>
+              </div>
+            </div>
+
             {/* Average Order Value Card */}
             <div className="relative overflow-hidden rounded-xl border border-line bg-paper-flat p-4 shadow-xs">
               <div className="flex items-center justify-between">
@@ -1277,7 +1322,7 @@ export function SalesAnalyticsModal({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
               {/* Payment Split Ratio Bar */}
               <div className="rounded-xl border border-line bg-paper p-4 space-y-2">
-                <div className="flex items-center justify-between text-xs font-semibold">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold">
                   <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
                     <span className="h-2.5 w-2.5 rounded-full bg-blue-500"></span>
                     <span>{t("onlineUpiLabel")} ({onlinePercent}%)</span>
@@ -1285,6 +1330,10 @@ export function SalesAnalyticsModal({
                   <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
                     <span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
                     <span>{t("cashOfflineLabel")} ({cashPercent}%)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
+                    <span className="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
+                    <span>{t("credit")} ({creditPercent}%)</span>
                   </div>
                 </div>
                 <div className="h-3 w-full rounded-full bg-line overflow-hidden flex">
@@ -1297,6 +1346,11 @@ export function SalesAnalyticsModal({
                     style={{ width: `${cashPercent}%` }}
                     className="bg-emerald-500 transition-all duration-500"
                     title={`Cash: ${cashPercent}%`}
+                  />
+                  <div
+                    style={{ width: `${creditPercent}%` }}
+                    className="bg-amber-500 transition-all duration-500"
+                    title={`Credit: ${creditPercent}%`}
                   />
                 </div>
               </div>
@@ -1409,6 +1463,10 @@ export function SalesAnalyticsModal({
                       <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500"></span>
                       <span className="text-ink-soft">{t("cashOfflineLabel")}</span>
                     </div>
+                    <div className="flex items-center gap-1">
+                      <span className="h-2.5 w-2.5 rounded-sm bg-amber-500"></span>
+                      <span className="text-ink-soft">{t("credit")}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -1451,6 +1509,11 @@ export function SalesAnalyticsModal({
                                   <span>{t("cash")}:</span>
                                   <span className="font-mono font-semibold">{formatCurrency(active.cashRevenue)} ({active.cashCount})</span>
                                 </div>
+                                <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium">
+                                  <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+                                  <span>{t("credit")}:</span>
+                                  <span className="font-mono font-semibold">{formatCurrency(active.creditRevenue)} ({active.creditCount})</span>
+                                </div>
                               </div>
                             </>
                           );
@@ -1484,7 +1547,13 @@ export function SalesAnalyticsModal({
                                 : 2;
                             const onlineVal =
                               chartMetric === "revenue" ? bucket.onlineRevenue : bucket.onlineCount;
+                            const cashVal =
+                              chartMetric === "revenue" ? bucket.cashRevenue : bucket.cashCount;
+                            const creditVal =
+                              chartMetric === "revenue" ? bucket.creditRevenue : bucket.creditCount;
                             const onlineRatio = val > 0 ? onlineVal / val : 0;
+                            const cashRatio = val > 0 ? cashVal / val : 0;
+                            const creditRatio = val > 0 ? creditVal / val : 0;
                             const isHovered = hoveredBucketKey === bucket.key;
 
                             return (
@@ -1545,8 +1614,15 @@ export function SalesAnalyticsModal({
                                   {/* Cash portion (top of stack) */}
                                   {bucket.cashRevenue > 0 && (
                                     <div
-                                      style={{ height: `${(1 - onlineRatio) * 100}%` }}
+                                      style={{ height: `${cashRatio * 100}%` }}
                                       className="w-full bg-emerald-500 hover:bg-emerald-600 transition-colors"
+                                    />
+                                  )}
+                                  {/* Credit portion (middle of stack) */}
+                                  {bucket.creditRevenue > 0 && (
+                                    <div
+                                      style={{ height: `${creditRatio * 100}%` }}
+                                      className="w-full bg-amber-500 hover:bg-amber-600 transition-colors"
                                     />
                                   )}
                                   {/* Online portion (bottom of stack) */}
@@ -1632,6 +1708,15 @@ export function SalesAnalyticsModal({
                                     {formatCurrency(active.cashRevenue)} ({active.cashCount})
                                   </span>
                                 </div>
+                                <div className="flex items-center justify-between text-amber-600 dark:text-amber-400 font-medium">
+                                  <span className="flex items-center gap-1.5">
+                                    <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+                                    {t("credit")}:
+                                  </span>
+                                  <span className="font-semibold font-mono">
+                                    {formatCurrency(active.creditRevenue)} ({active.creditCount})
+                                  </span>
+                                </div>
                               </div>
                               {/* Arrow Caret */}
                               {isAbove ? (
@@ -1710,12 +1795,27 @@ export function SalesAnalyticsModal({
                             className="transition-all duration-700"
                           />
                         )}
+                        {/* Credit (Amber) Arc */}
+                        {creditPercent > 0 && (
+                          <circle
+                            cx="60"
+                            cy="60"
+                            r="46"
+                            stroke="#f59e0b"
+                            strokeWidth="14"
+                            fill="transparent"
+                            strokeDasharray={`${(creditPercent / 100) * 289.026} 289.026`}
+                            strokeDashoffset={-(((onlinePercent + cashPercent) / 100) * 289.026)}
+                            strokeLinecap="round"
+                            className="transition-all duration-700"
+                          />
+                        )}
                       </svg>
                       {/* Central Stat */}
                       <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
                         <span className="text-[10px] font-medium text-ink-soft uppercase">Split</span>
                         <span className="text-xs font-bold text-ink font-mono">
-                          {onlinePercent}:{cashPercent}
+                          {onlinePercent}:{cashPercent}:{creditPercent}
                         </span>
                       </div>
                     </div>
@@ -1747,6 +1847,20 @@ export function SalesAnalyticsModal({
                         <div className="flex items-center justify-between text-[11px] text-emerald-900 dark:text-emerald-300/80 font-mono">
                           <span>{formatCurrency(summary.cashRevenue)}</span>
                           <span>{summary.cashCount} {t("billsBadge")}</span>
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border border-amber-200/60 bg-amber-50/40 dark:bg-amber-950/20 p-2.5">
+                        <div className="flex items-center justify-between text-amber-700 dark:text-amber-300 font-semibold mb-1">
+                          <span className="flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+                            {t("credit")}
+                          </span>
+                          <span>{creditPercent}%</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-amber-900 dark:text-amber-300/80 font-mono">
+                          <span>{formatCurrency(summary.creditRevenue)}</span>
+                          <span>{summary.creditCount} {t("billsBadge")}</span>
                         </div>
                       </div>
                     </div>
@@ -1898,7 +2012,7 @@ export function SalesAnalyticsModal({
                   </thead>
                   <tbody className="divide-y divide-line">
                     {filteredInvoices.map((inv) => {
-                      const isOnline = inv.paymentMode === "online";
+                      const paymentBucket = getPaymentBucket(inv.paymentMode);
                       return (
                         <tr
                           key={inv.id}
@@ -1947,17 +2061,28 @@ export function SalesAnalyticsModal({
                           </td>
                           <td className="px-4 py-3">
                             <span
-                              className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold ${isOnline
-                                ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
-                                : "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                                }`}
+                              className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold ${
+                                paymentBucket === "online"
+                                  ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                                  : paymentBucket === "credit"
+                                    ? "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                                    : "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                              }`}
                             >
-                              {isOnline ? (
+                              {paymentBucket === "online" ? (
                                 <CreditCard size={11} />
+                              ) : paymentBucket === "credit" ? (
+                                <Receipt size={11} />
                               ) : (
                                 <Banknote size={11} />
                               )}
-                              <span>{isOnline ? t("onlineUpiLabel") : t("cashOfflineLabel")}</span>
+                              <span>
+                                {paymentBucket === "online"
+                                  ? t("onlineUpiLabel")
+                                  : paymentBucket === "credit"
+                                    ? t("credit")
+                                    : t("cashOfflineLabel")}
+                              </span>
                             </span>
                           </td>
                           {isAdmin && (

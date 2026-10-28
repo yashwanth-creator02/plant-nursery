@@ -21,6 +21,8 @@ async function main() {
       address TEXT NOT NULL DEFAULT 'Harige B. H. Road, Shimoga - 577203, Karnataka',
       mobiles TEXT NOT NULL DEFAULT '7353025302, 9448140483, 9606602194',
       gstin TEXT NOT NULL DEFAULT '29ADXPV1295N2Z6',
+      email TEXT NOT NULL DEFAULT 'vijayalakshminurseryfarm@gmail.com',
+      invocation TEXT NOT NULL DEFAULT '|| Shree gurugundanjaneya prasanna ||',
       updated_at TIMESTAMP NOT NULL DEFAULT NOW()
     );
   `;
@@ -62,6 +64,16 @@ async function main() {
   await sql`
     ALTER TABLE business_settings
     ADD COLUMN IF NOT EXISTS logo_data TEXT;
+  `;
+
+  await sql`
+    ALTER TABLE business_settings
+    ADD COLUMN IF NOT EXISTS email TEXT NOT NULL DEFAULT 'vijayalakshminurseryfarm@gmail.com';
+  `;
+
+  await sql`
+    ALTER TABLE business_settings
+    ADD COLUMN IF NOT EXISTS invocation TEXT NOT NULL DEFAULT '|| Shree gurugundanjaneya prasanna ||';
   `;
 
   await sql`
@@ -148,6 +160,11 @@ async function main() {
   await sql`
     ALTER TABLE users
     ADD COLUMN IF NOT EXISTS signature TEXT;
+  `;
+
+  await sql`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS proprietor_name TEXT;
   `;
 
   await sql`

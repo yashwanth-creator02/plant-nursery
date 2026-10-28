@@ -32,6 +32,7 @@ export interface Translations {
   nurseryAddress: string;
   mobilesLabel: string;
   gstinLabel: string;
+  emailLabel: string;
   versionLabel: string;
 
   // Bill Sheet & Receipt Labels
@@ -77,6 +78,7 @@ export interface Translations {
   term2: string;
   term3: string;
   term4: string;
+  term5: string;
   invoiceFooterNote: string;
   thankYouNote: string;
   cgst: string;
@@ -98,6 +100,7 @@ export interface Translations {
   saving: string;
   payWithCash: string;
   payOnline: string;
+  finalizeBill: string;
   printBill: string;
   finalizing: string;
   addDigitalSignature: string;
@@ -338,6 +341,7 @@ export const translations: Record<Language, Translations> = {
     nurseryAddress: "Harige B. H. Road, Shimoga - 577203, Karnataka",
     mobilesLabel: "Mob:",
     gstinLabel: "GSTIN:",
+    emailLabel: "Email",
     versionLabel: "Version",
 
     // Bill Sheet & Receipt Labels
@@ -383,6 +387,7 @@ export const translations: Record<Language, Translations> = {
     term2: "2. Please check the plants, soil and other items properly before leaving.",
     term3: "3. Plants are living goods, please handle with care.",
     term4: "4. Thank you for shopping with us!",
+    term5: "5. For any queries feel free to contact us.",
     invoiceFooterNote: "Thank you for shopping with Sri Vijayalakshmi Nursery",
     thankYouNote: "Thank you for shopping with us! Visit again",
     cgst: "CGST",
@@ -404,6 +409,7 @@ export const translations: Record<Language, Translations> = {
     saving: "Saving…",
     payWithCash: "Pay with Cash",
     payOnline: "Pay with Online",
+    finalizeBill: "Finalize Bill",
     printBill: "Print Bill",
     finalizing: "Finalizing…",
     addDigitalSignature: "Add Digital Signature",
@@ -643,6 +649,7 @@ export const translations: Record<Language, Translations> = {
     nurseryAddress: "ಹರಿಗೆ ಬಿ. ಹೆಚ್. ರಸ್ತೆ, ಶಿವಮೊಗ್ಗ - 577203, ಕರ್ನಾಟಕ",
     mobilesLabel: "ಮೊಬೈಲ್:",
     gstinLabel: "ಜಿಎಸ್‌ಟಿ ಸಂಖ್ಯೆ:",
+    emailLabel: "ಇಮೇಲ್",
     versionLabel: "ಆವೃತ್ತಿ",
 
     // Bill Sheet & Receipt Labels
@@ -688,6 +695,7 @@ export const translations: Record<Language, Translations> = {
     term2: "೨. ಹೊರಡುವ ಮೊದಲು ಸಸ್ಯಗಳು, ಮಣ್ಣು ಮತ್ತು ಇತರ ವಸ್ತುಗಳನ್ನು ಸರಿಯಾಗಿ ಪರಿಶೀಲಿಸಿ.",
     term3: "೩. ಸಸ್ಯಗಳು ಜೀವಂತ ವಸ್ತುಗಳು, ದಯವಿಟ್ಟು ಎಚ್ಚರಿಕೆಯಿಂದ ನಿರ್ವಹಿಸಿ.",
     term4: "೪. ನಮ್ಮಲ್ಲಿ ಖರೀದಿಸಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು!",
+    term5: "೫. ಯಾವುದೇ ಪ್ರಶ್ನೆಗಳಿದ್ದರೆ ದಯವಿಟ್ಟು ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ.",
     invoiceFooterNote: "ಶ್ರೀ ವಿಜಯಲಕ್ಷ್ಮಿ ನರ್ಸರಿಯಲ್ಲಿ ಖರೀದಿಸಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು",
     thankYouNote: "ನಮ್ಮಲ್ಲಿ ಖರೀದಿಸಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು! ಮತ್ತೆ ಭೇಟಿ ನೀಡಿ",
     cgst: "ಸಿ.ಜಿ.ಎಸ್.ಟಿ (CGST)",
@@ -709,6 +717,7 @@ export const translations: Record<Language, Translations> = {
     saving: "ಉಳಿಸಲಾಗುತ್ತಿದೆ…",
     payWithCash: "ನಗದಿನಲ್ಲಿ ಪಾವತಿಸಿ",
     payOnline: "ಆನ್‌ಲೈನ್ ಪಾವತಿ (UPI)",
+    finalizeBill: "ಬಿಲ್ ಅಂತಿಮಗೊಳಿಸಿ",
     printBill: "ಬಿಲ್ ಮುದ್ರಿಸಿ",
     finalizing: "ಅಂತಿಮಗೊಳಿಸಲಾಗುತ್ತಿದೆ…",
     addDigitalSignature: "ಡಿಜಿಟಲ್ ಸಹಿ ಸೇರಿಸಿ",

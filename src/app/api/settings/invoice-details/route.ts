@@ -14,6 +14,8 @@ const DEFAULT_SETTINGS = {
   address: "Harige B. H. Road, Shimoga - 577203, Karnataka",
   mobiles: "7353025302, 9448140483, 9606602194",
   gstin: "29ADXPV1295N2Z6",
+  email: "vijayalakshminurseryfarm@gmail.com",
+  invocation: "|| Shree gurugundanjaneya prasanna ||",
   cgstRate: "2.50",
   sgstRate: "2.50",
 };
@@ -100,6 +102,8 @@ export async function POST(req: Request) {
       address,
       mobiles,
       gstin,
+      email,
+      invocation,
       cgstRate,
       sgstRate,
     } = body;
@@ -139,6 +143,8 @@ export async function POST(req: Request) {
         address: address.trim(),
         mobiles: (mobiles || "").trim(),
         gstin: (gstin || "").trim(),
+        email: (email || latest[0]?.email || DEFAULT_SETTINGS.email).trim(),
+        invocation: (invocation || latest[0]?.invocation || DEFAULT_SETTINGS.invocation).trim(),
         cgstRate: validatedCgst,
         sgstRate: validatedSgst,
         qrCodeData: latest.length > 0 ? latest[0].qrCodeData : null,

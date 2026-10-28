@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { invoices, users } from "@/db/schema";
 import { requireUser } from "@/lib/session";
@@ -27,11 +27,16 @@ export async function GET(req: NextRequest) {
       conditions.push(eq(invoices.createdBy, userIdParam));
     }
 
-    // Payment mode filter (online vs cash)
+    // Payment mode filter. Legacy "online" is grouped with UPI and Card.
     if (paymentModeParam === "online") {
-      conditions.push(eq(invoices.paymentMode, "online"));
-    } else if (paymentModeParam === "cash") {
-      conditions.push(eq(invoices.paymentMode, "cash"));
+      conditions.push(inArray(invoices.paymentMode, ["online", "upi", "card"]));
+    } else if (
+      paymentModeParam === "cash" ||
+      paymentModeParam === "credit" ||
+      paymentModeParam === "upi" ||
+      paymentModeParam === "card"
+    ) {
+      conditions.push(eq(invoices.paymentMode, paymentModeParam));
     }
 
     // Start & End Date filters
@@ -188,6 +193,8 @@ export async function GET(req: NextRequest) {
     let onlineCount = 0;
     let cashRevenue = 0;
     let cashCount = 0;
+    let creditRevenue = 0;
+    let creditCount = 0;
 
     for (const row of categoryFilteredRows) {
       const amount =
@@ -198,9 +205,12 @@ export async function GET(req: NextRequest) {
           : (Number(row.total) || 0);
 
       totalRevenue += amount;
-      if (row.paymentMode === "online") {
+      if (row.paymentMode === "online" || row.paymentMode === "upi" || row.paymentMode === "card") {
         onlineRevenue += amount;
         onlineCount++;
+      } else if (row.paymentMode === "credit") {
+        creditRevenue += amount;
+        creditCount++;
       } else {
         cashRevenue += amount;
         cashCount++;
@@ -256,6 +266,8 @@ export async function GET(req: NextRequest) {
         onlineCount,
         cashRevenue: Math.round(cashRevenue * 100) / 100,
         cashCount,
+        creditRevenue: Math.round(creditRevenue * 100) / 100,
+        creditCount,
         totalInvoices,
         averageInvoiceValue: Math.round(averageInvoiceValue * 100) / 100,
         plantsRevenue: Math.round(allPlantsRevenue * 100) / 100,
