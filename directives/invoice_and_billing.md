@@ -53,7 +53,16 @@ Manage the creation, draft editing, sequential numbering, finalization, atomic s
 - **Printable Sheet Styling (#invoice-print)**:
   - Always force light mode (`color-scheme: light !important`) with dark blue ink (`#1b365d`) on printable sheets even when the user operates the app in dark mode.
   - Unconstrain scroll containers under `@media print` so multi-item bills print completely without cutoffs.
-  - Use `grid-cols-[44px_1fr_52px_90px_120px] sm:grid-cols-[48px_1fr_56px_96px_130px]` across all table rows (headers, divider guides, line items, and summary rows) to give sufficient width to the Amount column.
+  - The printable sheet follows the classic A4 portrait bill-book layout: botanical logo at left, centered serif wordmark with `NURSERY` on its own ruled line, approval/description/address lines, and a script tagline at right.
+  - A four-cell category strip (Indoor & Outdoor Plants, Pots & Planters, Soil & Manure, Fertilizers & Gardening Supplies) sits below the header, followed by GSTIN/mobiles, a boxed `BILL / INVOICE` title, No./Date, and a bordered Payment Mode box with Cash/UPI/Card/Credit checkboxes.
+  - The customer block separates Customer Name, Address, and Phone No. The database `customerDetails` field stores the combined `address, phone` string; the editor splits and rejoins it for entry and display.
+  - The line-item table uses six columns: `Sl. No.`, `Item Name / Description`, `Qty.`, `Unit`, `Rate (₹)`, `Amount (₹)`. Use `grid-cols-[36px_minmax(0,1fr)_44px_54px_82px_96px]` across the header and all item/blank rows.
+  - Render at least 10 table rows, filling unused rows with blank cells so the bill keeps the paper bill-book shape.
+  - The `Unit` column is derived at render time from `item.unit` (draft/custom), the related `stockItem.unit` (finalized invoice relation), or `"Nos"`. Do not add a `unit` column to `invoice_items` unless a migration is explicitly planned; preserve the existing invoice snapshot behavior.
+  - Use `--invoice-ink`, `--invoice-line`, `--invoice-fill`, and `--invoice-total` CSS variables defined on `#invoice-print`. Keep the dark blue `#1b365d` ink, light gray header fills, and a dark filled `TOTAL AMOUNT` row with white text.
+  - The summary box contains Subtotal, Discount (-), per-tier CGST/SGST rows when applicable, and `TOTAL AMOUNT`. The amount-in-words box uses `numberToIndianWords` for English and `numberToKannadaWords` for Kannada.
+  - The notes box renders `term1` through `term4` with a leaf icon; the signature block shows the frozen digital signature or fallback, a horizontal rule, `Authorised Signatory`, and `Proprietor`.
+  - The footer uses the script font for English only (Kannada uses serif), with leaf sprigs and a screen-only version watermark. Add `break-inside-avoid` to the header, summary, notes/signature, and footer blocks so they do not split across pages.
   - All currency/amount cells (Subtotal, Discount, CGST, SGST, Total) must have `whitespace-nowrap` to strictly prevent line breaks on decimal points (`.`) or commas.
 - **Item-Level Statutory Taxation (Non-Plants vs Plants)**:
   - Live plants are 100% tax exempt (0% GST).

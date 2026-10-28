@@ -10,8 +10,6 @@ import {
   Save,
   FilePlus2,
   Trash2,
-  Lock,
-  PenTool,
   X,
   AlertTriangle,
   Banknote,
@@ -23,7 +21,6 @@ import {
   ChevronRight,
   CheckCircle2,
   Tag,
-  Percent,
   IndianRupee,
   Languages,
 } from "lucide-react";
@@ -38,14 +35,14 @@ import { SmartStockPicker } from "./SmartStockPicker";
 import { useAuth } from "@/lib/auth-context";
 import { useLanguage, Language } from "@/lib/language-context";
 import { PreviewLanguageToggle } from "./LanguageToggle";
-import { numberToKannadaWords } from "@/lib/plant-translations";
+import { numberToKannadaWords, translateUnit } from "@/lib/plant-translations";
 import { translateOnTheFly } from "@/lib/translator";
 
 const DEFAULT_HEADER = {
   businessName: "SRI VIJAYALAKSHMI NURSERY",
   subheading1: "(Approved by Department of Horticulture)",
-  subheading2: "(All Kinds of Plants Production and Suppliers)",
-  address: "Harige B. H. Road, Shimoga - 577203",
+  subheading2: "All Kinds of Indoor & Outdoor Plants, Fruit Plants, Landscaping Materials",
+  address: "Harige B. H. Road, Shimoga - 577203, Karnataka",
   mobiles: "7353025302, 9448140483, 9606602194",
   gstin: "29ADXPV1295N2Z6",
   discount: 0,
@@ -72,6 +69,138 @@ export function getInvoicePdfFileName(custName: string, invNum?: string | null):
   return `${cleanCust}_${cleanNum}`;
 }
 
+function splitBusinessName(name: string) {
+  const trimmed = (name || "").trim();
+  const match = trimmed.match(/^(.*?)\s+(NURSERY|ನರ್ಸರಿ)$/i);
+  if (!match) return { main: trimmed, suffix: "" };
+  return { main: match[1].trim(), suffix: match[2] };
+}
+
+function titleCase(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+}
+
+const INDIAN_MOBILE_RE = /(?:\+91[\s-]?)?[6-9]\d{4}[\s-]?\d{5}(?!\d)/;
+
+function splitCustomerDetails(details: string) {
+  const raw = (details || "").trim();
+  const match = raw.match(INDIAN_MOBILE_RE);
+  if (!match) return { address: raw, phone: "" };
+  const phone = match[0].trim();
+  const address = raw
+    .replace(match[0], " ")
+    .replace(/^[\s,;:/\-]+|[\s,;:/\-]+$/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return { address, phone };
+}
+
+function joinCustomerDetails(address: string, phone: string) {
+  const cleanPhone = (phone || "").trim();
+  const cleanAddress = (address || "")
+    .replace(INDIAN_MOBILE_RE, " ")
+    .replace(/^[\s,;:/\-]+|[\s,;:/\-]+$/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (!cleanPhone) return cleanAddress;
+  if (!cleanAddress) return cleanPhone;
+  return `${cleanAddress}, ${cleanPhone}`;
+}
+
+function InvoiceSprig({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 64 64"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M8 56C18 44 30 32 56 10" />
+      <path d="M18 46C14 35 18 27 27 23C29 33 26 42 18 46Z" />
+      <path d="M28 36C25 25 29 17 38 13C40 23 37 32 28 36Z" />
+      <path d="M39 25C37 15 41 8 50 4C51 13 48 21 39 25Z" />
+      <path d="M15 49C25 50 33 46 38 38C29 36 20 39 15 49Z" />
+      <path d="M26 39C35 41 43 37 48 29C39 27 31 30 26 39Z" />
+    </svg>
+  );
+}
+
+function InvoiceCategoryIcon({
+  kind,
+  className = "",
+}: {
+  kind: "plants" | "pots" | "soil" | "fertilizers";
+  className?: string;
+}) {
+  if (kind === "plants") {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+        <path d="M12 21V11" />
+        <path d="M12 13C8 13 5 10 5 6C9 6 12 9 12 13Z" />
+        <path d="M12 10C16 10 19 7 19 3C15 3 12 6 12 10Z" />
+        <path d="M8 21H16" />
+      </svg>
+    );
+  }
+  if (kind === "pots") {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+        <path d="M5 10H19L17.5 21H6.5L5 10Z" />
+        <path d="M4 10H20" />
+        <path d="M9 10C9 7 10 5 12 4C14 5 15 7 15 10" />
+      </svg>
+    );
+  }
+  if (kind === "soil") {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+        <path d="M3 15C5 12 8 12 10 14C12 16 15 16 17 13C19 11 21 11 21 11" />
+        <path d="M3 19C5 16 8 16 10 18C12 20 15 20 17 17C19 15 21 15 21 15" />
+        <path d="M8 9C9 6 11 4 14 4C14 7 12 9 9 10" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="M9 3H15L14 8H10L9 3Z" />
+      <path d="M8 8H16V21H8V8Z" />
+      <path d="M10 12H14" />
+      <path d="M10 15H14" />
+      <path d="M12 8V21" />
+    </svg>
+  );
+}
+
+function InvoiceCheck({ checked }: { checked: boolean }) {
+  return (
+    <span
+      className={`flex h-[10px] w-[10px] shrink-0 items-center justify-center border border-[var(--invoice-line)] ${
+        checked ? "bg-[var(--invoice-ink)] text-white" : "bg-white"
+      }`}
+      aria-hidden="true"
+    >
+      {checked ? (
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-[8px] w-[8px]">
+          <path d="M2.5 6L5 8.5L9.5 3.5" />
+        </svg>
+      ) : null}
+    </span>
+  );
+}
+
+function InvoiceLeafIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="M20 4C12 4 5 8 5 16C5 18 6 20 6 20C8 14 13 10 19 9" />
+      <path d="M6 20C10 18 14 15 16 11" />
+    </svg>
+  );
+}
+
 export function InvoiceEditor({
   initialInvoice,
 }: {
@@ -95,9 +224,9 @@ export function InvoiceEditor({
   const [customerName, setCustomerName] = useState(
     initialInvoice?.customerName ?? "",
   );
-  const [customerDetails, setCustomerDetails] = useState(
-    initialInvoice?.customerDetails ?? "",
-  );
+  const initialCustomer = splitCustomerDetails(initialInvoice?.customerDetails ?? "");
+  const [customerDetails, setCustomerDetails] = useState(initialCustomer.address);
+  const [customerPhone, setCustomerPhone] = useState(initialCustomer.phone);
   const [notes, setNotes] = useState(initialInvoice?.notes ?? "");
   const [paymentMode, setPaymentMode] = useState<"CASH" | "CREDIT">("CASH");
   // Invoice version & header snapshot
@@ -143,14 +272,15 @@ export function InvoiceEditor({
       key: newKey(),
       stockItemId: i.stockItemId,
       name: i.name,
-      nameKn: (i as any).nameKn || (i as any).stockItem?.nameKn || null,
+      nameKn: i.nameKn || i.stockItem?.nameKn || null,
+      unit: i.unit || i.stockItem?.unit || null,
       price: Number(i.price),
       quantity: i.quantity,
-      category: (i as any).category || (i as any).stockItem?.category || "plants",
-      gstRate: (i as any).gstRate !== undefined && (i as any).gstRate !== null
-        ? Number((i as any).gstRate)
-        : (i as any).stockItem?.gstRate !== undefined && (i as any).stockItem?.gstRate !== null
-        ? Number((i as any).stockItem.gstRate)
+      category: i.category || i.stockItem?.category || "plants",
+      gstRate: i.gstRate !== undefined && i.gstRate !== null
+        ? Number(i.gstRate)
+        : i.stockItem?.gstRate !== undefined && i.stockItem?.gstRate !== null
+        ? Number(i.stockItem.gstRate)
         : 0,
     })) ?? [],
   );
@@ -254,6 +384,7 @@ export function InvoiceEditor({
             Boolean(parsed.invoiceNumber?.trim()) ||
             Boolean(parsed.customerName?.trim()) ||
             Boolean(parsed.customerDetails?.trim()) ||
+            Boolean(parsed.customerPhone?.trim()) ||
             Boolean(parsed.notes?.trim()) ||
             (Array.isArray(parsed.items) && parsed.items.length > 0) ||
             Boolean(parsed.customName?.trim()) ||
@@ -262,7 +393,14 @@ export function InvoiceEditor({
           if (hasContent) {
             if (parsed.invoiceNumber) setInvoiceNumber(parsed.invoiceNumber);
             if (parsed.customerName !== undefined) setCustomerName(parsed.customerName);
-            if (parsed.customerDetails !== undefined) setCustomerDetails(parsed.customerDetails);
+            if (parsed.customerDetails !== undefined || parsed.customerPhone !== undefined) {
+              const restoredCustomer =
+                parsed.customerPhone !== undefined
+                  ? { address: parsed.customerDetails ?? "", phone: parsed.customerPhone }
+                  : splitCustomerDetails(parsed.customerDetails ?? "");
+              setCustomerDetails(restoredCustomer.address);
+              setCustomerPhone(restoredCustomer.phone);
+            }
             if (parsed.notes !== undefined) setNotes(parsed.notes);
             if (parsed.paymentMode) setPaymentMode(parsed.paymentMode);
             if (parsed.paymentTag) setPaymentTag(parsed.paymentTag);
@@ -302,6 +440,7 @@ export function InvoiceEditor({
       Boolean(invoiceNumber?.trim()) ||
       Boolean(customerName.trim()) ||
       Boolean(customerDetails.trim()) ||
+      Boolean(customerPhone.trim()) ||
       Boolean(notes.trim()) ||
       items.length > 0 ||
       Boolean(customName.trim()) ||
@@ -316,6 +455,7 @@ export function InvoiceEditor({
             invoiceNumber,
             customerName,
             customerDetails,
+            customerPhone,
             notes,
             paymentMode,
             paymentTag,
@@ -340,6 +480,7 @@ export function InvoiceEditor({
     invoiceNumber,
     customerName,
     customerDetails,
+    customerPhone,
     notes,
     paymentMode,
     isSigned,
@@ -348,7 +489,10 @@ export function InvoiceEditor({
     customNameKn,
     customPrice,
     customQty,
+    customCategory,
+    customGstRate,
     customMode,
+    paymentTag,
   ]);
 
   useEffect(() => {
@@ -439,23 +583,7 @@ export function InvoiceEditor({
     };
   }, [customerName, effectiveInvoiceNumber, step, initialInvoice]);
 
-  // 1. Gross Subtotals
-  const plantsSubtotal = useMemo(
-    () =>
-      items
-        .filter((i) => !i.category || i.category === "plants")
-        .reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0),
-    [items],
-  );
-
-  const nonPlantsSubtotal = useMemo(
-    () =>
-      items
-        .filter((i) => i.category && i.category !== "plants")
-        .reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0),
-    [items],
-  );
-
+  // 1. Gross Subtotal
   const grossTotal = useMemo(
     () => items.reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0),
     [items],
@@ -520,16 +648,6 @@ export function InvoiceEditor({
     [taxTiers]
   );
 
-  const cgstAmount = useMemo(
-    () => taxTiers.reduce((sum, t) => sum + t.cgstAmount, 0),
-    [taxTiers]
-  );
-
-  const sgstAmount = useMemo(
-    () => taxTiers.reduce((sum, t) => sum + t.sgstAmount, 0),
-    [taxTiers]
-  );
-
   const totalTaxAmount = useMemo(
     () => taxTiers.reduce((sum, t) => sum + t.totalTax, 0),
     [taxTiers]
@@ -572,11 +690,19 @@ export function InvoiceEditor({
     month: "2-digit",
     day: "2-digit",
   });
-  const timeLabel = invoiceDateObj.toLocaleTimeString("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
+  const { main: businessMain, suffix: businessSuffix } = splitBusinessName(
+    headerDetails.businessName || tLang("brandFullName", billLanguage),
+  );
+  const tableRowCount = Math.max(10, items.length);
+  const isCreditPayment = paymentMode === "CREDIT";
+  const isUpiPayment = !isCreditPayment && paymentTag === "online";
+  const isCashPayment = !isCreditPayment && paymentTag === "cash";
+  const amountInWords =
+    finalTotal > 0
+      ? billLanguage === "kn"
+        ? numberToKannadaWords(finalTotal)
+        : numberToIndianWords(finalTotal)
+      : "";
 
   function addStockItem(force = false) {
     const stockItem = stock.find((s) => s.id === pickerStockId);
@@ -626,6 +752,7 @@ export function InvoiceEditor({
       updateItem(existingInBill.key, {
         quantity: totalRequested,
         nameKn: existingInBill.nameKn || stockItem.nameKn || null,
+        unit: existingInBill.unit || stockItem.unit || null,
         gstRate: stockItem.category === "plants" ? 0 : (Number(stockItem.gstRate) || 0),
       });
     } else {
@@ -636,6 +763,7 @@ export function InvoiceEditor({
           stockItemId: stockItem.id,
           name: stockItem.name,
           nameKn: stockItem.nameKn || null,
+          unit: stockItem.unit || "Nos",
           price: Number(stockItem.price) || 0,
           quantity: qty,
           category: stockItem.category || "plants",
@@ -660,6 +788,7 @@ export function InvoiceEditor({
         stockItemId: null,
         name,
         nameKn,
+        unit: "Nos",
         price,
         quantity,
         category: customCategory,
@@ -716,6 +845,7 @@ export function InvoiceEditor({
     setStatus("draft");
     setCustomerName("");
     setCustomerDetails("");
+    setCustomerPhone("");
     setNotes("");
     setItems([]);
     setCustomName("");
@@ -767,7 +897,7 @@ export function InvoiceEditor({
       const payload = {
         invoiceNumber: invoiceNumber?.trim() || undefined,
         customerName: customerName.trim(),
-        customerDetails: customerDetails.trim(),
+        customerDetails: joinCustomerDetails(customerDetails, customerPhone),
         notes: notes.trim(),
         force: hasShortage,
         paymentMode: modeToSave,
@@ -817,6 +947,7 @@ export function InvoiceEditor({
       } else if (selectedPaymentMode) {
         setPaymentTag(selectedPaymentMode);
       }
+      if (selectedPaymentMode) setPaymentMode("CASH");
       if (saved.version) setInvoiceVersion(saved.version);
       if (saved.headerSnapshot) {
         try {
@@ -1001,9 +1132,20 @@ export function InvoiceEditor({
                 />
               </label>
 
-              {/* Customer Details / Address / Phone */}
+              {/* Customer Phone */}
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-ink">{t("customerDetailsLabel")}</span>
+                <span className="text-xs font-medium text-ink">{t("phoneLabel")}</span>
+                <input
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="98450 12345"
+                  className="rounded-md border border-line-strong bg-surface px-3 py-2 text-sm font-mono text-ink outline-none focus:border-pine"
+                />
+              </label>
+
+              {/* Customer Address */}
+              <label className="flex flex-col gap-1 sm:col-span-2">
+                <span className="text-xs font-medium text-ink">{t("addressLabel")}</span>
                 <input
                   value={customerDetails}
                   onChange={(e) => setCustomerDetails(e.target.value)}
@@ -1831,436 +1973,422 @@ export function InvoiceEditor({
                 style={{ colorScheme: "light" }}
                 className="w-[720px] shrink-0 rounded-lg border border-slate-300 bg-white p-6 sm:p-7 text-[#1b365d] shadow-md print:w-full print:max-w-none print:rounded-none print:border-none print:p-0 print:shadow-none print:shrink"
               >
-            {/* Top GSTIN & Mobiles Row (Clean contact info without big version badge) */}
-            <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold tracking-tight text-[#1b365d]">
-              <span>{tLang("gstinLabel", billLanguage)} {headerDetails.gstin}</span>
-              <span>{tLang("mobilesLabel", billLanguage)} {headerDetails.mobiles}</span>
-            </div>
+            {/* ============================================================ */}
+            {/* PRINT SHEET: CLASSIC BILL-BOOK LAYOUT                         */}
+            {/* ============================================================ */}
 
-            {/* Nursery Logo placed right on top of business name, centered */}
-            <div className="mt-3 mb-1.5 flex items-center justify-center">
-              <div
-                id="nursery-logo-placeholder"
-                className="flex items-center justify-center shrink-0"
-                title={headerDetails.logoData ? (billLanguage === "kn" ? "ಶ್ರೀ ವಿಜಯಲಕ್ಷ್ಮಿ ನರ್ಸರಿ ಲಾಂಛನ" : "Sri Vijayalakshmi Nursery Logo") : "Logo Placeholder"}
-              >
-                {headerDetails.logoData ? (
-                  headerDetails.logoData.trim().startsWith("<svg") ? (
-                    <div
-                      className="h-12 w-12 sm:h-14 sm:w-14 flex items-center justify-center [&>svg]:max-h-full [&>svg]:max-w-full [&>svg]:w-auto [&>svg]:h-auto object-contain text-[#1b365d]"
-                      dangerouslySetInnerHTML={{ __html: headerDetails.logoData }}
-                    />
+            {/* Brand Header: logo left, centered wordmark, script tagline right */}
+            <div className="relative flex break-inside-avoid items-start gap-3">
+              <div className="flex w-[82px] shrink-0 items-start justify-start pt-1">
+                <div
+                  id="nursery-logo-placeholder"
+                  className="flex h-[70px] w-[70px] items-center justify-center overflow-hidden"
+                  title={headerDetails.logoData ? (billLanguage === "kn" ? "ಶ್ರೀ ವಿಜಯಲಕ್ಷ್ಮಿ ನರ್ಸರಿ ಲಾಂಛನ" : "Sri Vijayalakshmi Nursery Logo") : "Botanical logo"}
+                >
+                  {headerDetails.logoData ? (
+                    headerDetails.logoData.trim().startsWith("<svg") ? (
+                      <div
+                        className="flex h-full w-full items-center justify-center [&>svg]:h-full [&>svg]:w-full"
+                        dangerouslySetInnerHTML={{ __html: headerDetails.logoData }}
+                      />
+                    ) : (
+                      <img
+                        src={headerDetails.logoData}
+                        alt="Nursery Logo"
+                        className="h-full w-full object-contain"
+                      />
+                    )
                   ) : (
-                    <img
-                      src={headerDetails.logoData}
-                      alt="Nursery Logo"
-                      className="h-12 w-12 sm:h-14 sm:w-14 object-contain"
-                    />
-                  )
-                ) : (
-                  <div className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded border border-dashed border-[#1b365d]/50 bg-blue-50/60 text-[#1b365d]">
-                    <svg
-                      className="h-7 w-7 opacity-80"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M12 2a10 10 0 0 0-10 10c0 5.523 4.477 10 10 10s10-4.477 10-10A10 10 0 0 0 12 2z" />
-                      <path d="M12 18V9" strokeWidth="2" />
-                      <path d="M12 13c-2.5 0-4-2-4-4 2 0 4 1.5 4 4z" fill="currentColor" fillOpacity="0.25" />
-                      <path d="M12 11c2.5 0 4-2 4-4-2 0-4 1.5-4 4z" fill="currentColor" fillOpacity="0.25" />
-                    </svg>
+                    <InvoiceSprig className="h-16 w-16 text-[var(--invoice-ink)]" />
+                  )}
+                </div>
+              </div>
+
+              <div className="min-w-0 flex-1 text-center">
+                <div className="font-serif text-[25px] font-bold uppercase leading-none tracking-[0.06em] text-[var(--invoice-ink)]">
+                  {businessMain}
+                </div>
+                {businessSuffix ? (
+                  <div className="mt-1 flex items-center justify-center gap-2">
+                    <span className="h-px flex-1 bg-[var(--invoice-line)]" />
+                    <span className="whitespace-nowrap pl-[0.28em] font-serif text-[17px] font-semibold uppercase leading-none tracking-[0.28em] text-[var(--invoice-ink)]">
+                      {businessSuffix}
+                    </span>
+                    <span className="h-px flex-1 bg-[var(--invoice-line)]" />
                   </div>
-                )}
+                ) : null}
+                <p className="mt-1.5 text-[9.5px] font-semibold leading-tight text-[var(--invoice-ink)]">
+                  {billLanguage === "kn" ? tLang("subheading1", "kn") : headerDetails.subheading1}
+                </p>
+                <p className="text-[9.5px] font-semibold leading-tight text-[var(--invoice-ink)]">
+                  {billLanguage === "kn" ? tLang("subheading2", "kn") : headerDetails.subheading2}
+                </p>
+                <p className="mt-0.5 text-[10px] font-bold leading-tight text-[var(--invoice-ink)]">
+                  {billLanguage === "kn" ? tLang("nurseryAddress", "kn") : headerDetails.address}
+                </p>
               </div>
-            </div>
 
-            {/* Nursery Main Title */}
-            <h1 className="text-center font-serif text-xl sm:text-2xl md:text-[26px] font-extrabold uppercase tracking-wide text-[#1b365d]">
-              {billLanguage === "kn"
-                ? (tLang("brandFullName", "kn") || "ಶ್ರೀ ವಿಜಯಲಕ್ಷ್ಮಿ ನರ್ಸರಿ")
-                : headerDetails.businessName}
-            </h1>
-
-            {/* Centered Government Approval & Address Details */}
-            <div className="text-center text-[11px] sm:text-xs font-semibold text-[#1b365d] leading-tight px-14 sm:px-16 my-1.5">
-              <p>{billLanguage === "kn" ? tLang("subheading1", "kn") : headerDetails.subheading1}</p>
-              <p>{billLanguage === "kn" ? tLang("subheading2", "kn") : headerDetails.subheading2}</p>
-              <p className="font-bold">{billLanguage === "kn" ? tLang("nurseryAddress", "kn") : headerDetails.address}</p>
-            </div>
-
-            {/* Document Title: BILL OF SUPPLIERS / CASH/CREDIT */}
-            <div className="mt-2 text-center text-[#1b365d]">
-              <span className="inline-block border-b border-[#1b365d] pb-0.5 font-bold uppercase tracking-wider text-xs sm:text-sm">
-                {tLang("billOfSuppliers", billLanguage)}
-              </span>
-              <div className="mt-0.5 text-[11px] sm:text-xs font-bold tracking-wide">
-                {status === "final" ? (
-                  paymentMode === "CASH" ? tLang("cash", billLanguage) : tLang("credit", billLanguage)
-                ) : (
-                  <span className="inline-flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMode("CASH")}
-                      className={`px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
-                        paymentMode === "CASH" ? "bg-[#1b365d] text-white" : "hover:underline"
-                      }`}
-                    >
-                      {tLang("cash", billLanguage)}
-                    </button>
-                    <span>/</span>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMode("CREDIT")}
-                      className={`px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
-                        paymentMode === "CREDIT" ? "bg-[#1b365d] text-white" : "hover:underline"
-                      }`}
-                    >
-                      {tLang("credit", billLanguage)}
-                    </button>
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Metadata Lines: No. & Date. */}
-            <div className="mt-3 flex items-baseline justify-between text-xs sm:text-sm font-semibold text-[#1b365d]">
-              <div className="flex items-baseline gap-1.5 flex-1 max-w-[45%]">
-                <span className="font-bold">{tLang("billNo", billLanguage)}</span>
-                {status === "final" ? (
-                  <span className="flex-1 font-mono font-bold tracking-wider border-b border-dotted border-[#1b365d] px-2 text-xs sm:text-sm text-[#1b365d]">
-                    {invoiceNumber ?? "—"}
-                  </span>
-                ) : (
-                  <input
-                    value={invoiceNumber || ""}
-                    onChange={(e) => setInvoiceNumber(e.target.value)}
-                    placeholder={suggestedInvoiceNumber || "Invoice No."}
-                    style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
-                    className="flex-1 font-mono font-bold tracking-wider border-b border-dotted border-[#1b365d] bg-transparent px-2 text-xs sm:text-sm text-[#1b365d] outline-none placeholder:text-[#1b365d]/50 focus:bg-blue-50/50"
-                    title="Invoice number (editable)"
-                  />
-                )}
-              </div>
-              <div className="flex items-baseline gap-1.5 flex-1 max-w-[50%] justify-end">
-                <span className="font-bold">{tLang("date", billLanguage)}</span>
-                <span className="font-mono font-bold border-b border-dotted border-[#1b365d] px-2 text-xs sm:text-sm text-[#1b365d] min-w-[120px] text-right">
-                  {dateLabel} <span className="text-[10px] sm:text-xs font-normal text-[#1b365d]/85 font-sans whitespace-nowrap ml-1">{timeLabel}</span>
-                </span>
-              </div>
-            </div>
-
-            {/* Customer Address Block: "To, ......" */}
-            <div className="mt-2 text-xs sm:text-sm text-[#1b365d]">
-              <div className="flex items-baseline gap-1.5">
-                <span className="font-bold shrink-0">{tLang("toCustomer", billLanguage)}</span>
-                {status === "final" ? (
-                  <span className="flex-1 border-b border-dotted border-[#1b365d] px-2 font-medium">
-                    {customerName || "—"}
-                  </span>
-                ) : (
-                  <input
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder={billLanguage === "kn" ? "ಗ್ರಾಹಕರ ಹೆಸರು" : "Customer name"}
-                    style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
-                    className="flex-1 border-b border-dotted border-[#1b365d] bg-transparent px-2 py-0.5 text-xs sm:text-sm outline-none font-medium text-[#1b365d] placeholder:text-[#1b365d]/50"
-                  />
-                )}
-              </div>
-              <div className="mt-1 flex items-baseline">
-                {status === "final" ? (
-                  <span className="w-full border-b border-dotted border-[#1b365d] px-2 text-xs font-normal min-h-[22px] block">
-                    {customerDetails || ""}
-                  </span>
-                ) : (
-                  <input
-                    value={customerDetails}
-                    onChange={(e) => setCustomerDetails(e.target.value)}
-                    placeholder={billLanguage === "kn" ? "ವಿಳಾಸ / ಫೋನ್ ಸಂಖ್ಯೆ / ಸ್ಥಳ" : "Address / Phone number / Location"}
-                    style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
-                    className="w-full border-b border-dotted border-[#1b365d] bg-transparent px-2 py-0.5 text-xs outline-none text-[#1b365d] placeholder:text-[#1b365d]/50"
-                  />
-                )}
-              </div>
-            </div>
-
-            {/* ============================================================ */}
-            {/* THE TABLE: Rounded corners & continuous vertical blue lines  */}
-            {/* ============================================================ */}
-            <div className="mt-3 rounded-xl border-2 border-[#1b365d] overflow-hidden bg-white text-[#1b365d]">
-              {/* Header Row */}
-              <div className="grid grid-cols-[44px_1fr_52px_90px_120px] sm:grid-cols-[48px_1fr_56px_96px_130px] border-b-2 border-[#1b365d] text-center text-[11px] sm:text-xs font-bold bg-white">
-                <div className="py-2 px-1 border-r border-[#1b365d] flex items-center justify-center">
-                  <span>{billLanguage === "kn" ? "ಕ್ರ.ಸಂ." : <>Sl.<br />No.</>}</span>
+              <div className="flex w-[82px] shrink-0 flex-col items-center pt-2 text-center">
+                <div
+                  className={`text-[11px] font-semibold leading-[1.15] text-[var(--invoice-ink)] ${
+                    billLanguage === "en" ? "invoice-script" : "font-serif"
+                  }`}
+                >
+                  {tLang("tagline", billLanguage)}
                 </div>
-                <div className="py-2 px-2 border-r border-[#1b365d] flex items-center justify-center">
-                  {tLang("particulars", billLanguage)}
+                <InvoiceSprig className="mt-1 h-5 w-14 text-[var(--invoice-ink)]/60" />
+              </div>
+            </div>
+
+            {/* Category strip */}
+            <div className="mt-2.5 grid grid-cols-4 border-y border-[var(--invoice-line)] py-1.5 text-[8.5px] font-semibold leading-tight text-[var(--invoice-ink)]">
+              {[
+                { kind: "plants" as const, label: "categoryPlants" as const },
+                { kind: "pots" as const, label: "categoryPots" as const },
+                { kind: "soil" as const, label: "categorySoil" as const },
+                { kind: "fertilizers" as const, label: "categoryFertilizers" as const },
+              ].map((category, index) => (
+                <div
+                  key={category.kind}
+                  className={`flex items-center justify-center gap-1.5 px-1 ${
+                    index < 3 ? "border-r border-[var(--invoice-line)]" : ""
+                  }`}
+                >
+                  <InvoiceCategoryIcon kind={category.kind} className="h-4 w-4 shrink-0" />
+                  <span>{tLang(category.label, billLanguage)}</span>
                 </div>
-                <div className="py-2 px-1 border-r border-[#1b365d] flex items-center justify-center">
+              ))}
+            </div>
+
+            {/* GSTIN and Mobiles */}
+            <div className="mt-1.5 flex items-center justify-between gap-3 border-b border-[var(--invoice-line)] pb-1 text-[9px] font-bold tracking-tight text-[var(--invoice-ink)]">
+              <span className="min-w-0 truncate">{tLang("gstinLabel", billLanguage)} {headerDetails.gstin}</span>
+              <span className="min-w-0 truncate text-right">{tLang("mobilesLabel", billLanguage)} {headerDetails.mobiles}</span>
+            </div>
+
+            {/* Document title */}
+            <div className="mt-2 flex justify-center">
+              <div className="border border-[var(--invoice-line)] px-10 py-1 font-serif text-[12px] font-bold uppercase tracking-[0.24em] text-[var(--invoice-ink)]">
+                {tLang("billInvoiceTitle", billLanguage)}
+              </div>
+            </div>
+
+            {/* Invoice metadata and payment mode */}
+            <div className="mt-2 flex items-start justify-between gap-4">
+              <div className="flex-1 space-y-1.5 pt-1 text-[10px] font-semibold text-[var(--invoice-ink)]">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="w-[38px] shrink-0">{tLang("billNo", billLanguage)}</span>
+                  <span>:</span>
+                  {status === "final" ? (
+                    <span className="flex-1 border-b border-dotted border-[var(--invoice-line)] px-1 font-mono font-bold tracking-wider">
+                      {invoiceNumber ?? "—"}
+                    </span>
+                  ) : (
+                    <input
+                      value={invoiceNumber || ""}
+                      onChange={(e) => setInvoiceNumber(e.target.value)}
+                      placeholder={suggestedInvoiceNumber || "Invoice No."}
+                      style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
+                      className="min-w-0 flex-1 border-b border-dotted border-[var(--invoice-line)] bg-transparent px-1 font-mono font-bold tracking-wider text-[var(--invoice-ink)] outline-none placeholder:text-[#1b365d]/50 focus:bg-blue-50/50"
+                      title="Invoice number (editable)"
+                    />
+                  )}
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="w-[38px] shrink-0">{tLang("date", billLanguage)}</span>
+                  <span>:</span>
+                  <span className="flex-1 border-b border-dotted border-[var(--invoice-line)] px-1 font-mono font-bold">
+                    {dateLabel}
+                  </span>
+                </div>
+              </div>
+
+              <div className="w-[196px] shrink-0 border border-[var(--invoice-line)] p-1.5 text-[var(--invoice-ink)]">
+                <p className="border-b border-[var(--invoice-line)] pb-0.5 text-[9px] font-bold uppercase tracking-wide">
+                  {tLang("paymentModeTitle", billLanguage)}
+                </p>
+                <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-1 text-[9px] font-semibold">
+                  <div className="flex items-center gap-1.5">
+                    <InvoiceCheck checked={isCashPayment} />
+                    <span>{billLanguage === "en" ? titleCase(tLang("cash", billLanguage)) : tLang("cash", billLanguage)}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <InvoiceCheck checked={isUpiPayment} />
+                    <span className="capitalize">{tLang("upi", billLanguage)}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <InvoiceCheck checked={false} />
+                    <span>{tLang("card", billLanguage)}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <InvoiceCheck checked={isCreditPayment} />
+                    <span>{billLanguage === "en" ? titleCase(tLang("credit", billLanguage)) : tLang("credit", billLanguage)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Customer block */}
+            <div className="mt-2 text-[10px] text-[var(--invoice-ink)]">
+              <p className="font-bold">{tLang("toCustomer", billLanguage)}</p>
+              <div className="mt-1 space-y-1">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="w-[96px] shrink-0 font-semibold">{tLang("customerNameLabel", billLanguage)}</span>
+                  <span>:</span>
+                  {status === "final" ? (
+                    <span className="min-h-[16px] flex-1 border-b border-dotted border-[var(--invoice-line)] px-1 font-medium">
+                      {customerName || ""}
+                    </span>
+                  ) : (
+                    <input
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder={billLanguage === "kn" ? "ಗ್ರಾಹಕರ ಹೆಸರು" : "Customer name"}
+                      style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
+                      className="min-w-0 flex-1 border-b border-dotted border-[var(--invoice-line)] bg-transparent px-1 py-0.5 font-medium text-[var(--invoice-ink)] outline-none placeholder:text-[#1b365d]/50 focus:bg-blue-50/50"
+                    />
+                  )}
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="w-[96px] shrink-0 font-semibold">{tLang("addressLabel", billLanguage)}</span>
+                  <span>:</span>
+                  {status === "final" ? (
+                    <span className="min-h-[16px] flex-1 border-b border-dotted border-[var(--invoice-line)] px-1">
+                      {customerDetails || ""}
+                    </span>
+                  ) : (
+                    <input
+                      value={customerDetails}
+                      onChange={(e) => setCustomerDetails(e.target.value)}
+                      placeholder={tLang("customerDetailsPlaceholder", billLanguage)}
+                      style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
+                      className="min-w-0 flex-1 border-b border-dotted border-[var(--invoice-line)] bg-transparent px-1 py-0.5 text-[var(--invoice-ink)] outline-none placeholder:text-[#1b365d]/50 focus:bg-blue-50/50"
+                    />
+                  )}
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="w-[96px] shrink-0 font-semibold">{tLang("phoneLabel", billLanguage)}</span>
+                  <span>:</span>
+                  {status === "final" ? (
+                    <span className="min-h-[16px] flex-1 border-b border-dotted border-[var(--invoice-line)] px-1 font-mono">
+                      {customerPhone || ""}
+                    </span>
+                  ) : (
+                    <input
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      placeholder="98450 12345"
+                      style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
+                      className="min-w-0 flex-1 border-b border-dotted border-[var(--invoice-line)] bg-transparent px-1 py-0.5 font-mono text-[var(--invoice-ink)] outline-none placeholder:text-[#1b365d]/50 focus:bg-blue-50/50"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Line-item table */}
+            <div className="mt-2.5 border border-[var(--invoice-line)] text-[var(--invoice-ink)]">
+              <div className="grid grid-cols-[36px_minmax(0,1fr)_44px_54px_82px_96px] border-b-2 border-[var(--invoice-line)] bg-[var(--invoice-fill)] text-center text-[9px] font-bold uppercase tracking-wide">
+                <div className="flex items-center justify-center border-r border-[var(--invoice-line)] px-1 py-1.5">
+                  {tLang("slNo", billLanguage)}
+                </div>
+                <div className="flex items-center justify-center border-r border-[var(--invoice-line)] px-1.5 py-1.5">
+                  {tLang("itemNameDescription", billLanguage)}
+                </div>
+                <div className="flex items-center justify-center border-r border-[var(--invoice-line)] px-1 py-1.5">
                   {tLang("qty", billLanguage)}
                 </div>
-                <div className="py-2 px-1 border-r border-[#1b365d] flex items-center justify-center">
+                <div className="flex items-center justify-center border-r border-[var(--invoice-line)] px-1 py-1.5">
+                  {tLang("unitLabel", billLanguage)}
+                </div>
+                <div className="flex items-center justify-center border-r border-[var(--invoice-line)] px-1 py-1.5">
                   {tLang("rate", billLanguage)}
                 </div>
-                <div className="py-2 px-1 flex items-center justify-center">
+                <div className="flex items-center justify-center px-1 py-1.5">
                   {tLang("amount", billLanguage)}
                 </div>
               </div>
 
-              {/* Table Body: Has fixed minimum height so vertical dividing lines run down */}
-              <div className="relative min-h-[360px] sm:min-h-[420px] flex flex-col justify-between">
-                {/* Continuous Vertical Blue Dividing Lines */}
-                <div className="absolute inset-0 grid grid-cols-[44px_1fr_52px_90px_120px] sm:grid-cols-[48px_1fr_56px_96px_130px] pointer-events-none">
-                  <div className="border-r border-[#1b365d] h-full" />
-                  <div className="border-r border-[#1b365d] h-full" />
-                  <div className="border-r border-[#1b365d] h-full" />
-                  <div className="border-r border-[#1b365d] h-full" />
-                  <div className="h-full" />
-                </div>
-
-                {/* Line Items List */}
-                <div className="relative z-10">
-                  {items.map((item, idx) => (
+              {Array.from({ length: tableRowCount }).map((_, index) => {
+                const item = items[index];
+                if (!item) {
+                  return (
                     <div
-                      key={item.key}
-                      className="grid grid-cols-[44px_1fr_52px_90px_120px] sm:grid-cols-[48px_1fr_56px_96px_130px] text-xs sm:text-sm border-b border-dotted border-[#1b365d]/40 group items-center"
+                      key={`blank-row-${index}`}
+                      className="grid min-h-[27px] grid-cols-[36px_minmax(0,1fr)_44px_54px_82px_96px] border-b border-[var(--invoice-line)] last:border-b-0"
                     >
-                      {/* Sl. No. */}
-                      <div className="py-1.5 px-1 text-center font-mono font-medium">
-                        {idx + 1}
-                      </div>
-
-                      {/* Particulars */}
-                      <div className="py-1.5 px-2 font-medium flex items-center justify-between">
-                        <span className="truncate pr-1">
-                          {billLanguage === "kn"
-                            ? (item.nameKn || stock.find((s) => s.id === item.stockItemId)?.nameKn || translateItem(item.name, "kn"))
-                            : item.name}
-                        </span>
-                        {status !== "final" && (
-                          <button
-                            type="button"
-                            onClick={() => removeItem(item.key)}
-                            className="opacity-0 group-hover:opacity-100 text-rust hover:text-red-700 print:hidden p-0.5 shrink-0"
-                            title={tLang("removeItem", billLanguage)}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Qty. */}
-                      <div className="py-1.5 px-1 text-center font-mono">
-                        {status === "final" ? (
-                          item.quantity
-                        ) : (
-                          <input
-                            type="number"
-                            min={0}
-                            value={item.quantity === 0 ? "0" : item.quantity || ""}
-                            onChange={(e) =>
-                              updateItem(item.key, {
-                                quantity: e.target.value === "" ? 0 : Math.max(0, Number(e.target.value)),
-                              })
-                            }
-                            placeholder="0"
-                            style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
-                            className="w-full text-center bg-transparent outline-none focus:bg-blue-50/70 font-mono font-medium text-[#1b365d]"
-                          />
-                        )}
-                      </div>
-
-                      {/* Rate */}
-                      <div className="py-1.5 px-1 text-right font-mono pr-2 whitespace-nowrap">
-                        {status === "final" ? (
-                          formatMoney(item.price)
-                        ) : (
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            value={item.price === 0 ? "0" : item.price || ""}
-                            onChange={(e) =>
-                              updateItem(item.key, {
-                                price: e.target.value === "" ? 0 : Math.max(0, Number(e.target.value)),
-                              })
-                            }
-                            placeholder="0.00"
-                            style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
-                            className="w-full text-right bg-transparent outline-none focus:bg-blue-50/70 font-mono text-[#1b365d]"
-                          />
-                        )}
-                      </div>
-
-                      {/* Amount */}
-                      <div className="py-1.5 px-2 text-right font-mono font-semibold tabular whitespace-nowrap">
-                        {formatMoney(item.price * item.quantity)}
-                      </div>
+                      <div className="border-r border-[var(--invoice-line)]" />
+                      <div className="border-r border-[var(--invoice-line)]" />
+                      <div className="border-r border-[var(--invoice-line)]" />
+                      <div className="border-r border-[var(--invoice-line)]" />
+                      <div className="border-r border-[var(--invoice-line)]" />
+                      <div />
                     </div>
-                  ))}
+                  );
+                }
 
-                  {items.length === 0 && (
-                    <div className="p-8 text-center text-xs sm:text-sm text-[#1b365d]/60 italic print:hidden">
-                      {tLang("emptyItemsNotice", billLanguage)}
+                const itemUnit = item.unit || stock.find((s) => s.id === item.stockItemId)?.unit || "Nos";
+                const displayUnit = billLanguage === "kn" ? (translateUnit(itemUnit, "kn") || itemUnit) : itemUnit;
+
+                return (
+                  <div
+                    key={item.key}
+                    className="group grid min-h-[27px] grid-cols-[36px_minmax(0,1fr)_44px_54px_82px_96px] break-inside-avoid border-b border-[var(--invoice-line)] text-[9.5px] last:border-b-0"
+                  >
+                    <div className="flex items-center justify-center border-r border-[var(--invoice-line)] px-1 py-1 font-mono">
+                      {index + 1}
                     </div>
-                  )}
-                </div>
-
-                {/* Bottom Calculation Rows */}
-                <div className="relative z-10">
-                  {/* If discount or non-plant taxes exist, show Subtotal row */}
-                  {(discountAmount > 0 || taxableAmount > 0) && (
-                    <div className="grid grid-cols-[44px_1fr_52px_90px_120px] sm:grid-cols-[48px_1fr_56px_96px_130px] border-t-2 border-[#1b365d] bg-white text-xs">
-                      <div className="border-r border-[#1b365d] py-1.5" />
-                      <div className="border-r border-[#1b365d] px-2 py-1.5 font-semibold text-[#1b365d]">
-                        {tLang("subtotal", billLanguage)}
-                      </div>
-                      <div className="border-r border-[#1b365d] py-1.5" />
-                      <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-xs uppercase bg-blue-50/10 whitespace-nowrap">
-                        {tLang("subtotal", billLanguage)}
-                      </div>
-                      <div className="py-1.5 px-2 text-right font-mono font-bold text-xs sm:text-sm tabular bg-blue-50/10 whitespace-nowrap">
-                        {formatMoney(grossTotal)}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Discount Row (if discount applied) */}
-                  {discountAmount > 0 && (
-                    <div className="grid grid-cols-[44px_1fr_52px_90px_120px] sm:grid-cols-[48px_1fr_56px_96px_130px] border-t border-[#1b365d]/40 bg-white text-xs">
-                      <div className="border-r border-[#1b365d] py-1.5" />
-                      <div className="border-r border-[#1b365d] px-2 py-1.5 font-medium text-[#1b365d] flex items-center justify-between">
-                        <span>{tLang("discount", billLanguage)} {discountPercent ? `(${discountPercent}%)` : ""}</span>
-                      </div>
-                      <div className="border-r border-[#1b365d] py-1.5" />
-                      <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-xs uppercase text-rust whitespace-nowrap">
-                        {tLang("discount", billLanguage)}
-                      </div>
-                      <div className="py-1.5 px-2 text-right font-mono font-bold text-xs sm:text-sm tabular text-rust whitespace-nowrap">
-                        - {formatMoney(discountAmount)}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Item-level CGST & SGST Rows (applied strictly to non-plants) */}
-                  {taxTiers.map((tier) => (
-                    <div key={`tier-${tier.gstRate}`}>
-                      {/* CGST */}
-                      <div className="grid grid-cols-[44px_1fr_52px_90px_120px] sm:grid-cols-[48px_1fr_56px_96px_130px] border-t border-[#1b365d]/40 bg-white text-xs">
-                        <div className="border-r border-[#1b365d] py-1.5" />
-                        <div className="border-r border-[#1b365d] px-2 py-1.5 text-[10px] sm:text-xs text-[#1b365d] leading-tight">
-                          <span>
-                            {tLang("cgst", billLanguage)} @ {tier.cgstRate}% ({billLanguage === "kn" ? "ಸಸ್ಯೇತರ ಸರಕುಗಳ ಮೇಲೆ" : "on taxable goods"} ₹{formatMoney(tier.taxableAmount)})
-                          </span>
-                        </div>
-                        <div className="border-r border-[#1b365d] py-1.5" />
-                        <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-[11px] uppercase whitespace-nowrap">
-                          CGST
-                        </div>
-                        <div className="py-1.5 px-2 text-right font-mono font-semibold text-xs sm:text-sm tabular whitespace-nowrap">
-                          + {formatMoney(tier.cgstAmount)}
-                        </div>
-                      </div>
-
-                      {/* SGST */}
-                      <div className="grid grid-cols-[44px_1fr_52px_90px_120px] sm:grid-cols-[48px_1fr_56px_96px_130px] border-t border-[#1b365d]/40 bg-white text-xs">
-                        <div className="border-r border-[#1b365d] py-1.5" />
-                        <div className="border-r border-[#1b365d] px-2 py-1.5 text-[10px] sm:text-xs text-[#1b365d] leading-tight">
-                          <span>
-                            {tLang("sgst", billLanguage)} @ {tier.sgstRate}% ({billLanguage === "kn" ? "ಸಸ್ಯೇತರ ಸರಕುಗಳ ಮೇಲೆ" : "on taxable goods"} ₹{formatMoney(tier.taxableAmount)})
-                          </span>
-                        </div>
-                        <div className="border-r border-[#1b365d] py-1.5" />
-                        <div className="border-r border-[#1b365d] py-1.5 px-1 text-center font-bold text-[11px] uppercase whitespace-nowrap">
-                          SGST
-                        </div>
-                        <div className="py-1.5 px-2 text-right font-mono font-semibold text-xs sm:text-sm tabular whitespace-nowrap">
-                          + {formatMoney(tier.sgstAmount)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Final TOTAL Row */}
-                  <div className={`grid grid-cols-[44px_1fr_52px_90px_120px] sm:grid-cols-[48px_1fr_56px_96px_130px] ${discountAmount > 0 || taxableAmount > 0 ? "border-t border-[#1b365d]" : "border-t-2 border-[#1b365d]"} ${showBillableHighlight ? "bg-emerald-50/40" : "bg-white"}`}>
-                    {/* Sl. No. blank space */}
-                    <div className="border-r border-[#1b365d] py-2" />
-
-                    {/* Rs ..................... Amount in words */}
-                    <div className="border-r border-[#1b365d] px-2 py-2 flex flex-col justify-center text-xs sm:text-sm font-semibold min-w-0">
-                      <div className="flex items-baseline min-w-0">
-                        <span className="font-bold mr-1 shrink-0">{tLang("rsLabel", billLanguage)}</span>
-                        <span className="flex-1 border-b border-dotted border-[#1b365d] pb-0.5 text-[11px] sm:text-xs font-normal text-[#1b365d] truncate px-1">
-                          {finalTotal > 0
-                            ? (billLanguage === "kn" ? numberToKannadaWords(finalTotal) : numberToIndianWords(finalTotal))
-                            : "......................................................................."}
-                        </span>
-                      </div>
-                      {taxableAmount === 0 && (
-                        <span className="text-[9px] text-[#1b365d]/60 font-normal italic mt-0.5">
-                          * {tLang("plantsTaxExempt", billLanguage)}
-                        </span>
+                    <div className="flex min-w-0 items-center justify-between gap-1 border-r border-[var(--invoice-line)] px-1.5 py-1 font-medium">
+                      <span className="min-w-0 break-words">
+                        {billLanguage === "kn"
+                          ? (item.nameKn || stock.find((s) => s.id === item.stockItemId)?.nameKn || translateItem(item.name, "kn"))
+                          : item.name}
+                      </span>
+                      {status !== "final" && (
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.key)}
+                          className="shrink-0 p-0.5 text-rust opacity-0 transition-opacity hover:text-red-700 group-hover:opacity-100 print:hidden"
+                          title={tLang("removeItem", billLanguage)}
+                        >
+                          <Trash2 size={11} />
+                        </button>
                       )}
                     </div>
-
-                    {/* Qty blank space */}
-                    <div className="border-r border-[#1b365d] py-2" />
-
-                    {/* TOTAL box */}
-                    <div className={`border-r border-[#1b365d] py-2 px-1 text-center font-extrabold text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center whitespace-nowrap ${showBillableHighlight ? "bg-emerald-100 text-emerald-950 font-black" : "bg-blue-50/20"}`}>
-                      {tLang("total", billLanguage)}
+                    <div className="flex items-center justify-center border-r border-[var(--invoice-line)] px-1 py-1 font-mono">
+                      {status === "final" ? (
+                        item.quantity
+                      ) : (
+                        <input
+                          type="number"
+                          min={0}
+                          value={item.quantity === 0 ? "0" : item.quantity || ""}
+                          onChange={(e) =>
+                            updateItem(item.key, {
+                              quantity: e.target.value === "" ? 0 : Math.max(0, Number(e.target.value)),
+                            })
+                          }
+                          placeholder="0"
+                          style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
+                          className="w-full bg-transparent text-center font-mono text-[var(--invoice-ink)] outline-none focus:bg-blue-50/70"
+                        />
+                      )}
                     </div>
-
-                    {/* Total amount box */}
-                    <div className={`py-2 px-2 text-right font-mono font-extrabold text-sm sm:text-base tabular flex items-center justify-end whitespace-nowrap overflow-hidden ${showBillableHighlight ? "bg-emerald-100 text-emerald-950 font-black" : "bg-blue-50/20"}`}>
-                      <span className="whitespace-nowrap shrink-0">{formatMoney(finalTotal)}</span>
+                    <div className="flex items-center justify-center border-r border-[var(--invoice-line)] px-1 py-1 text-center">
+                      {displayUnit}
+                    </div>
+                    <div className="flex items-center justify-end border-r border-[var(--invoice-line)] px-1.5 py-1 font-mono">
+                      {status === "final" ? (
+                        formatMoney(item.price)
+                      ) : (
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={item.price === 0 ? "0" : item.price || ""}
+                          onChange={(e) =>
+                            updateItem(item.key, {
+                              price: e.target.value === "" ? 0 : Math.max(0, Number(e.target.value)),
+                            })
+                          }
+                          placeholder="0.00"
+                          style={{ color: "#1b365d", WebkitTextFillColor: "#1b365d" }}
+                          className="w-full bg-transparent text-right font-mono text-[var(--invoice-ink)] outline-none focus:bg-blue-50/70"
+                        />
+                      )}
+                    </div>
+                    <div className="flex items-center justify-end px-1.5 py-1 font-mono font-semibold tabular whitespace-nowrap">
+                      {formatMoney(item.price * item.quantity)}
                     </div>
                   </div>
+                );
+              })}
+            </div>
+
+            {/* Amount in words and totals */}
+            <div className="mt-2.5 flex break-inside-avoid items-start gap-2.5 text-[var(--invoice-ink)]">
+              <div className="min-w-0 flex-1 border border-[var(--invoice-line)]">
+                <div className="border-b border-[var(--invoice-line)] bg-[var(--invoice-fill)] px-2 py-1 text-[9px] font-bold uppercase tracking-wide">
+                  {tLang("amountInWords", billLanguage)}
+                </div>
+                <div className="min-h-[54px] px-2 py-1.5">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="shrink-0 text-[9px] font-bold">{tLang("rsLabel", billLanguage)}</span>
+                    <span className="min-h-[14px] flex-1 border-b border-dotted border-[var(--invoice-line)] pb-0.5 text-[9.5px] font-medium leading-snug">
+                      {amountInWords || "\u00A0"}
+                    </span>
+                  </div>
+                  {taxableAmount === 0 && (
+                    <p className="mt-1 text-[8px] font-normal italic opacity-70">
+                      * {tLang("plantsTaxExempt", billLanguage)}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className={`w-[236px] shrink-0 border border-[var(--invoice-line)] text-[9.5px] ${showBillableHighlight ? "ring-2 ring-[var(--invoice-ink)] ring-offset-1" : ""}`}>
+                <div className="flex items-center justify-between border-b border-[var(--invoice-line)] px-2 py-1">
+                  <span className="font-semibold">{tLang("subtotal", billLanguage)}</span>
+                  <span className="font-mono font-semibold tabular whitespace-nowrap">{formatMoney(grossTotal)}</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-[var(--invoice-line)] px-2 py-1">
+                  <span className="font-semibold">
+                    {tLang("discount", billLanguage)}
+                    {discountPercent ? ` (${discountPercent}%)` : ""}
+                  </span>
+                  <span className="font-mono font-semibold tabular whitespace-nowrap">
+                    {discountAmount > 0 ? `- ${formatMoney(discountAmount)}` : formatMoney(0)}
+                  </span>
+                </div>
+                {taxTiers.map((tier) => (
+                  <div key={`summary-tier-${tier.gstRate}`}>
+                    <div className="flex items-center justify-between border-b border-[var(--invoice-line)] px-2 py-1 text-[8.5px]">
+                      <span>{tLang("cgst", billLanguage)} @ {tier.cgstRate}%</span>
+                      <span className="font-mono font-semibold tabular whitespace-nowrap">+ {formatMoney(tier.cgstAmount)}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-[var(--invoice-line)] px-2 py-1 text-[8.5px]">
+                      <span>{tLang("sgst", billLanguage)} @ {tier.sgstRate}%</span>
+                      <span className="font-mono font-semibold tabular whitespace-nowrap">+ {formatMoney(tier.sgstAmount)}</span>
+                    </div>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between bg-[var(--invoice-total)] px-2 py-2 text-white">
+                  <span className="font-bold uppercase tracking-wide">{tLang("totalAmount", billLanguage)}</span>
+                  <span className="whitespace-nowrap font-mono text-[11px] font-bold tabular">₹ {formatMoney(finalTotal)}</span>
                 </div>
               </div>
             </div>
 
-            {/* ============================================================ */}
-            {/* BOTTOM SECTION: Payment Mode Tag on Left, Signature on Right */}
-            {/* ============================================================ */}
-            <div className="mt-4 flex items-end justify-between text-[#1b365d] px-2 sm:px-4">
-              {/* Bottom Left: Payment Mode Tag */}
-              <div className="flex flex-col items-start gap-1 pb-1">
-                <div className="inline-flex items-center gap-1.5 rounded border border-[#1b365d]/50 bg-blue-50/50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[#1b365d]">
-                  <span className="text-[10px] font-medium text-[#1b365d]/75">{tLang("paymentMode", billLanguage)}</span>
-                  <span className="font-extrabold">
-                    {billLanguage === "kn"
-                      ? (paymentTag === "cash" ? tLang("cash", "kn") : tLang("onlineUpi", "kn"))
-                      : paymentTag.toUpperCase()}
-                  </span>
+            {/* Notes and signature */}
+            <div className="mt-2.5 flex break-inside-avoid items-start gap-2.5 text-[var(--invoice-ink)]">
+              <div className="min-w-0 flex-1 border border-[var(--invoice-line)]">
+                <div className="flex items-center gap-1.5 border-b border-[var(--invoice-line)] bg-[var(--invoice-fill)] px-2 py-1">
+                  <InvoiceLeafIcon className="h-3.5 w-3.5" />
+                  <span className="text-[9px] font-bold uppercase tracking-wide">{tLang("invoiceNotes", billLanguage)}</span>
                 </div>
-                {status === "draft" && (
-                  <span className="text-[10px] text-[#1b365d]/70 print:hidden">
-                    {billLanguage === "kn" ? "(ಅಂತಿಮಗೊಳಿಸಲು ಕೆಳಗಿನ 'ನಗದು' ಅಥವಾ 'ಆನ್‌ಲೈನ್' ಬಟನ್ ಕ್ಲಿಕ್ ಮಾಡಿ)" : "(Click 'Pay with Cash' or 'Pay Online' below to finalize)"}
-                  </span>
-                )}
+                <ul className="space-y-0.5 px-2.5 py-1.5 text-[8.5px] leading-snug">
+                  {[tLang("term1", billLanguage), tLang("term2", billLanguage), tLang("term3", billLanguage), tLang("term4", billLanguage)].map((term, index) => (
+                    <li key={`term-${index}`} className="flex gap-1">
+                      <span className="shrink-0">•</span>
+                      <span>{term.replace(/^\d+\.\s*/, "")}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
 
-              {/* Bottom Right: Signature Block */}
-              <div className="text-right">
-                <div className="flex items-center justify-end gap-2 mb-1 print:hidden">
-                  <span className="text-[11px] font-medium text-[#1b365d]/80">{tLang("digitallySigned", billLanguage)}:</span>
+              <div className="w-[214px] shrink-0 text-center">
+                <div className="mb-1 flex min-h-[16px] items-center justify-center gap-1.5 text-[8px] print:hidden">
+                  <span className="font-medium opacity-80">{tLang("digitallySigned", billLanguage)}:</span>
                   {status === "final" ? (
-                    <span className="text-[11px] font-bold text-[#1b365d]">
+                    <span className="font-bold">
                       {isSigned ? (billLanguage === "kn" ? "ಸೇರಿಸಲಾಗಿದೆ (ಲಾಕ್ ಆಗಿದೆ)" : "Included (Locked)") : (billLanguage === "kn" ? "ಇಲ್ಲ" : "None")}
                     </span>
                   ) : (
                     <button
                       type="button"
                       onClick={() => setIsSigned(!isSigned)}
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
-                        isSigned
-                          ? "bg-[#1b365d] text-white"
-                          : "border border-[#1b365d]/30 text-[#1b365d] hover:bg-blue-50/50"
+                      className={`cursor-pointer px-1.5 py-0.5 text-[8px] font-semibold transition-colors ${
+                        isSigned ? "bg-[var(--invoice-ink)] text-white" : "border border-[var(--invoice-line)] text-[var(--invoice-ink)] hover:bg-blue-50/50"
                       }`}
                     >
                       {isSigned ? (billLanguage === "kn" ? "ಸೇರಿಸಲಾಗಿದೆ" : "Included") : (billLanguage === "kn" ? "ಇಲ್ಲ" : "None")}
@@ -2268,97 +2396,56 @@ export function InvoiceEditor({
                   )}
                 </div>
 
-                <p className="font-bold text-xs sm:text-sm tracking-tight">
-                  {billLanguage === "kn"
-                    ? tLang("forNursery", "kn")
-                    : `For ${headerDetails.businessName.includes("NURSERY") ? headerDetails.businessName : "Sri Vijayalakshmi Nursery & Farm"}`}
-                </p>
-
-              <div className="min-h-[56px] sm:min-h-[64px] flex items-center justify-end py-1">
-                {isSigned ? (
-                  <div className="relative group inline-flex flex-col items-center justify-center">
-                    {customSignature && (customSignature.startsWith("data:image") || customSignature.startsWith("http")) ? (
+                <div className="flex min-h-[58px] items-end justify-center">
+                  {isSigned ? (
+                    customSignature && (customSignature.startsWith("data:image") || customSignature.startsWith("http")) ? (
                       <img
                         src={customSignature}
                         alt="Digital signature"
-                        className="h-11 sm:h-12 max-w-[150px] sm:max-w-[170px] object-contain"
+                        className="h-11 max-w-[150px] object-contain"
                       />
                     ) : customSignature && customSignature.startsWith("text:") ? (
-                      <div className="font-serif italic font-bold text-xl sm:text-2xl text-[#1b365d] py-1">
+                      <div className="py-1 font-serif text-xl font-bold italic text-[var(--invoice-ink)]">
                         {customSignature.replace("text:", "")}
                       </div>
                     ) : (
                       <svg
-                        className="h-11 sm:h-12 w-36 sm:w-40 text-[#1b365d]"
+                        className="h-11 w-36 text-[var(--invoice-ink)]"
                         viewBox="0 0 160 55"
                         fill="none"
                         stroke="currentColor"
                         strokeWidth="2.2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
+                        aria-hidden="true"
                       >
                         <path d="M12 36 C 22 14, 28 8, 36 24 C 44 40, 52 32, 60 18 C 66 8, 70 26, 76 34 C 82 42, 92 20, 100 16 C 108 12, 114 26, 122 30 C 130 34, 142 16, 150 24" />
                         <path d="M 8 40 Q 50 48, 105 42 T 154 38" strokeWidth="1.6" />
                         <path d="M 28 20 L 22 32" strokeWidth="1.8" />
                         <path d="M 68 16 C 72 12, 78 14, 76 22" strokeWidth="1.5" />
                       </svg>
-                    )}
-                    <span className="text-[9px] font-sans font-semibold tracking-wider text-[#1b365d]/75 uppercase -mt-0.5">
-                      {tLang("digitallySigned", billLanguage)}
-                    </span>
-                    {status !== "final" && (
-                      <button
-                        type="button"
-                        onClick={() => setIsSigned(false)}
-                        className="absolute -top-1 -right-6 opacity-0 group-hover:opacity-100 transition-opacity bg-white border border-[#1b365d]/30 text-[#1b365d]/70 hover:text-rust rounded-full p-0.5 text-[10px] print:hidden shadow-xs cursor-pointer"
-                        title="Remove digital signature"
-                      >
-                        <X size={12} />
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  status !== "final" ? (
-                    <button
-                      type="button"
-                      onClick={() => setIsSigned(true)}
-                      className="rounded border border-dashed border-[#1b365d]/40 bg-blue-50/40 px-3 py-1.5 text-xs font-semibold text-[#1b365d] hover:bg-blue-100/60 print:hidden transition-colors cursor-pointer flex items-center gap-1.5"
-                      title={tLang("addDigitalSignature", billLanguage)}
-                    >
-                      <PenTool size={12} /> {tLang("addDigitalSignature", billLanguage)}
-                    </button>
-                  ) : null
-                )}
-              </div>
+                    )
+                  ) : null}
+                </div>
 
-              <p className="font-bold text-xs sm:text-sm pr-4 sm:pr-6">
-                {tLang("proprietor", billLanguage)}
+                <div className="mt-1 border-t border-[var(--invoice-line)] pt-1">
+                  <p className="text-[9px] font-bold uppercase tracking-wide">{tLang("authorizedSignatory", billLanguage)}</p>
+                  <p className="text-[8.5px] font-medium">{tLang("proprietor", billLanguage)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="relative mt-3 break-inside-avoid border-t border-[#1b365d]/30 pt-2 text-center text-[var(--invoice-ink)]">
+              <InvoiceSprig className="absolute left-0 top-1.5 h-5 w-10 opacity-35" />
+              <InvoiceSprig className="absolute right-0 top-1.5 h-5 w-10 scale-x-[-1] opacity-35" />
+              <p className={`text-[11px] font-semibold leading-tight ${billLanguage === "en" ? "invoice-script" : "font-serif"}`}>
+                {tLang("invoiceFooterNote", billLanguage)}
+              </p>
+              <p className="mt-0.5 text-[7px] font-normal opacity-50 print:hidden">
+                Version {invoiceVersion}
               </p>
             </div>
-          </div>
-
-          {/* Thank you note */}
-          <div className="mt-3.5 pt-1.5 text-center text-xs sm:text-sm font-serif font-bold italic tracking-wide text-[#1b365d]/90">
-            ~ {tLang("thankYouNote", billLanguage)} ~
-          </div>
-
-          {/* Footer: Left-aligned Disclaimers + Bottom-Left Watermark */}
-          <div className="mt-2.5 pt-2 border-t border-dotted border-[#1b365d]/30 flex items-end justify-between px-1 sm:px-2">
-            <div className="flex items-baseline gap-2.5">
-              {/* Subtle Watermark Version Number in bottom left corner */}
-              <span
-                className="font-mono font-extrabold text-sm sm:text-base text-[#1b365d]/30 select-none tracking-tight shrink-0"
-                title={`Invoice Version ${invoiceVersion}`}
-              >
-                #{invoiceVersion}
-              </span>
-              {/* Disclaimers formatted to the left */}
-              <div className="text-[10px] text-[#1b365d]/75 space-y-0.5 text-left leading-tight">
-                <p>{tLang("term1", billLanguage)}</p>
-                <p>{tLang("term2", billLanguage)}</p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

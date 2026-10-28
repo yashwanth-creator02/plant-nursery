@@ -17,8 +17,8 @@ async function main() {
       version INTEGER NOT NULL DEFAULT 1,
       business_name TEXT NOT NULL DEFAULT 'SRI VIJAYALAKSHMI NURSERY',
       subheading_1 TEXT NOT NULL DEFAULT '(Approved by Department of Horticulture)',
-      subheading_2 TEXT NOT NULL DEFAULT '(All Kinds of Plants Production and Suppliers)',
-      address TEXT NOT NULL DEFAULT 'Harige B. H. Road, Shimoga - 577203',
+      subheading_2 TEXT NOT NULL DEFAULT 'All Kinds of Indoor & Outdoor Plants, Fruit Plants, Landscaping Materials',
+      address TEXT NOT NULL DEFAULT 'Harige B. H. Road, Shimoga - 577203, Karnataka',
       mobiles TEXT NOT NULL DEFAULT '7353025302, 9448140483, 9606602194',
       gstin TEXT NOT NULL DEFAULT '29ADXPV1295N2Z6',
       updated_at TIMESTAMP NOT NULL DEFAULT NOW()

@@ -49,6 +49,7 @@ export type InvoiceLineItem = {
   stockItemId: string | null;
   name: string;
   nameKn?: string | null;
+  unit?: string | null;
   price: number;
   quantity: number;
   category?: "plants" | "non-plants" | string;
@@ -91,11 +92,19 @@ export type InvoiceRecord = {
     id: string;
     stockItemId: string | null;
     name: string;
+    nameKn?: string | null;
+    unit?: string | null;
     price: string;
     quantity: number;
     lineTotal: string;
     category?: string | null;
     gstRate?: string | null;
+    stockItem?: {
+      nameKn?: string | null;
+      unit?: string | null;
+      category?: string | null;
+      gstRate?: string | number | null;
+    } | null;
   }[];
 };
 
