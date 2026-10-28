@@ -22,7 +22,7 @@ const createSchema = z.object({
   customerDetails: z.string().trim().optional().default(""),
   notes: z.string().trim().optional().default(""),
   status: z.enum(["draft", "final"]).default("draft"),
-  paymentMode: z.enum(["cash", "online"]).optional().default("cash"),
+  paymentMode: z.enum(["cash", "online", "upi", "card", "credit"]).optional().default("cash"),
   force: z.boolean().optional().default(false),
   items: z.array(lineItemSchema).optional().default([]),
   discount: z.coerce.number().min(0).optional(),
@@ -122,13 +122,17 @@ export async function POST(req: NextRequest) {
       const activeLogo = activeSettings.length > 0 ? activeSettings[0].logoData : null;
 
       let effectiveSig: string | null = signature !== undefined ? signature : null;
-      if (signature === undefined && user.id) {
+      let effectiveProprietor: string | null = null;
+      if (user.id) {
         const userRow = await tx
-          .select({ signature: users.signature })
+          .select({ signature: users.signature, proprietorName: users.proprietorName })
           .from(users)
           .where(eq(users.id, user.id))
           .limit(1);
-        effectiveSig = userRow.length > 0 ? userRow[0].signature : null;
+        if (signature === undefined) {
+          effectiveSig = userRow.length > 0 ? userRow[0].signature : null;
+        }
+        effectiveProprietor = userRow.length > 0 ? userRow[0].proprietorName : null;
       }
 
       const effectiveIsSigned = isSigned !== undefined ? isSigned : true;
@@ -144,6 +148,9 @@ export async function POST(req: NextRequest) {
             address: activeSettings[0].address,
             mobiles: activeSettings[0].mobiles,
             gstin: activeSettings[0].gstin,
+            email: activeSettings[0].email || "vijayalakshminurseryfarm@gmail.com",
+            invocation: activeSettings[0].invocation || "|| Shree gurugundanjaneya prasanna ||",
+            proprietor: effectiveProprietor,
             cgstRate: activeSettings[0].cgstRate || "2.50",
             sgstRate: activeSettings[0].sgstRate || "2.50",
             discount: parsed.data.discount || 0,
@@ -154,10 +161,13 @@ export async function POST(req: NextRequest) {
         : JSON.stringify({
             businessName: "SRI VIJAYALAKSHMI NURSERY",
             subheading1: "(Approved by Department of Horticulture)",
-            subheading2: "(All Kinds of Plants Production and Suppliers)",
-            address: "Harige B. H. Road, Shimoga - 577203",
+            subheading2: "All Kinds of Indoor & Outdoor Plants, Fruit Plants, Landscaping Materials",
+            address: "Harige B. H. Road, Shimoga - 577203, Karnataka",
             mobiles: "7353025302, 9448140483, 9606602194",
             gstin: "29ADXPV1295N2Z6",
+            email: "vijayalakshminurseryfarm@gmail.com",
+            invocation: "|| Shree gurugundanjaneya prasanna ||",
+            proprietor: effectiveProprietor,
             cgstRate: "2.50",
             sgstRate: "2.50",
             discount: parsed.data.discount || 0,

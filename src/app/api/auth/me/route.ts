@@ -16,6 +16,7 @@ export async function GET() {
         username: dbUser.username,
         role: dbUser.role,
         signature: dbUser.signature || null,
+        proprietorName: dbUser.proprietorName || null,
       },
     });
   } catch {

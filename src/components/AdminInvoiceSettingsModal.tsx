@@ -34,6 +34,8 @@ export function AdminInvoiceSettingsModal({
   const [address, setAddress] = useState("");
   const [mobiles, setMobiles] = useState("");
   const [gstin, setGstin] = useState("");
+  const [email, setEmail] = useState("");
+  const [invocation, setInvocation] = useState("");
 
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -55,6 +57,8 @@ export function AdminInvoiceSettingsModal({
           setAddress(s.address || "");
           setMobiles(s.mobiles || "");
           setGstin(s.gstin || "");
+          setEmail(s.email || "");
+          setInvocation(s.invocation || "");
           if (data.versions && Array.isArray(data.versions)) {
             setPastVersions(data.versions);
           }
@@ -80,6 +84,8 @@ export function AdminInvoiceSettingsModal({
           address,
           mobiles,
           gstin,
+          email,
+          invocation,
         }),
       });
       const data = await res.json();
@@ -199,6 +205,25 @@ export function AdminInvoiceSettingsModal({
               </label>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1 text-xs text-ink-soft">
+                <span>{language === "kn" ? "ಇಮೇಲ್" : "Email"}</span>
+                <input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm outline-none focus:border-pine"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs text-ink-soft">
+                <span>{language === "kn" ? "ಮೇಲಿನ ಆಶೀರ್ವಾದ ಸಾಲು" : "Invocation / Blessing Line"}</span>
+                <input
+                  value={invocation}
+                  onChange={(e) => setInvocation(e.target.value)}
+                  className="rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm outline-none focus:border-pine"
+                />
+              </label>
+            </div>
+
             <label className="flex flex-col gap-1 text-xs text-ink-soft">
               <span>{language === "kn" ? "ಉಪಶೀರ್ಷಿಕೆ 1 (ಇಲಾಖಾ ಅನುಮೋದನೆ)" : "Subtitle Line 1 (Approval)"}</span>
               <input
@@ -300,6 +325,12 @@ export function AdminInvoiceSettingsModal({
                       {v.gstin && <span>GSTIN: {v.gstin}</span>}
                       {v.mobiles && <span>{t("mobilesLabel")} {v.mobiles}</span>}
                     </div>
+                    {(v.email || v.invocation) && (
+                      <div className="space-y-0.5 text-[10px] text-ink-soft/80">
+                        {v.email && <div>{v.email}</div>}
+                        {v.invocation && <div className="italic">{v.invocation}</div>}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between border-t border-line/60 pt-2.5 text-[11px]">
@@ -323,6 +354,8 @@ export function AdminInvoiceSettingsModal({
                           setAddress(v.address || "");
                           setMobiles(v.mobiles || "");
                           setGstin(v.gstin || "");
+                          setEmail(v.email || "");
+                          setInvocation(v.invocation || "");
                           setActiveTab("edit");
                         }}
                         className="inline-flex items-center gap-1 rounded border border-line bg-surface px-2 py-1 text-[11px] font-medium text-ink hover:bg-line/40 cursor-pointer shadow-xs"

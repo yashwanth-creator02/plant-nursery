@@ -1,7 +1,7 @@
 # Directive: Sales Analytics & Reporting
 
 ## Goal
-Provide real-time revenue analytics, invoice count summaries, payment method breakdowns (cash vs online), interactive timeline visualizations, and detailed sales audit logs.
+Provide real-time revenue analytics, invoice count summaries, payment method breakdowns (cash, online, and credit), interactive timeline visualizations, and detailed sales audit logs.
 
 ## When this fires
 - Launching the sales analytics modal (`src/components/SalesAnalyticsModal.tsx`) from the header navigation.
@@ -27,7 +27,7 @@ Provide real-time revenue analytics, invoice count summaries, payment method bre
 ## Outputs
 - Clean, responsive analytics modal with interactive charts.
 - Category sales filter (All Sales, Plants with Sprout icon, Non-Plants with Package icon).
-- Dual split ratio bars: Payment Split (Online UPI vs Cash) and Category Split (Live Plants vs Non-Plants Goods).
+- Dual split ratio bars: Payment Split (Online UPI/Card vs Cash vs Credit) and Category Split (Live Plants vs Non-Plants Goods).
 - Adaptive KPI stat cards reflecting category-filtered revenue.
 - Invoice breakdown table with explicit category tags (`Plants`, `Non-Plants`, `Mixed`) and effective category sales portion.
 - Verified daily sales reconciliation summaries for nursery management.
@@ -44,7 +44,8 @@ Provide real-time revenue analytics, invoice count summaries, payment method bre
   - This ensures `plantSalesPortion + nonPlantSalesPortion === invoice.total` to the exact paisa with zero rounding drift.
 - **Financial Metric Calculations**:
   - Total Gross Revenue, Net Revenue after discounts, Average Order Value (AOV).
-  - Cash vs Online payment split calculation for daily drawer reconciliation.
+  - Payment buckets: Cash (`cash`), Online (`online`, `upi`, `card`), and Credit (`credit`). Credit is a receivable and must not be included in the cash drawer total.
+  - The analytics API returns `cashRevenue`/`cashCount`, `onlineRevenue`/`onlineCount`, and `creditRevenue`/`creditCount`; all chart, KPI, filter, donut, timeline, and table surfaces must use the same bucket mapping.
 - **Chart Tooltip Boundary & Clipping Prevention**:
   - Interactive chart tooltips must be constrained to the viewport/modal boundaries (`allowEscapeViewBox={{ x: false, y: false }}` or calculated bounds) so hovering over extreme top or border data points never clips tooltip content or cuts off the top half of the popup.
 - **Unconditional React Hook Discipline**:

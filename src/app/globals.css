@@ -90,6 +90,13 @@ textarea {
   color-scheme: light !important;
 }
 
+#invoice-print {
+  --invoice-ink: #1b365d;
+  --invoice-line: #1b365d;
+  --invoice-fill: #eef1f5;
+  --invoice-total: #1b365d;
+}
+
 #invoice-print input,
 #invoice-print select,
 #invoice-print textarea {
@@ -110,6 +117,10 @@ textarea {
 .tabular {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
+}
+
+.invoice-script {
+  font-family: "Segoe Script", "Brush Script MT", "Lucida Handwriting", cursive;
 }
 
 .scrollbar-none {

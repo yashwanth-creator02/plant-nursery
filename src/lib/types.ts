@@ -49,6 +49,7 @@ export type InvoiceLineItem = {
   stockItemId: string | null;
   name: string;
   nameKn?: string | null;
+  unit?: string | null;
   price: number;
   quantity: number;
   category?: "plants" | "non-plants" | string;
@@ -64,6 +65,8 @@ export type BusinessSettings = {
   address: string;
   mobiles: string;
   gstin: string;
+  email: string;
+  invocation: string;
   cgstRate?: string | number;
   sgstRate?: string | number;
   qrCodeData?: string | null;
@@ -81,7 +84,7 @@ export type InvoiceRecord = {
   version: number;
   headerSnapshot?: string | null;
   total: string;
-  paymentMode?: "cash" | "online";
+  paymentMode?: "cash" | "online" | "upi" | "card" | "credit";
   createdBy: string;
   createdByUser?: { username: string };
   finalizedAt: string | null;
@@ -91,11 +94,19 @@ export type InvoiceRecord = {
     id: string;
     stockItemId: string | null;
     name: string;
+    nameKn?: string | null;
+    unit?: string | null;
     price: string;
     quantity: number;
     lineTotal: string;
     category?: string | null;
     gstRate?: string | null;
+    stockItem?: {
+      nameKn?: string | null;
+      unit?: string | null;
+      category?: string | null;
+      gstRate?: string | number | null;
+    } | null;
   }[];
 };
 

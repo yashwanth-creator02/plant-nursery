@@ -16,16 +16,19 @@ A modern, full-stack internal management application for plant nurseries and ret
   - Secured with `iron-session` signed, HTTP-only encrypted cookies (7-day duration).
   - Admin & Staff user roles.
   - Admin management panel to add, edit, or revoke user credentials directly inside the app.
+  - Each user can set a proprietor name in their profile; it is frozen into finalized invoice headers and printed above the Proprietor label.
   - Zero redundant badges: Admin panels maintain clean layouts without repeating role tags on internal cards.
 
 - **Interactive Invoice Builder & Smart Combobox**
   - Paper-style live invoice interface with single-action controls.
+  - Classic A4 bill-book print sheet with a logo-left header, centered invocation line, ruled wordmark, category strip, GSTIN/mobiles/email row, payment-mode checkboxes, six-column table with a Unit column and 10-row minimum, amount in words, GST summary, notes, signature block with the finalizing user's proprietor name, and a script footer with the thank-you and save-nature notes.
+  - Step 1 records Cash, UPI, Card, or Credit; step 2 uses one Finalize Bill action. Legacy `online` invoices remain readable and map to UPI.
   - **Smart Stock Picker**: Instant multi-field searchable combobox filtering by plant/item name, category, subcategory, unit, or price.
   - **Single Action Shortage Handling**: When an item is out of stock, the regular Add button dynamically swaps to a prominent Force Add button with high-contrast red alerts.
   - Quick-add items from active inventory or create ad-hoc custom line items.
   - Real-time subtotal, quantity, and total calculation.
   - Save as **Draft** for later edits or **Finalize** to lock the record.
-  - **Strict Invoice Immutability**: Historical printed and finalized invoices freeze their exact visual header state (`headerSnapshot`), preserving business name, address, phone numbers, GSTIN, custom logo, and digital signature. Logo updates or profile edits strictly apply to future bills and editable drafts.
+  - **Strict Invoice Immutability**: Historical printed and finalized invoices freeze their exact visual header state (`headerSnapshot`), preserving business name, subheadings, address, phone numbers, GSTIN, email, invocation, custom logo, finalizing user's proprietor name, and digital signature. Logo updates or profile edits strictly apply to future bills and editable drafts.
 
 - **Branding, Custom Logo & Payment QR Configuration**
   - Admin-only custom logo management supporting vector SVG (ideal for crisp printing) and raster formats (PNG, JPG, WEBP).
@@ -53,7 +56,7 @@ A modern, full-stack internal management application for plant nurseries and ret
 - **Sales Analytics & Drawer Audit Dashboard**
   - Real-time revenue analytics across 12 timeframe presets (Today, Yesterday, Last 7 Days, This Month, Last Month, This Year, etc.).
   - Interactive timeline bar chart with boundary-safe tooltips that prevent clipping.
-  - Cash vs online payment split donut chart and ticket size distribution.
+  - Cash, online (UPI/Card), and credit payment split donut chart, timeline stacks, KPI cards, and ticket size distribution.
   - Staff contribution table and detailed invoice audit table.
 
 - **Full Nursery Data Backup & Structured Export**
@@ -66,7 +69,7 @@ A modern, full-stack internal management application for plant nurseries and ret
   - Keyboard shortcut (`Ctrl+B`) and clean single-button header control (`PanelLeftClose`/`PanelLeftOpen`).
 
 - **Native Print & PDF Export**
-  - Optimized `@media print` CSS formats invoices cleanly for physical printers or browser "Save as PDF" without bloated third-party PDF dependencies.
+  - Optimized `@media print` CSS formats the bill-book sheet cleanly for A4 physical printers or browser "Save as PDF" without bloated third-party PDF dependencies.
 
 ---
 
@@ -107,7 +110,7 @@ A modern, full-stack internal management application for plant nurseries and ret
 2. **Atomic Stock Finalization**: Stock is only deducted when an invoice transitions from `draft` → `final`.
 3. **Immutability of Finalized Records**: Finalized invoices are permanently locked from modifications or deletions to maintain accounting integrity.
 4. **Dynamic Subcategory Taxonomies**: Stock items map to subcategories stored in `stock_subcategories` with a unique index on `(category, slug)`, supporting runtime addition without schema alteration.
-5. **Header & Visual Snapshot Immutability**: When an invoice is finalized or printed, the full visual header state (business details, tax registration, custom logo, and digital signature) is frozen into `headerSnapshot`. Subsequent modifications to business details or logos in the Admin portal strictly affect future bills and active drafts, ensuring historical printable receipts remain 100% reproducible and legally tamper-proof.
+5. **Header & Visual Snapshot Immutability**: When an invoice is finalized or printed, the full visual header state (business details, tax registration, email, invocation, custom logo, finalizing user's proprietor name, and digital signature) is frozen into `headerSnapshot`. Subsequent modifications to business details, profiles, or logos strictly affect future bills and active drafts, ensuring historical printable receipts remain 100% reproducible and legally tamper-proof.
 
 ---
 

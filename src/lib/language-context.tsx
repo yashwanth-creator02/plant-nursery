@@ -32,23 +32,37 @@ export interface Translations {
   nurseryAddress: string;
   mobilesLabel: string;
   gstinLabel: string;
+  emailLabel: string;
   versionLabel: string;
 
   // Bill Sheet & Receipt Labels
   billOfSuppliers: string;
+  billInvoiceTitle: string;
+  tagline: string;
+  categoryPlants: string;
+  categoryPots: string;
+  categorySoil: string;
+  categoryFertilizers: string;
   billNo: string;
   date: string;
   time: string;
   toCustomer: string;
   customerDetailsLabel: string;
+  addressLabel: string;
+  phoneLabel: string;
   paymentMode: string;
+  paymentModeTitle: string;
   cash: string;
   credit: string;
   onlineUpi: string;
+  upi: string;
+  card: string;
   slNo: string;
   particulars: string;
+  itemNameDescription: string;
   rate: string;
   qty: string;
+  unitLabel: string;
   amount: string;
   total: string;
   totalAmount: string;
@@ -59,8 +73,14 @@ export interface Translations {
   authorizedSignatory: string;
   proprietor: string;
   termsConditions: string;
+  invoiceNotes: string;
   term1: string;
   term2: string;
+  term3: string;
+  term4: string;
+  term5: string;
+  invoiceFooterNote: string;
+  saveNatureNote: string;
   thankYouNote: string;
   cgst: string;
   sgst: string;
@@ -81,6 +101,7 @@ export interface Translations {
   saving: string;
   payWithCash: string;
   payOnline: string;
+  finalizeBill: string;
   printBill: string;
   finalizing: string;
   addDigitalSignature: string;
@@ -317,39 +338,59 @@ export const translations: Record<Language, Translations> = {
     brandSubtitle: "Nursery & Farm",
     brandFullName: "Sri Vijayalakshmi Nursery",
     subheading1: "(Approved by Department of Horticulture)",
-    subheading2: "(All Kinds of Plants Production and Suppliers)",
-    nurseryAddress: "Harige B. H. Road, Shimoga - 577203",
+    subheading2: "All Kinds of Indoor & Outdoor Plants, Fruit Plants, Landscaping Materials",
+    nurseryAddress: "Harige B. H. Road, Shimoga - 577203, Karnataka",
     mobilesLabel: "Mob:",
     gstinLabel: "GSTIN:",
+    emailLabel: "Email",
     versionLabel: "Version",
 
     // Bill Sheet & Receipt Labels
     billOfSuppliers: "BILL OF SUPPLIERS",
+    billInvoiceTitle: "BILL / INVOICE",
+    tagline: "Bringing Nature Closer to You",
+    categoryPlants: "Indoor & Outdoor Plants",
+    categoryPots: "Pots & Planters",
+    categorySoil: "Soil & Manure",
+    categoryFertilizers: "Fertilizers & Gardening Supplies",
     billNo: "No.",
-    date: "Date:",
-    time: "Time:",
+    date: "Date",
+    time: "Time",
     toCustomer: "To,",
     customerDetailsLabel: "Customer details / Location:",
+    addressLabel: "Address",
+    phoneLabel: "Phone No.",
     paymentMode: "Payment:",
+    paymentModeTitle: "Payment Mode",
     cash: "CASH",
     credit: "CREDIT",
     onlineUpi: "ONLINE UPI",
+    upi: "UPI",
+    card: "Card",
     slNo: "Sl. No.",
     particulars: "Particulars / Description of Goods",
+    itemNameDescription: "Item Name / Description",
     rate: "Rate (₹)",
     qty: "Qty.",
+    unitLabel: "Unit",
     amount: "Amount (₹)",
     total: "TOTAL",
-    totalAmount: "Total Amount:",
-    amountInWords: "Amount in words:",
+    totalAmount: "TOTAL AMOUNT",
+    amountInWords: "Amount in Words",
     rsLabel: "Rs",
     digitallySigned: "Digitally Signed",
     forNursery: "For Sri Vijayalakshmi Nursery",
-    authorizedSignatory: "Authorized Signatory",
+    authorizedSignatory: "Authorised Signatory",
     proprietor: "Proprietor",
     termsConditions: "Terms & Conditions",
-    term1: "1. Goods once sold cannot be returned or exchanged.",
-    term2: "2. Plants are living goods; please inspect upon receipt.",
+    invoiceNotes: "Notes",
+    term1: "1. Plants once sold cannot be returned or exchanged.",
+    term2: "2. Please check the plants, soil and other items properly before leaving.",
+    term3: "3. Plants are living goods, please handle with care.",
+    term4: "4. Thank you for shopping with us!",
+    term5: "5. For any queries feel free to contact us.",
+    invoiceFooterNote: "Thank you for shopping with Sri Vijayalakshmi Nursery",
+    saveNatureNote: "SAVE NATURE AND NATURE WILL SAVE YOUR LIFE AND FUTURE.",
     thankYouNote: "Thank you for shopping with us! Visit again",
     cgst: "CGST",
     sgst: "SGST",
@@ -370,6 +411,7 @@ export const translations: Record<Language, Translations> = {
     saving: "Saving…",
     payWithCash: "Pay with Cash",
     payOnline: "Pay with Online",
+    finalizeBill: "Finalize Bill",
     printBill: "Print Bill",
     finalizing: "Finalizing…",
     addDigitalSignature: "Add Digital Signature",
@@ -383,7 +425,7 @@ export const translations: Record<Language, Translations> = {
     requiredForReceipt: "Required for receipt",
     customerNameLabel: "Customer Name",
     customerNamePlaceholder: "e.g. Ramesh Kumar",
-    customerDetailsPlaceholder: "e.g. Harige, Shimoga - 9845012345",
+    customerDetailsPlaceholder: "e.g. Harige, Shimoga - 577203",
     notesLabel: "Internal Notes (Optional)",
     notesPlaceholder: "e.g. Advance paid via UPI, deliver by Sunday",
     section2Title: "2. Items in Bill",
@@ -605,39 +647,59 @@ export const translations: Record<Language, Translations> = {
     brandSubtitle: "ನರ್ಸರಿ ಮತ್ತು ಫಾರ್ಮ್",
     brandFullName: "ಶ್ರೀ ವಿಜಯಲಕ್ಷ್ಮಿ ನರ್ಸರಿ",
     subheading1: "(ತೋಟಗಾರಿಕೆ ಇಲಾಖೆಯಿಂದ ಅನುಮೋದಿಸಲ್ಪಟ್ಟಿದೆ)",
-    subheading2: "(ಎಲ್ಲಾ ರೀತಿಯ ಗಿಡಗಳ ಉತ್ಪಾದಕರು ಮತ್ತು ಸರಬರಾಜುದಾರರು)",
-    nurseryAddress: "ಹರಿಗೆ ಬಿ. ಹೆಚ್. ರಸ್ತೆ, ಶಿವಮೊಗ್ಗ - 577203",
+    subheading2: "ಎಲ್ಲಾ ರೀತಿಯ ಒಳಾಂಗಣ ಮತ್ತು ಹೊರಾಂಗಣ ಸಸ್ಯಗಳು, ಹಣ್ಣಿನ ಸಸ್ಯಗಳು, ಭೂದೃಶ್ಯೀಕರಣ ಸಾಮಗ್ರಿಗಳು",
+    nurseryAddress: "ಹರಿಗೆ ಬಿ. ಹೆಚ್. ರಸ್ತೆ, ಶಿವಮೊಗ್ಗ - 577203, ಕರ್ನಾಟಕ",
     mobilesLabel: "ಮೊಬೈಲ್:",
     gstinLabel: "ಜಿಎಸ್‌ಟಿ ಸಂಖ್ಯೆ:",
+    emailLabel: "ಇಮೇಲ್",
     versionLabel: "ಆವೃತ್ತಿ",
 
     // Bill Sheet & Receipt Labels
     billOfSuppliers: "ಪೂರೈಕೆದಾರರ ಬಿಲ್",
+    billInvoiceTitle: "ಬಿಲ್ / ಇನ್‌ವಾಯ್ಸ್",
+    tagline: "ನಿಸರ್ಗವನ್ನು ನಿಮ್ಮ ಹತ್ತಿರಕ್ಕೆ ತರುತ್ತಿದ್ದೇವೆ",
+    categoryPlants: "ಒಳಾಂಗಣ ಮತ್ತು ಹೊರಾಂಗಣ ಸಸ್ಯಗಳು",
+    categoryPots: "ಕುಂಡಗಳು ಮತ್ತು ಪ್ಲಾಂಟರ್‌ಗಳು",
+    categorySoil: "ಮಣ್ಣು ಮತ್ತು ಗೊಬ್ಬರ",
+    categoryFertilizers: "ರಸಗೊಬ್ಬರಗಳು ಮತ್ತು ತೋಟಗಾರಿಕೆ ಪರಿಕರಗಳು",
     billNo: "ಸಂ.",
-    date: "ದಿನಾಂಕ:",
-    time: "ಸಮಯ:",
+    date: "ದಿನಾಂಕ",
+    time: "ಸಮಯ",
     toCustomer: "ಶ್ರೀ / ಮೆಸರ್ಸ್:",
     customerDetailsLabel: "ವಿಳಾಸ / ಸ್ಥಳ:",
+    addressLabel: "ವಿಳಾಸ",
+    phoneLabel: "ದೂರವಾಣಿ ಸಂಖ್ಯೆ",
     paymentMode: "ಪಾವತಿ:",
+    paymentModeTitle: "ಪಾವತಿ ವಿಧಾನ",
     cash: "ನಗದು",
     credit: "ಉದ್ದರಿ",
     onlineUpi: "ಆನ್‌ಲೈನ್ ಯುಪಿಐ",
+    upi: "ಯುಪಿಐ",
+    card: "ಕಾರ್ಡ್",
     slNo: "ಕ್ರ.ಸಂ.",
     particulars: "ವಿವರಣೆ / ಸರಕುಗಳ ವಿವರ",
+    itemNameDescription: "ವಸ್ತುವಿನ ಹೆಸರು / ವಿವರಣೆ",
     rate: "ದರ (₹)",
     qty: "ಪ್ರಮಾಣ",
+    unitLabel: "ಘಟಕ",
     amount: "ಮೊತ್ತ (₹)",
     total: "ಒಟ್ಟು ಮೊತ್ತ",
-    totalAmount: "ಒಟ್ಟು ಮೊತ್ತ:",
-    amountInWords: "ಮೊತ್ತ ಅಕ್ಷರಗಳಲ್ಲಿ:",
+    totalAmount: "ಒಟ್ಟು ಮೊತ್ತ",
+    amountInWords: "ಮೊತ್ತ ಅಕ್ಷರಗಳಲ್ಲಿ",
     rsLabel: "ರೂ.",
     digitallySigned: "ಡಿಜಿಟಲ್ ಸಹಿ ಮಾಡಲಾಗಿದೆ",
     forNursery: "ಶ್ರೀ ವಿಜಯಲಕ್ಷ್ಮಿ ನರ್ಸರಿ ಪರವಾಗಿ",
     authorizedSignatory: "ಅಧಿಕೃತ ಸಹಿ",
     proprietor: "ಮಾಲೀಕರು",
     termsConditions: "ನಿಯಮಗಳು ಮತ್ತು ಷರತ್ತುಗಳು",
-    term1: "೧. ಒಮ್ಮೆ ಮಾರಾಟವಾದ ಸರಕುಗಳನ್ನು ಹಿಂಪಡೆಯಲಾಗುವುದಿಲ್ಲ ಅಥವಾ ಬದಲಾಯಿಸಲಾಗುವುದಿಲ್ಲ.",
-    term2: "೨. ಸಸ್ಯಗಳು ಜೀವಂತ ವಸ್ತುಗಳಾಗಿವೆ; ಸ್ವೀಕರಿಸಿದ ತಕ್ಷಣ ಪರಿಶೀಲಿಸಿ.",
+    invoiceNotes: "ಸೂಚನೆಗಳು",
+    term1: "೧. ಒಮ್ಮೆ ಮಾರಾಟವಾದ ಸಸ್ಯಗಳನ್ನು ಹಿಂಪಡೆಯಲಾಗುವುದಿಲ್ಲ ಅಥವಾ ಬದಲಾಯಿಸಲಾಗುವುದಿಲ್ಲ.",
+    term2: "೨. ಹೊರಡುವ ಮೊದಲು ಸಸ್ಯಗಳು, ಮಣ್ಣು ಮತ್ತು ಇತರ ವಸ್ತುಗಳನ್ನು ಸರಿಯಾಗಿ ಪರಿಶೀಲಿಸಿ.",
+    term3: "೩. ಸಸ್ಯಗಳು ಜೀವಂತ ವಸ್ತುಗಳು, ದಯವಿಟ್ಟು ಎಚ್ಚರಿಕೆಯಿಂದ ನಿರ್ವಹಿಸಿ.",
+    term4: "೪. ನಮ್ಮಲ್ಲಿ ಖರೀದಿಸಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು!",
+    term5: "೫. ಯಾವುದೇ ಪ್ರಶ್ನೆಗಳಿದ್ದರೆ ದಯವಿಟ್ಟು ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ.",
+    invoiceFooterNote: "ಶ್ರೀ ವಿಜಯಲಕ್ಷ್ಮಿ ನರ್ಸರಿಯಲ್ಲಿ ಖರೀದಿಸಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು",
+    saveNatureNote: "ಪ್ರಕೃತಿಯನ್ನು ಉಳಿಸಿ, ಪ್ರಕೃತಿ ನಿಮ್ಮ ಜೀವನ ಮತ್ತು ಭವಿಷ್ಯವನ್ನು ಉಳಿಸುತ್ತದೆ.",
     thankYouNote: "ನಮ್ಮಲ್ಲಿ ಖರೀದಿಸಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು! ಮತ್ತೆ ಭೇಟಿ ನೀಡಿ",
     cgst: "ಸಿ.ಜಿ.ಎಸ್.ಟಿ (CGST)",
     sgst: "ಎಸ್.ಜಿ.ಎಸ್.ಟಿ (SGST)",
@@ -658,6 +720,7 @@ export const translations: Record<Language, Translations> = {
     saving: "ಉಳಿಸಲಾಗುತ್ತಿದೆ…",
     payWithCash: "ನಗದಿನಲ್ಲಿ ಪಾವತಿಸಿ",
     payOnline: "ಆನ್‌ಲೈನ್ ಪಾವತಿ (UPI)",
+    finalizeBill: "ಬಿಲ್ ಅಂತಿಮಗೊಳಿಸಿ",
     printBill: "ಬಿಲ್ ಮುದ್ರಿಸಿ",
     finalizing: "ಅಂತಿಮಗೊಳಿಸಲಾಗುತ್ತಿದೆ…",
     addDigitalSignature: "ಡಿಜಿಟಲ್ ಸಹಿ ಸೇರಿಸಿ",
@@ -671,7 +734,7 @@ export const translations: Record<Language, Translations> = {
     requiredForReceipt: "ರಶೀದಿಗೆ ಅಗತ್ಯವಿದೆ",
     customerNameLabel: "ಗ್ರಾಹಕರ ಹೆಸರು",
     customerNamePlaceholder: "ಉದಾ: ರಮೇಶ್ ಗೌಡ",
-    customerDetailsPlaceholder: "ಉದಾ: ಹರಿಗೆ, ಶಿವಮೊಗ್ಗ - 9845012345",
+    customerDetailsPlaceholder: "ಉದಾ: ಹರಿಗೆ, ಶಿವಮೊಗ್ಗ - 577203",
     notesLabel: "ಆಂತರಿಕ ಟಿಪ್ಪಣಿಗಳು (ಐಚ್ಛಿಕ)",
     notesPlaceholder: "ಉದಾ: ಮುಂಗಡ ಪಾವತಿಸಲಾಗಿದೆ, ಭಾನುವಾರ ತಲುಪಿಸಿ",
     section2Title: "2. ಬಿಲ್‌ನಲ್ಲಿರುವ ವಸ್ತುಗಳು",
