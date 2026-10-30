@@ -58,9 +58,21 @@ export function LeoLoader({
     };
     media.addEventListener("change", handleMediaChange);
 
+    // Restart the plume draw after the finished form holds, without calling
+    // replay() so the delayed report link is not rescheduled.
+    const restartDraw = () => {
+      const node = container.querySelector<HTMLElement>("#leo-loader-root");
+      if (!node) return;
+      node.classList.remove("state-entrance");
+      void node.offsetWidth;
+      node.classList.add("state-entrance");
+    };
+    const redrawTimer = window.setInterval(restartDraw, 6600);
+
     return () => {
       observer.disconnect();
       media.removeEventListener("change", handleMediaChange);
+      window.clearInterval(redrawTimer);
       loader.complete();
       container.innerHTML = "";
     };

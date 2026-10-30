@@ -192,8 +192,17 @@ textarea {
   }
 }
 
-/* Brand loader: show only the lion symbol, no card surface or caption */
+/* Brand loader: lion symbol with a loading caption and delayed report link */
+.leo-symbol-only {
+  /* Lion color comes from the project palette, not the brand copper ramp. */
+  --leo-project-blend: color-mix(in srgb, var(--pine) 50%, var(--rust) 50%);
+}
+
 .leo-symbol-only .leo-loader-wrapper {
+  --leo-loader-blend-light: var(--leo-project-blend);
+  --leo-loader-blend: var(--leo-project-blend);
+  --leo-loader-blend-dark: var(--leo-project-blend);
+  --leo-loader-blend-deep: var(--leo-project-blend);
   padding: 0;
   background: transparent;
   border: 0;
@@ -206,14 +215,39 @@ textarea {
   display: none;
 }
 
-.leo-symbol-only .leo-loader-caption,
-.leo-symbol-only .leo-loader-report {
+.leo-symbol-only .leo-loader-caption {
+  margin-top: 1rem;
+  gap: 0.2rem;
+}
+
+.leo-symbol-only .leo-loader-title {
   display: none;
 }
 
-.leo-symbol-only .leo-lion-container {
+.leo-symbol-only .leo-loader-wrapper .leo-loader-subtitle {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+}
+
+.leo-symbol-only .leo-loader-report {
+  margin-top: 0.75rem;
+  border-color: var(--line-strong);
+  color: var(--ink-soft);
+  background: transparent;
+}
+
+.leo-symbol-only .leo-loader-report:hover,
+.leo-symbol-only .leo-loader-report:focus-visible {
+  color: var(--rust);
+  border-color: var(--rust);
+  background: var(--rust-tint);
+}
+
+.leo-symbol-only .leo-loader-wrapper .leo-lion-container {
   width: var(--leo-symbol-size, 96px);
   height: var(--leo-symbol-size, 96px);
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--leo-project-blend) 35%, transparent));
 }
 
 .leo-symbol-only .leo-lion-svg {
