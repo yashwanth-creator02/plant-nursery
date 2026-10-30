@@ -36,6 +36,11 @@ A modern, full-stack internal management application for plant nurseries and ret
   - Live preview synchronization across active invoice builder tabs via DOM events (`nurseryLogoUpdated`) without full page reloads.
   - Payment QR code card configuration for UPI payment scans directly on printed receipts.
 
+- **Brand Loading State**
+  - Shared lion line-art loader from the brand system, with a copper-and-nursery-rust blend and theme-aware light/dark rendering.
+  - Used for route transitions, authentication, page data loading, and full-surface modal loading instead of text placeholders or skeleton grids.
+  - Inline button and action spinners remain for short, local operations.
+
 - **Comprehensive Bilingual Localization (Kannada & English)**
   - Seamless 1-click language toggle across the entire application without layout clipping or horizontal distortion.
   - **1-Click AI Translation**: On-the-fly Google translation (`translateOnTheFly`) with nursery botanical dictionary fallback for stock items, categories, subcategories, photo descriptions, and custom line items.

@@ -1,0 +1,238 @@
+/* ==========================================================================
+   LEO LOADER - Single Line-Draw Loading State
+   ========================================================================== */
+
+@import "./leo-theme.css";
+
+:root {
+  --leo-loader-copper-light: var(--brand-primary-light, #F5A047);
+  --leo-loader-copper: var(--brand-primary, #DD6D2E);
+  --leo-loader-copper-dark: var(--brand-primary-dark, #9D421F);
+  --leo-loader-copper-deep: var(--brand-primary-deep, #9A3E1E);
+  --leo-loader-glow: var(--brand-primary-glow, rgba(221, 109, 46, 0.45));
+  --leo-loader-obsidian: var(--bg-page-secondary, #0B0E17);
+  --leo-loader-surface: var(--bg-surface-glass, rgba(16, 21, 34, 0.75));
+  --leo-loader-border: var(--border-card, rgba(221, 109, 46, 0.2));
+  --leo-loader-text: var(--text-primary, #E6EAF2);
+  --leo-loader-muted: var(--text-secondary, #8A93A6);
+}
+
+[data-theme="light"] {
+  --leo-loader-copper-light: var(--brand-primary-light, #E77232);
+  --leo-loader-copper: var(--brand-primary, #C5531B);
+  --leo-loader-copper-dark: var(--brand-primary-dark, #8C330D);
+  --leo-loader-copper-deep: var(--brand-primary-deep, #662206);
+  --leo-loader-glow: var(--brand-primary-glow, rgba(197, 83, 27, 0.25));
+  --leo-loader-obsidian: var(--bg-page-secondary, #EEF2F6);
+  --leo-loader-surface: var(--bg-surface-glass, rgba(255, 255, 255, 0.9));
+  --leo-loader-border: var(--border-card, rgba(197, 83, 27, 0.22));
+  --leo-loader-text: var(--text-primary, #0E131F);
+  --leo-loader-muted: var(--text-secondary, #4B5565);
+}
+
+/* Base Loader Container */
+.leo-loader-wrapper {
+  /* Destination accent, then the blend weights. Brand stays dominant at 65/35
+     unless the host passes accentColor and brandWeight to LeoLoader. */
+  --leo-loader-destination-accent: var(--destination-accent, var(--accent-color, var(--brand-primary, #DD6D2E)));
+  --leo-loader-brand-weight: 65%;
+  --leo-loader-accent-weight: 35%;
+  --leo-loader-blend-light: color-mix(in srgb, var(--brand-primary-light, #F5A047) var(--leo-loader-brand-weight), var(--leo-loader-destination-accent) var(--leo-loader-accent-weight));
+  --leo-loader-blend: color-mix(in srgb, var(--brand-primary, #DD6D2E) var(--leo-loader-brand-weight), var(--leo-loader-destination-accent) var(--leo-loader-accent-weight));
+  --leo-loader-blend-dark: color-mix(in srgb, var(--brand-primary-dark, #9D421F) var(--leo-loader-brand-weight), var(--leo-loader-destination-accent) var(--leo-loader-accent-weight));
+  --leo-loader-blend-deep: color-mix(in srgb, var(--brand-primary-deep, #9A3E1E) var(--leo-loader-brand-weight), var(--leo-loader-destination-accent) var(--leo-loader-accent-weight));
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem;
+  background: radial-gradient(circle at 50% 45%, #141A29 0%, var(--leo-loader-obsidian) 85%);
+  border-radius: 1.25rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--leo-loader-border);
+  position: relative;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, sans-serif;
+  user-select: none;
+  transition: background 250ms ease, border-color 250ms ease, box-shadow 250ms ease;
+}
+
+/* Light Theme Styling for Loader */
+.leo-loader-wrapper.theme-light,
+[data-theme="light"] .leo-loader-wrapper {
+  background: radial-gradient(circle at 50% 45%, #FFFFFF 0%, #EEF2F7 85%);
+  border-color: rgba(197, 83, 27, 0.22);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(197, 83, 27, 0.04), inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+.leo-loader-wrapper.theme-light::before,
+[data-theme="light"] .leo-loader-wrapper::before {
+  background: radial-gradient(circle, rgba(197, 83, 27, 0.16) 0%, rgba(221, 109, 46, 0.02) 55%, transparent 70%);
+  opacity: 0.45;
+}
+
+.leo-loader-wrapper.theme-light .leo-lion-container,
+[data-theme="light"] .leo-loader-wrapper .leo-lion-container {
+  filter: drop-shadow(0 4px 14px rgba(197, 83, 27, 0.25));
+}
+
+.leo-loader-wrapper.theme-light .leo-loader-title,
+[data-theme="light"] .leo-loader-wrapper .leo-loader-title {
+  background: linear-gradient(90deg, #E77232 0%, #C5531B 50%, #8C330D 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.leo-loader-wrapper.theme-light .leo-loader-subtitle,
+[data-theme="light"] .leo-loader-wrapper .leo-loader-subtitle {
+  color: var(--text-secondary, #4B5565);
+}
+
+/* Subtle ambient backdrop aura */
+.leo-loader-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, var(--leo-loader-glow) 0%, rgba(157, 66, 31, 0.05) 55%, transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+/* Stage Layouts */
+.leo-loader-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+}
+
+/* SVG Container */
+.leo-lion-container {
+  width: 190px;
+  height: 190px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 16px rgba(221, 109, 46, 0.35));
+}
+
+/* ==========================================================================
+   SVG Path Animation Engine - Plume-by-Plume Sequential Reveal
+   ========================================================================== */
+.leo-lion-path {
+  fill: url(#leoCopperGrad);
+  stroke: url(#leoCopperGrad);
+  stroke-width: 3.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 6000;
+  stroke-dashoffset: 6000;
+  fill-opacity: 0;
+  opacity: 0;
+  animation-fill-mode: forwards;
+}
+
+/* Phase 1: Sequential One-by-One Plume Draw — Smooth, Gradual Cinematic Tracing */
+.state-entrance .leo-lion-path {
+  animation: leo-plume-draw 1.85s cubic-bezier(0.35, 0, 0.25, 1) forwards;
+}
+
+/* Staggered Anatomical Drawing Order (Top to Bottom):
+   Crown -> Crest -> Upper Mane -> Ear -> Eye -> Face/Jaw -> Mid Mane -> Inner Tuft -> Back Sweep -> Throat Flame -> Lower Sweep */
+.state-entrance .leo-plume-crown        { animation-delay: 0.00s; stroke-dasharray: 2600; stroke-dashoffset: 2600; }
+.state-entrance .leo-plume-crest        { animation-delay: 0.30s; stroke-dasharray: 1900; stroke-dashoffset: 1900; }
+.state-entrance .leo-plume-upper-mane   { animation-delay: 0.60s; stroke-dasharray: 2100; stroke-dashoffset: 2100; }
+.state-entrance .leo-plume-ear          { animation-delay: 0.90s; stroke-dasharray: 1000; stroke-dashoffset: 1000; }
+.state-entrance .leo-plume-eye          { animation-delay: 1.20s; stroke-dasharray: 700;  stroke-dashoffset: 700;  }
+.state-entrance .leo-plume-face         { animation-delay: 1.50s; stroke-dasharray: 7800; stroke-dashoffset: 7800; }
+.state-entrance .leo-plume-mid-mane     { animation-delay: 1.90s; stroke-dasharray: 1900; stroke-dashoffset: 1900; }
+.state-entrance .leo-plume-inner-tuft   { animation-delay: 2.30s; stroke-dasharray: 1100; stroke-dashoffset: 1100; }
+.state-entrance .leo-plume-back-sweep   { animation-delay: 2.70s; stroke-dasharray: 2100; stroke-dashoffset: 2100; }
+.state-entrance .leo-plume-throat-flame { animation-delay: 3.10s; stroke-dasharray: 2300; stroke-dashoffset: 2300; }
+.state-entrance .leo-plume-lower-sweep  { animation-delay: 3.50s; stroke-dasharray: 1900; stroke-dashoffset: 1900; }
+
+/* Status Label / Subtext */
+.leo-loader-caption {
+  margin-top: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  z-index: 2;
+}
+
+.leo-loader-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, var(--brand-primary-light, #F5A047), var(--brand-primary, #DD6D2E), var(--brand-primary-dark, #9D421F));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.leo-loader-subtitle {
+  font-size: 0.78rem;
+  color: var(--leo-loader-muted);
+  letter-spacing: 0.04em;
+}
+
+/* Delayed-load report action */
+.leo-loader-report {
+  margin-top: 1rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--leo-loader-border);
+  border-radius: 0.4rem;
+  color: var(--leo-loader-muted);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  z-index: 2;
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.leo-loader-report:hover,
+.leo-loader-report:focus-visible {
+  color: var(--leo-loader-text);
+  border-color: var(--leo-loader-copper);
+  background: color-mix(in srgb, var(--leo-loader-copper) 10%, transparent);
+  outline: none;
+}
+
+.leo-loader-report[hidden] {
+  display: none;
+}
+
+/* Keyframe Animations */
+@keyframes leo-plume-draw {
+  0% {
+    opacity: 0;
+    fill-opacity: 0;
+  }
+  3% {
+    opacity: 1;
+    fill-opacity: 0;
+  }
+  75% {
+    fill-opacity: 0.08;
+  }
+  88% {
+    stroke-dashoffset: 0;
+    fill-opacity: 0.55;
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    fill-opacity: 1;
+    opacity: 1;
+  }
+}

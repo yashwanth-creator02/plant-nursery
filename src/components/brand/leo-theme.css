@@ -1,0 +1,121 @@
+/* ==========================================================================
+   LEO BRAND — MASTER COLOR PALETTE (SINGLE SOURCE OF TRUTH)
+   ==========================================================================
+   Edit this single file to change brand colors everywhere across:
+   - The Home Website & Documentation
+   - The LeoLoader & Dynamic Loading States
+   - UI Components (Buttons, Cards, Badges, Toasts)
+   - Vector Assets & Icons (Leo Lion, Demo Vectors)
+   - Interactive Easter Eggs & Particle Canvases
+
+   All values use standard CSS custom properties.
+   ========================================================================== */
+
+:root {
+  /* ========================================================================
+     1. BRAND ACCENT PALETTE (Signature Copper / Ember / Terracotta)
+     ======================================================================== */
+  --brand-primary: #DD6D2E;                 /* Core Brand Accent: Radiant Copper */
+  --brand-primary-light: #F5A047;           /* Warm Amber Highlight & Glow Edge */
+  --brand-primary-dark: #9D421F;            /* Deep Terracotta Copper */
+  --brand-primary-deep: #9A3E1E;            /* Burnished Bronze Shadow */
+  --brand-primary-glow: rgba(221, 109, 46, 0.4);  /* Radial glow & shadow cast */
+  --brand-primary-subtle: rgba(221, 109, 46, 0.12); /* Subtle pill/badge fill */
+
+  /* ========================================================================
+     2. DARK THEME SURFACES (Obsidian Copper Default)
+     ======================================================================== */
+  --bg-page: #07090E;                       /* Canvas page background */
+  --bg-page-secondary: #0B0E17;             /* Deeper section background */
+  --bg-surface: #101522;                    /* Cards and panel surfaces */
+  --bg-surface-raised: #161D2F;             /* Hovered or elevated surfaces */
+  --bg-surface-glass: rgba(16, 21, 34, 0.72); /* Translucent glassmorphism */
+  --bg-input: #0E131F;                      /* Code blocks, text inputs */
+  --bg-modal-overlay: rgba(5, 7, 12, 0.85); /* Fullscreen backdrop overlay */
+
+  /* ========================================================================
+     3. BORDERS & ACCENT DIVIDERS
+     ======================================================================== */
+  --border-subtle: rgba(255, 255, 255, 0.08); /* Low-key structural hairline */
+  --border-card: rgba(221, 109, 46, 0.18);     /* Accent card border */
+  --border-card-hover: rgba(245, 160, 71, 0.45); /* Hover active border */
+  --border-focus: var(--brand-primary);       /* Form & button focus ring */
+
+  /* ========================================================================
+     4. TYPOGRAPHY & CONTRAST
+     ======================================================================== */
+  --text-primary: #F0F4FC;                  /* Crisp high-contrast headings & text */
+  --text-secondary: #8A93A6;                /* Body copy, subtitles, metadata */
+  --text-muted: #555E70;                    /* Captions, line numbers, disabled */
+  --text-on-accent: #07090E;                /* Contrast text placed on solid primary */
+
+  /* ========================================================================
+     5. SEMANTIC STATUS PALETTE
+     ======================================================================== */
+  --color-success: #10B981;                 /* Operational / Complete / Verified */
+  --color-success-bg: rgba(16, 185, 129, 0.12);
+  --color-warning: #F59E0B;                 /* In Progress / Staging */
+  --color-warning-bg: rgba(245, 158, 11, 0.12);
+  --color-danger: #EF4444;                  /* Error / Alert / Deprecated */
+  --color-danger-bg: rgba(239, 68, 68, 0.12);
+  --color-info: #3B82F6;                    /* Informational / Documentation */
+  --color-info-bg: rgba(59, 130, 246, 0.12);
+
+  /* ========================================================================
+     6. MOTION & ELEVATION TOKENS
+     ======================================================================== */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 12px 30px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 25px 60px rgba(0, 0, 0, 0.65);
+  --shadow-glow: 0 0 35px var(--brand-primary-glow);
+  --transition-fast: 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-base: 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-slow: 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ==========================================================================
+   LIGHT THEME OVERRIDES ([data-theme="light"])
+   ========================================================================== */
+[data-theme="light"] {
+  --bg-page: #F8F9FC;
+  --bg-page-secondary: #EEF2F6;
+  --bg-surface: #FFFFFF;
+  --bg-surface-raised: #F1F4F9;
+  --bg-surface-glass: rgba(255, 255, 255, 0.85);
+  --bg-input: #F1F4F9;
+  --bg-modal-overlay: rgba(14, 18, 28, 0.6);
+
+  --brand-primary: #C5531B;
+  --brand-primary-light: #E77232;
+  --brand-primary-dark: #8C330D;
+  --brand-primary-deep: #662206;
+  --brand-primary-glow: rgba(197, 83, 27, 0.3);
+  --brand-primary-subtle: rgba(197, 83, 27, 0.1);
+
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-card: rgba(197, 83, 27, 0.22);
+  --border-card-hover: rgba(197, 83, 27, 0.5);
+
+  --text-primary: #0E131F;
+  --text-secondary: #4B5565;
+  --text-muted: #8E9BAE;
+  --text-on-accent: #FFFFFF;
+
+  --color-success: #059669;
+  --color-success-bg: rgba(5, 150, 105, 0.1);
+  --color-warning: #D97706;
+  --color-warning-bg: rgba(217, 119, 6, 0.1);
+  --color-danger: #DC2626;
+  --color-danger-bg: rgba(220, 38, 38, 0.1);
+  --color-info: #2563EB;
+  --color-info-bg: rgba(37, 99, 235, 0.1);
+
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 12px 30px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 25px 60px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 30px rgba(197, 83, 27, 0.25);
+}

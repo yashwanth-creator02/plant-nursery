@@ -13,6 +13,7 @@ import { GalleryStockItem, StockCategory } from "@/lib/types";
 import { StockItemDetailModal } from "@/components/StockItemDetailModal";
 import { StockPhotoUploadModal } from "@/components/StockPhotoUploadModal";
 import { useLanguage, translateItem, translateCategory } from "@/lib/language-context";
+import { LeoLoader } from "@/components/brand/LeoLoader";
 
 export default function GalleryPage() {
   const { language } = useLanguage();
@@ -284,22 +285,12 @@ export default function GalleryPage() {
         </div>
       </div>
 
-      {/* Loading Skeleton */}
       {loading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div
-              key={i}
-              className="animate-pulse overflow-hidden rounded-xl border border-line bg-paper-flat"
-            >
-              <div className="aspect-4/3 w-full bg-line/40" />
-              <div className="p-3">
-                <div className="h-4 w-3/4 rounded bg-line/50 mb-1" />
-                <div className="h-3 w-1/2 rounded bg-line/30" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <LeoLoader
+          minHeight="320px"
+          title="Sri Vijayalakshmi Nursery"
+          subtitle={language === "kn" ? "ಗ್ಯಾಲರಿ ಲೋಡ್ ಆಗುತ್ತಿದೆ..." : "Loading gallery..."}
+        />
       ) : filteredItems.length === 0 ? (
         /* Empty State */
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line p-12 text-center">

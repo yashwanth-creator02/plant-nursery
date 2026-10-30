@@ -3,6 +3,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
+import { LeoLoader } from "@/components/brand/LeoLoader";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FileText, Search, X, Banknote, QrCode, Receipt } from "lucide-react";
@@ -232,9 +233,11 @@ function InvoicesContent() {
       )}
 
       {loading ? (
-        <p className="text-sm text-ink-soft">
-          {language === "kn" ? "ರಶೀದಿಗಳು ಲೋಡ್ ಆಗುತ್ತಿವೆ…" : "Loading…"}
-        </p>
+        <LeoLoader
+          minHeight="320px"
+          title="Sri Vijayalakshmi Nursery"
+          subtitle={language === "kn" ? "ರಶೀದಿಗಳು ಲೋಡ್ ಆಗುತ್ತಿವೆ..." : "Loading invoices..."}
+        />
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border border-dashed border-line-strong bg-surface px-6 py-12 text-center">
           <FileText className="mx-auto mb-2 text-ink-soft" size={22} />
@@ -393,7 +396,15 @@ function InvoicesContent() {
 
 export default function InvoicesPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-sm text-ink-soft">Loading invoices…</div>}>
+    <Suspense
+      fallback={
+        <LeoLoader
+          minHeight="60vh"
+          title="Sri Vijayalakshmi Nursery"
+          subtitle="Loading invoices..."
+        />
+      }
+    >
       <InvoicesContent />
     </Suspense>
   );

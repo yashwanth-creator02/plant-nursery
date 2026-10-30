@@ -35,6 +35,7 @@ import { AdminInvoiceSettingsModal } from "./AdminInvoiceSettingsModal";
 import { CustomInvoiceNumberModal } from "./CustomInvoiceNumberModal";
 import { SalesAnalyticsModal } from "./SalesAnalyticsModal";
 import { ExportDataModal } from "./ExportDataModal";
+import { LeoLoader } from "@/components/brand/LeoLoader";
 
 type ManagedUser = {
   id: string;
@@ -958,9 +959,11 @@ export function ProfilePanel({
                 </div>
 
                 {loadingVersions ? (
-                  <div className="py-4 text-center text-xs text-ink-soft flex items-center justify-center gap-2">
-                    <Loader2 size={14} className="animate-spin" /> Loading versions…
-                  </div>
+                  <LeoLoader
+                    minHeight="180px"
+                    title="Sri Vijayalakshmi Nursery"
+                    subtitle="Loading versions..."
+                  />
                 ) : invoiceVersions.length === 0 ? (
                   <p className="text-xs text-ink-soft">No versions recorded yet.</p>
                 ) : (

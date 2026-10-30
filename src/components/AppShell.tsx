@@ -4,6 +4,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { LeoLoader } from "@/components/brand/LeoLoader";
 import { Menu } from "lucide-react";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { LanguageProvider, useLanguage } from "@/lib/language-context";
@@ -71,11 +72,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   }
 
   if (loading || !user) {
-    return (
-      <div className="flex h-dvh items-center justify-center text-ink-soft text-sm">
-        {t("loading")}
-      </div>
-    );
+    return <LeoLoader fullscreen title="Sri Vijayalakshmi Nursery" subtitle={t("loading")} />;
   }
 
   return (

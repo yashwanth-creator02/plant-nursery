@@ -3,6 +3,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { LeoLoader } from "@/components/brand/LeoLoader";
 import {
   Plus,
   Trash2,
@@ -1713,9 +1714,11 @@ export default function StockPage() {
       {/* STOCK ITEMS TABLE / LIST                                     */}
       {/* ============================================================ */}
       {loading ? (
-        <p className="text-sm text-ink-soft">
-          {language === "kn" ? "ದಾಸ್ತಾನು ಲೋಡ್ ಆಗುತ್ತಿದೆ…" : "Loading stock…"}
-        </p>
+        <LeoLoader
+          minHeight="320px"
+          title="Sri Vijayalakshmi Nursery"
+          subtitle={language === "kn" ? "ದಾಸ್ತಾನು ಲೋಡ್ ಆಗುತ್ತಿದೆ..." : "Loading stock..."}
+        />
       ) : items.length === 0 ? (
         <div className="rounded-lg border border-dashed border-line-strong bg-surface px-6 py-12 text-center">
           <Boxes className="mx-auto mb-2 text-ink-soft" size={22} />
