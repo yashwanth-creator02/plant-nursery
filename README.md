@@ -37,7 +37,8 @@ A modern, full-stack internal management application for plant nurseries and ret
   - Payment QR code card configuration for UPI payment scans directly on printed receipts.
 
 - **Brand Loading State**
-  - Shared lion line-art loader from the brand system, with a copper-and-nursery-rust blend and theme-aware light/dark rendering.
+  - Shared lion line-art symbol from the brand system, drawn plume by plume and rendered without a card surface or caption.
+  - The lion gradient blends Leo copper with the nursery rust accent and follows the light/dark theme.
   - Used for route transitions, authentication, page data loading, and full-surface modal loading instead of text placeholders or skeleton grids.
   - Inline button and action spinners remain for short, local operations.
 

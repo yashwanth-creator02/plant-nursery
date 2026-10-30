@@ -191,3 +191,33 @@ textarea {
     size: A4 portrait;
   }
 }
+
+/* Brand loader: show only the lion symbol, no card surface or caption */
+.leo-symbol-only .leo-loader-wrapper {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.leo-symbol-only .leo-loader-wrapper::before {
+  display: none;
+}
+
+.leo-symbol-only .leo-loader-caption,
+.leo-symbol-only .leo-loader-report {
+  display: none;
+}
+
+.leo-symbol-only .leo-lion-container {
+  width: var(--leo-symbol-size, 96px);
+  height: var(--leo-symbol-size, 96px);
+}
+
+.leo-symbol-only .leo-lion-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

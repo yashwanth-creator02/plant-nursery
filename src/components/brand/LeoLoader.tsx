@@ -12,6 +12,8 @@ interface LeoLoaderProps {
   theme?: LeoLoaderTheme;
   minHeight?: string;
   fullscreen?: boolean;
+  symbolOnly?: boolean;
+  size?: number;
 }
 
 function resolveTheme(): LeoLoaderTheme {
@@ -28,6 +30,8 @@ export function LeoLoader({
   theme,
   minHeight,
   fullscreen = false,
+  symbolOnly = true,
+  size,
 }: LeoLoaderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -66,14 +70,20 @@ export function LeoLoader({
     minHeight: fullscreen ? "100vh" : minHeight,
     background: fullscreen ? "var(--paper)" : undefined,
     "--destination-accent": "var(--rust)",
+    "--leo-symbol-size": `${size ?? (fullscreen ? 160 : 96)}px`,
   } as CSSProperties;
 
   return (
     <div
-      className={`grid w-full place-items-center ${fullscreen ? "p-6" : ""} ${className}`}
+      className={`grid w-full place-items-center ${fullscreen ? "p-6" : ""} ${
+        symbolOnly ? "leo-symbol-only" : ""
+      } ${className}`}
       style={hostStyle}
     >
-      <div ref={containerRef} className="w-full max-w-md" />
+      <div
+        ref={containerRef}
+        className={symbolOnly ? "flex items-center justify-center" : "w-full max-w-md"}
+      />
     </div>
   );
 }
