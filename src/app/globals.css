@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "../components/brand/leo-loader.css";
+@import "../components/brand/brand-search.css";
 
 :root,
 html.light {

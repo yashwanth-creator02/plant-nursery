@@ -43,6 +43,13 @@ A modern, full-stack internal management application for plant nurseries and ret
   - Used for route transitions, authentication, page data loading, and full-surface modal loading instead of text placeholders or skeleton grids.
   - Inline button and action spinners remain for short, local operations.
 
+- **Brand Sliding-Door Search**
+  - Ported from the brand hero search and scaled to toolbar height (36px, 34px on mobile).
+  - The pine door and its handle cover the bar at rest, slide right on focus to reveal the field, and snap shut on submit.
+  - Filtering is live through the existing search state; the submit only announces the result count in a polite live region.
+  - Used on the stock and invoices pages in place of the plain bordered inputs.
+  - Escape clears the query, the handle is a real submit button, and reduced motion drops every transition.
+
 - **Comprehensive Bilingual Localization (Kannada & English)**
   - Seamless 1-click language toggle across the entire application without layout clipping or horizontal distortion.
   - **1-Click AI Translation**: On-the-fly Google translation (`translateOnTheFly`) with nursery botanical dictionary fallback for stock items, categories, subcategories, photo descriptions, and custom line items.

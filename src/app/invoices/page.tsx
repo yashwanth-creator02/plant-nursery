@@ -4,9 +4,10 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { LeoLoader } from "@/components/brand/LeoLoader";
+import { BrandSearchBar } from "@/components/brand/BrandSearchBar";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { FileText, Search, X, Banknote, QrCode, Receipt } from "lucide-react";
+import { FileText, Banknote, QrCode, Receipt } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useLanguage } from "@/lib/language-context";
 import { formatMoney, InvoiceRecord } from "@/lib/types";
@@ -110,28 +111,19 @@ function InvoicesContent() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className="relative flex-1 sm:w-64 sm:flex-none">
-            <Search
-              size={15}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"
-            />
-            <input
-              type="text"
+          <div className="flex-1 sm:w-64 sm:flex-none">
+            <BrandSearchBar
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={setSearchQuery}
               placeholder={language === "kn" ? "ರಶೀದಿಗಳನ್ನು ಹುಡುಕಿ..." : "Search invoices..."}
-              className="w-full rounded-md border border-line-strong bg-surface py-1.5 pl-9 pr-8 text-sm outline-none placeholder:text-ink-soft/70 focus:border-pine"
+              label={language === "kn" ? "ರಶೀದಿಗಳನ್ನು ಹುಡುಕಿ" : "Search receipts"}
+              emptyMessage={language === "kn" ? "ಹುಡುಕಲು ರಶೀದಿ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ." : "Type a receipt number to search."}
+              resultSummary={
+                language === "kn"
+                  ? `${filtered.length} ರಶೀದಿಗಳು ಕಂಡುಬಂದಿವೆ.`
+                  : `Showing ${filtered.length} receipts.`
+              }
             />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-ink-soft hover:text-ink cursor-pointer"
-                aria-label={language === "kn" ? "ಹುಡುಕಾಟ ತೆರವುಗೊಳಿಸಿ" : "Clear search"}
-              >
-                <X size={14} />
-              </button>
-            )}
           </div>
           <div className="flex items-center gap-1 rounded-md border border-line-strong bg-surface p-1 text-sm flex-wrap">
             <button

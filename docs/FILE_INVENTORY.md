@@ -12,6 +12,8 @@ This inventory tracks the repository's tracked files. Update the relevant entry 
 - `src/components/brand/leo-loader.js`
 - `src/components/brand/leo-loader.css`
 - `src/components/brand/leo-theme.css`
+- `src/components/brand/BrandSearchBar.tsx`
+- `src/components/brand/brand-search.css`
 
 ## Root and configuration
 

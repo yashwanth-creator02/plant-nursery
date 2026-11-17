@@ -1,0 +1,193 @@
+/* Brand sliding-door search, ported from brand-leo-utils and scaled down to
+   toolbar height. Only the door geometry differs from the brand original. */
+
+.brand-search-wrap {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.brand-search {
+  --brand-search-recede: 720ms;
+  --brand-search-snap: 640ms;
+  --brand-search-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 2.25rem;
+  padding: 0 0.25rem;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 0.5rem;
+  color: var(--surface);
+  cursor: text;
+  transition: border-color 240ms ease, box-shadow 240ms ease;
+}
+
+/* The pine door and its handle move as one element: it covers the bar at rest,
+   slides right on focus, then closes over the field on submit. */
+.brand-search-door {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--pine);
+  border-radius: inherit;
+  transform: translateX(0);
+  transition: transform var(--brand-search-recede) var(--brand-search-ease);
+}
+
+.brand-search:hover .brand-search-door {
+  transform: translateX(0.2rem);
+}
+
+.brand-search:focus-within {
+  border-color: var(--pine);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pine) 18%, transparent);
+}
+
+.brand-search:focus-within .brand-search-door {
+  transform: translateX(calc(100% - 2.25rem));
+}
+
+.brand-search.is-submitted {
+  border-color: var(--pine);
+}
+
+.brand-search.is-submitted .brand-search-door {
+  transform: translateX(0);
+  transition-duration: var(--brand-search-snap);
+}
+
+.brand-search-handle {
+  position: absolute;
+  top: 50%;
+  left: 0.25rem;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--surface);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: opacity 240ms ease, transform 240ms ease;
+}
+
+.brand-search-handle:hover {
+  opacity: 0.82;
+  transform: translateY(-50%) scale(1.08);
+}
+
+.brand-search-handle:focus-visible {
+  outline: 2px solid var(--surface);
+  outline-offset: 2px;
+}
+
+.brand-search-input {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 1.75rem;
+  /* Margins, not padding: they keep the handle clickable and stop the text
+     running under it. */
+  margin: 0 0.75rem 0 2.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--surface);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  outline: none;
+  transition: margin var(--brand-search-recede) var(--brand-search-ease), color 240ms ease;
+}
+
+.brand-search-input::placeholder {
+  color: color-mix(in srgb, var(--surface) 70%, transparent);
+  opacity: 1;
+}
+
+.brand-search-input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.brand-search:focus-within .brand-search-input {
+  margin: 0 2.5rem 0 0.75rem;
+  color: var(--ink);
+}
+
+.brand-search:focus-within .brand-search-input::placeholder {
+  color: var(--ink-soft);
+}
+
+.brand-search.is-submitted .brand-search-input {
+  margin: 0 0.75rem 0 2.5rem;
+  color: var(--surface);
+  transition-duration: var(--brand-search-snap), 240ms;
+}
+
+.brand-search-status {
+  margin-top: 0.35rem;
+  padding: 0 0.5rem;
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+/* Stay out of the toolbar layout until there is something to announce. */
+.brand-search-status:empty {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .brand-search {
+    min-height: 2.125rem;
+  }
+
+  .brand-search-handle {
+    width: 1.625rem;
+    height: 1.625rem;
+  }
+
+  .brand-search:focus-within .brand-search-door {
+    transform: translateX(calc(100% - 2.125rem));
+  }
+
+  .brand-search-input {
+    height: 1.625rem;
+    font-size: 0.75rem;
+    margin: 0 0.6rem 0 2.25rem;
+  }
+
+  .brand-search:focus-within .brand-search-input {
+    margin: 0 2.25rem 0 0.6rem;
+  }
+
+  .brand-search.is-submitted .brand-search-input {
+    margin: 0 0.6rem 0 2.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-search,
+  .brand-search-door,
+  .brand-search-handle,
+  .brand-search-input {
+    transition: none;
+  }
+
+  .brand-search:hover .brand-search-door {
+    transform: translateX(0);
+  }
+
+  .brand-search-handle:hover {
+    transform: translateY(-50%);
+  }
+}
