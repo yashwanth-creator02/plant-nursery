@@ -1,0 +1,222 @@
+/* Hallmark: v2.0.0 · theme: obsidian-copper · genre: modern-minimal · shape: showcase · signature: interactive-lion-loader */
+/* critique: Singular lion loader with real-time accent blending and delayed-load reporting */
+/* ==========================================================================
+   LEO LOADER - Single Line-Draw Loading State
+   ========================================================================== */
+
+@import "./leo-theme.css";
+
+:root {
+  --leo-loader-copper-light: var(--brand-primary-light);
+  --leo-loader-copper: var(--brand-primary);
+  --leo-loader-copper-dark: var(--brand-primary-dark);
+  --leo-loader-copper-deep: var(--brand-primary-deep);
+  --leo-loader-glow: var(--brand-primary-glow);
+  --leo-loader-obsidian: var(--bg-page-secondary);
+  --leo-loader-surface: var(--bg-surface-glass);
+  --leo-loader-border: var(--border-card);
+  --leo-loader-text: var(--text-primary);
+  --leo-loader-muted: var(--text-secondary);
+}
+
+[data-theme="light"] {
+  --leo-loader-copper-light: var(--brand-primary-light);
+  --leo-loader-copper: var(--brand-primary);
+  --leo-loader-copper-dark: var(--brand-primary-dark);
+  --leo-loader-copper-deep: var(--brand-primary-deep);
+  --leo-loader-glow: var(--brand-primary-glow);
+  --leo-loader-obsidian: var(--bg-page-secondary);
+  --leo-loader-surface: var(--bg-surface-glass);
+  --leo-loader-border: var(--border-card);
+  --leo-loader-text: var(--text-primary);
+  --leo-loader-muted: var(--text-secondary);
+}
+
+/* Base Loader Container */
+.leo-loader-wrapper {
+  /* Destination accent, then the blend weights. Brand stays dominant at 65/35
+     unless the host passes accentColor and brandWeight to LeoLoader. */
+  --leo-loader-destination-accent: var(--destination-accent, var(--accent-color, var(--brand-primary)));
+  --leo-loader-brand-weight: 65%;
+  --leo-loader-accent-weight: 35%;
+  --leo-loader-blend-light: color-mix(in srgb, var(--brand-primary-light) var(--leo-loader-brand-weight), var(--leo-loader-destination-accent) var(--leo-loader-accent-weight));
+  --leo-loader-blend: color-mix(in srgb, var(--brand-primary) var(--leo-loader-brand-weight), var(--leo-loader-destination-accent) var(--leo-loader-accent-weight));
+  --leo-loader-blend-dark: color-mix(in srgb, var(--brand-primary-dark) var(--leo-loader-brand-weight), var(--leo-loader-destination-accent) var(--leo-loader-accent-weight));
+  --leo-loader-blend-deep: color-mix(in srgb, var(--brand-primary-deep) var(--leo-loader-brand-weight), var(--leo-loader-destination-accent) var(--leo-loader-accent-weight));
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  position: relative;
+  cursor: progress;
+  font-family: system-ui, -apple-system, sans-serif;
+  user-select: none;
+}
+
+/* Light Theme Styling for Loader */
+.leo-loader-wrapper.theme-light,
+[data-theme="light"] .leo-loader-wrapper {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.leo-loader-wrapper.theme-light::before,
+[data-theme="light"] .leo-loader-wrapper::before {
+  display: none;
+}
+
+.leo-loader-wrapper.theme-light .leo-lion-container,
+[data-theme="light"] .leo-loader-wrapper .leo-lion-container {
+  filter: drop-shadow(0 4px 14px var(--leo-loader-glow));
+}
+
+.leo-loader-wrapper.theme-light .leo-loader-title,
+[data-theme="light"] .leo-loader-wrapper .leo-loader-title {
+  color: var(--leo-loader-copper);
+}
+
+.leo-loader-wrapper.theme-light .leo-loader-subtitle,
+[data-theme="light"] .leo-loader-wrapper .leo-loader-subtitle {
+  color: var(--leo-loader-muted);
+}
+
+/* Ambient backdrop aura removed for pure symbol and text loading state */
+.leo-loader-wrapper::before {
+  content: '';
+  display: none;
+}
+
+/* Stage Layouts */
+.leo-loader-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+}
+
+/* SVG Container */
+.leo-lion-container {
+  width: 190px;
+  height: 190px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 16px var(--leo-loader-glow));
+}
+
+/* ==========================================================================
+   SVG Path Animation Engine - Plume-by-Plume Sequential Color Fill Loop
+   ========================================================================== */
+.leo-lion-path {
+  fill: url(#leoCopperGrad);
+  stroke: none;
+  stroke-width: 0;
+  fill-opacity: 0;
+  opacity: 0;
+}
+
+/* Sequential Plume Color Fill Reveal — Continuously Looping Wave */
+.state-entrance .leo-lion-path {
+  animation: leo-plume-fill 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Staggered Anatomical Fill Order (Top to Bottom):
+   Crown -> Crest -> Upper Mane -> Ear -> Eye -> Face/Jaw -> Mid Mane -> Inner Tuft -> Back Sweep -> Throat Flame -> Lower Sweep */
+.state-entrance .leo-plume-crown        { animation-delay: 0.00s; }
+.state-entrance .leo-plume-crest        { animation-delay: 0.10s; }
+.state-entrance .leo-plume-upper-mane   { animation-delay: 0.20s; }
+.state-entrance .leo-plume-ear          { animation-delay: 0.30s; }
+.state-entrance .leo-plume-eye          { animation-delay: 0.40s; }
+.state-entrance .leo-plume-face         { animation-delay: 0.50s; }
+.state-entrance .leo-plume-mid-mane     { animation-delay: 0.65s; }
+.state-entrance .leo-plume-inner-tuft   { animation-delay: 0.80s; }
+.state-entrance .leo-plume-back-sweep   { animation-delay: 0.95s; }
+.state-entrance .leo-plume-throat-flame { animation-delay: 1.10s; }
+.state-entrance .leo-plume-lower-sweep  { animation-delay: 1.25s; }
+
+/* Status Label / Subtext */
+.leo-loader-caption {
+  margin-top: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  z-index: 2;
+}
+
+.leo-loader-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--leo-loader-copper);
+}
+
+.leo-loader-subtitle {
+  font-size: 0.78rem;
+  color: var(--leo-loader-muted);
+}
+
+/* Delayed-load report action */
+.leo-loader-report {
+  margin-top: 1rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--leo-loader-border);
+  border-radius: 0.4rem;
+  color: var(--leo-loader-muted);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-decoration: none;
+  z-index: 2;
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.leo-loader-report:hover,
+.leo-loader-report:focus-visible {
+  color: var(--leo-loader-text);
+  border-color: var(--leo-loader-copper);
+  background: color-mix(in srgb, var(--leo-loader-copper) 10%, transparent);
+  outline: none;
+}
+
+.leo-loader-report[hidden] {
+  display: none;
+}
+
+/* Keyframe Animations - Pure Color Fill Flow */
+@keyframes leo-plume-fill {
+  0% {
+    opacity: 0;
+    fill-opacity: 0;
+  }
+  22% {
+    opacity: 1;
+    fill-opacity: 1;
+  }
+  64% {
+    opacity: 1;
+    fill-opacity: 1;
+  }
+  86% {
+    opacity: 0;
+    fill-opacity: 0;
+  }
+  100% {
+    opacity: 0;
+    fill-opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .state-entrance .leo-lion-path {
+    animation: none;
+    fill-opacity: 1;
+    opacity: 1;
+  }
+}

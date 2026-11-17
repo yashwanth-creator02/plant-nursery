@@ -1349,7 +1349,7 @@ export function InvoiceEditor({
                       }}
                       className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer border ${
                         customCategory === "plants"
-                          ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                          ? "bg-pine text-surface border-pine shadow-xs"
                           : "bg-surface text-ink-soft border-line hover:bg-line/40"
                       }`}
                     >

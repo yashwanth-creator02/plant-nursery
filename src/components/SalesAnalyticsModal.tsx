@@ -12,7 +12,6 @@ import {
   Calendar,
   Filter,
   User as UserIcon,
-  Search,
   ArrowUpDown,
   Download,
   Loader2,
@@ -32,6 +31,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/language-context";
+import { BrandSearchBar } from "@/components/brand/BrandSearchBar";
 
 type FilterMode =
   | "today"
@@ -1144,7 +1144,7 @@ export function SalesAnalyticsModal({
                 type="button"
                 onClick={() => setPaymentModeFilter("cash")}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer font-medium ${paymentModeFilter === "cash"
-                  ? "bg-emerald-600 text-white font-semibold shadow-xs"
+                  ? "bg-pine text-surface font-semibold shadow-xs"
                   : "text-ink-soft hover:text-ink"
                   }`}
               >
@@ -1966,17 +1966,18 @@ export function SalesAnalyticsModal({
                 </span>
               </div>
 
-              <div className="relative w-full sm:w-64">
-                <Search
-                  size={14}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-soft"
-                />
-                <input
-                  type="text"
-                  placeholder={t("searchInvoicesPlaceholder")}
+              <div className="w-full sm:w-64">
+                <BrandSearchBar
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-lg border border-line bg-surface pl-8 pr-3 py-1.5 text-xs text-ink outline-none focus:border-pine"
+                  onChange={setSearchQuery}
+                  placeholder={t("searchInvoicesPlaceholder")}
+                  label={t("searchInvoicesPlaceholder")}
+                  emptyMessage={language === "kn" ? "ಹುಡುಕಲು ರಶೀದಿ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ." : "Type a receipt number to search."}
+                  resultSummary={
+                    language === "kn"
+                      ? `${filteredInvoices.length} ರಶೀದಿಗಳು ಕಂಡುಬಂದಿವೆ.`
+                      : `Showing ${filteredInvoices.length} receipts.`
+                  }
                 />
               </div>
             </div>

@@ -1,0 +1,75 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "policies": [
+    {
+      "action": "mcp.use",
+      "resource": "browse",
+      "effect": "deny"
+    },
+    {
+      "action": "mcp.use",
+      "resource": "chrome-devtools",
+      "effect": "deny"
+    },
+    {
+      "action": "mcp.use",
+      "resource": "cloudflare",
+      "effect": "deny"
+    },
+    {
+      "action": "mcp.use",
+      "resource": "dart",
+      "effect": "deny"
+    },
+    {
+      "action": "mcp.use",
+      "resource": "everything",
+      "effect": "deny"
+    },
+    {
+      "action": "mcp.use",
+      "resource": "exa",
+      "effect": "deny"
+    },
+    {
+      "action": "mcp.use",
+      "resource": "fal-ai",
+      "effect": "deny"
+    },
+    {
+      "action": "mcp.use",
+      "resource": "filesystem",
+      "effect": "deny"
+    },
+    {
+      "action": "mcp.use",
+      "resource": "firecrawl",
+      "effect": "deny"
+    },
+    {
+      "action": "mcp.use",
+      "resource": "memory",
+      "effect": "deny"
+    },
+    {
+      "action": "mcp.use",
+      "resource": "omniroute",
+      "effect": "deny"
+    },
+    {
+      "action": "mcp.use",
+      "resource": "render",
+      "effect": "deny"
+    },
+    {
+      "action": "mcp.use",
+      "resource": "sequential-thinking",
+      "effect": "deny"
+    },
+    {
+      "action": "mcp.use",
+      "resource": "typeui",
+      "effect": "deny"
+    }
+  ]
+}

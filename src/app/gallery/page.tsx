@@ -4,15 +4,16 @@
 
 import { useEffect, useState, useMemo } from "react";
 import {
-  Search,
   Image as ImageIcon,
   Images,
   Plus,
 } from "lucide-react";
+import { BrandSearchBar } from "@/components/brand/BrandSearchBar";
 import { GalleryStockItem, StockCategory } from "@/lib/types";
 import { StockItemDetailModal } from "@/components/StockItemDetailModal";
 import { StockPhotoUploadModal } from "@/components/StockPhotoUploadModal";
 import { useLanguage, translateItem, translateCategory } from "@/lib/language-context";
+import { LeoLoader } from "@/components/brand/LeoLoader";
 
 export default function GalleryPage() {
   const { language } = useLanguage();
@@ -187,32 +188,25 @@ export default function GalleryPage() {
 
       {/* Sticky Search & Filter Bar */}
       <div className="sticky top-0 z-20 mb-6 rounded-xl border border-line bg-paper-flat/90 p-3 backdrop-blur-md shadow-xs">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
           {/* Search Input */}
-          <div className="relative flex-1">
-            <Search
-              size={18}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-soft/70"
-            />
-            <input
-              type="text"
+          <div className="w-full lg:min-w-[16rem] lg:flex-1">
+            <BrandSearchBar
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={setSearchQuery}
               placeholder={
                 language === "kn"
                   ? "ಹೆಸರು, ವರ್ಗ ಅಥವಾ ವಿವರಣೆ ಹುಡುಕಿ..."
                   : "Search by plant name, category, or description..."
               }
-              className="h-10 w-full rounded-lg border border-line bg-surface pl-10 pr-4 text-xs sm:text-sm text-ink placeholder-ink-soft/60 focus:border-pine focus:outline-none"
+              label={language === "kn" ? "ಗ್ಯಾಲರಿ ಹುಡುಕಿ" : "Search gallery"}
+              emptyMessage={language === "kn" ? "ಹುಡುಕಲು ಒಂದು ಹೆಸರು ನಮೂದಿಸಿ." : "Type a name to search."}
+              resultSummary={
+                language === "kn"
+                  ? `${filteredItems.length} ಚಿತ್ರಗಳು ಕಂಡುಬಂದಿವೆ.`
+                  : `Showing ${filteredItems.length} photos.`
+              }
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ink-soft hover:text-ink cursor-pointer"
-              >
-                {language === "kn" ? "ತೆರವು" : "Clear"}
-              </button>
-            )}
           </div>
 
           {/* Filter Pills */}
@@ -284,22 +278,12 @@ export default function GalleryPage() {
         </div>
       </div>
 
-      {/* Loading Skeleton */}
       {loading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div
-              key={i}
-              className="animate-pulse overflow-hidden rounded-xl border border-line bg-paper-flat"
-            >
-              <div className="aspect-4/3 w-full bg-line/40" />
-              <div className="p-3">
-                <div className="h-4 w-3/4 rounded bg-line/50 mb-1" />
-                <div className="h-3 w-1/2 rounded bg-line/30" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <LeoLoader
+          minHeight="320px"
+          title="Sri Vijayalakshmi Nursery"
+          subtitle={language === "kn" ? "ಗ್ಯಾಲರಿ ಲೋಡ್ ಆಗುತ್ತಿದೆ..." : "Loading gallery..."}
+        />
       ) : filteredItems.length === 0 ? (
         /* Empty State */
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line p-12 text-center">

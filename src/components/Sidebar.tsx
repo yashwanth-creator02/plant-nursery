@@ -219,28 +219,32 @@ export function Sidebar({
       >
         <div>
           {collapsed ? (
-            <div className="mb-6 flex flex-col items-center gap-2.5">
-              <svg className="h-6 w-6 shrink-0" viewBox="0 0 256 256" fill="none">
-                <circle cx="128" cy="128" r="116" fill="#0284c7" />
-                <path d="M 0 196 Q 48 180, 96 190 T 192 188 T 256 196 L 256 256 L 0 256 Z" fill="#0369a1" opacity="0.6" />
-                <ellipse cx="128" cy="180" rx="40" ry="14" fill="#3e2723" />
-                <path d="M 128 178 C 126 150, 130 114, 128 88" stroke="#14532d" strokeWidth="6" strokeLinecap="round" />
-                <path d="M 128 152 C 94 146, 68 122, 74 92 C 104 98, 126 118, 128 152 Z" fill="#4ade80" />
-                <path d="M 128 134 C 162 126, 188 102, 182 72 C 152 80, 130 102, 128 134 Z" fill="#86efac" />
-                <path d="M 128 88 C 117 68, 120 48, 128 34 C 136 48, 139 68, 128 88 Z" fill="#bbf7d0" />
-              </svg>
+            <div className="mb-6 flex items-center justify-center">
+              {/* Collapsed rail: the logo is the only control, so the expand
+                  button sits on top of it and fades in on hover or focus. */}
+              <div className="group relative flex h-8 w-8 items-center justify-center">
+                <svg className="h-6 w-6 shrink-0" viewBox="0 0 256 256" fill="none">
+                  <circle cx="128" cy="128" r="116" fill="#0284c7" />
+                  <path d="M 0 196 Q 48 180, 96 190 T 192 188 T 256 196 L 256 256 L 0 256 Z" fill="#0369a1" opacity="0.6" />
+                  <ellipse cx="128" cy="180" rx="40" ry="14" fill="#3e2723" />
+                  <path d="M 128 178 C 126 150, 130 114, 128 88" stroke="#14532d" strokeWidth="6" strokeLinecap="round" />
+                  <path d="M 128 152 C 94 146, 68 122, 74 92 C 104 98, 126 118, 128 152 Z" fill="#4ade80" />
+                  <path d="M 128 134 C 162 126, 188 102, 182 72 C 152 80, 130 102, 128 134 Z" fill="#86efac" />
+                  <path d="M 128 88 C 117 68, 120 48, 128 34 C 136 48, 139 68, 128 88 Z" fill="#bbf7d0" />
+                </svg>
 
-              {onToggleCollapse && (
-                <button
-                  type="button"
-                  onClick={onToggleCollapse}
-                  className="flex h-7 w-7 items-center justify-center rounded-md border border-line bg-paper text-ink-soft hover:text-pine-deep hover:bg-pine-tint/40 transition-colors cursor-pointer shadow-2xs"
-                  title="Expand sidebar (Ctrl+B)"
-                  aria-label="Expand sidebar"
-                >
-                  <PanelLeftOpen size={15} />
-                </button>
-              )}
+                {onToggleCollapse && (
+                  <button
+                    type="button"
+                    onClick={onToggleCollapse}
+                    className="absolute inset-0 flex items-center justify-center rounded-md bg-paper-flat/95 text-pine-deep opacity-0 shadow-2xs transition-opacity duration-150 hover:bg-pine-tint/60 focus-visible:opacity-100 group-hover:opacity-100 cursor-pointer"
+                    title="Expand sidebar (Ctrl+B)"
+                    aria-label="Expand sidebar"
+                  >
+                    <PanelLeftOpen size={15} />
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <div className="mb-6 px-1 flex items-center justify-between gap-1.5">

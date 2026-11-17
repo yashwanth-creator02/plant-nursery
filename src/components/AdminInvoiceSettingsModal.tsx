@@ -7,6 +7,7 @@ import { X, Check, Building2, AlertTriangle, History, ChevronRight, Copy } from 
 import { useRouter } from "next/navigation";
 import { BusinessSettings } from "@/lib/types";
 import { useLanguage } from "@/lib/language-context";
+import { LeoLoader } from "@/components/brand/LeoLoader";
 
 interface AdminInvoiceSettingsModalProps {
   open: boolean;
@@ -162,9 +163,11 @@ export function AdminInvoiceSettingsModal({
         )}
 
         {loading ? (
-          <div className="py-8 text-center text-sm text-ink-soft">
-            {language === "kn" ? "ಇನ್‌ವಾಯ್ಸ್ ವಿವರಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ..." : "Loading invoice settings..."}
-          </div>
+          <LeoLoader
+            minHeight="240px"
+            title="Sri Vijayalakshmi Nursery"
+            subtitle={language === "kn" ? "ಇನ್‌ವಾಯ್ಸ್ ವಿವರಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ..." : "Loading invoice settings..."}
+          />
         ) : activeTab === "edit" ? (
           <div className="mt-4 space-y-3.5">
             <div className="flex items-center justify-between bg-paper px-3 py-2 rounded-md border border-line">

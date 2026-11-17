@@ -3,6 +3,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { LeoLoader } from "@/components/brand/LeoLoader";
+import { BrandSearchBar } from "@/components/brand/BrandSearchBar";
 import {
   Plus,
   Trash2,
@@ -10,7 +12,6 @@ import {
   Pencil,
   Check,
   X,
-  Search,
   Sprout,
   Package,
   Apple,
@@ -1683,28 +1684,19 @@ export default function StockPage() {
             )}
           </div>
 
-          <div className="relative w-full sm:w-64">
-            <Search
-              size={15}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"
-            />
-            <input
-              type="text"
+          <div className="w-full sm:w-64">
+            <BrandSearchBar
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={setSearchQuery}
               placeholder={language === "kn" ? "ಹೆಸರು, ಪ್ರಕಾರ, ಬೆಲೆಯ ಮೂಲಕ ಹುಡುಕಿ..." : "Search by name, type, price..."}
-              className="w-full rounded-md border border-line-strong bg-surface py-1.5 pl-9 pr-8 text-sm outline-none placeholder:text-ink-soft/70 focus:border-pine"
+              label={language === "kn" ? "ದಾಸ್ತಾನು ಹುಡುಕಿ" : "Search inventory"}
+              emptyMessage={language === "kn" ? "ಹುಡುಕಲು ಒಂದು ಹೆಸರು ನಮೂದಿಸಿ." : "Type a name to search."}
+              resultSummary={
+                language === "kn"
+                  ? `${filteredItems.length} ವಸ್ತುಗಳು ಕಂಡುಬಂದಿವೆ.`
+                  : `Showing ${filteredItems.length} items.`
+              }
             />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-ink-soft hover:text-ink cursor-pointer"
-                aria-label={language === "kn" ? "ಹುಡುಕಾಟ ತೆರವುಗೊಳಿಸಿ" : "Clear search"}
-              >
-                <X size={14} />
-              </button>
-            )}
           </div>
         </div>
       )}
@@ -1713,9 +1705,11 @@ export default function StockPage() {
       {/* STOCK ITEMS TABLE / LIST                                     */}
       {/* ============================================================ */}
       {loading ? (
-        <p className="text-sm text-ink-soft">
-          {language === "kn" ? "ದಾಸ್ತಾನು ಲೋಡ್ ಆಗುತ್ತಿದೆ…" : "Loading stock…"}
-        </p>
+        <LeoLoader
+          minHeight="320px"
+          title="Sri Vijayalakshmi Nursery"
+          subtitle={language === "kn" ? "ದಾಸ್ತಾನು ಲೋಡ್ ಆಗುತ್ತಿದೆ..." : "Loading stock..."}
+        />
       ) : items.length === 0 ? (
         <div className="rounded-lg border border-dashed border-line-strong bg-surface px-6 py-12 text-center">
           <Boxes className="mx-auto mb-2 text-ink-soft" size={22} />

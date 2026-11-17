@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import JSZip from "jszip";
 import { useLanguage } from "@/lib/language-context";
+import { LeoLoader } from "@/components/brand/LeoLoader";
 
 interface ExportDataModalProps {
   open: boolean;
@@ -412,10 +413,11 @@ export function ExportDataModal({ open, onClose }: ExportDataModalProps) {
         )}
 
         {loadingData ? (
-          <div className="py-12 text-center text-xs text-ink-soft flex flex-col items-center gap-3">
-            <Loader2 size={24} className="animate-spin text-pine" />
-            <span>{language === "kn" ? "ಡೇಟಾಬೇಸ್‌ಗೆ ಸಂಪರ್ಕಿಸಲಾಗುತ್ತಿದೆ..." : "Connecting to database and compiling data manifest…"}</span>
-          </div>
+          <LeoLoader
+            minHeight="260px"
+            title="Sri Vijayalakshmi Nursery"
+            subtitle={language === "kn" ? "ಡೇಟಾಬೇಸ್‌ಗೆ ಸಂಪರ್ಕಿಸಲಾಗುತ್ತಿದೆ..." : "Connecting to database and compiling data manifest..."}
+          />
         ) : completedInfo ? (
           /* Success Screen */
           <div className="py-6 text-center">

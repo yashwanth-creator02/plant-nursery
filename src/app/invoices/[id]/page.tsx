@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import { LeoLoader } from "@/components/brand/LeoLoader";
 import Link from "next/link";
 import { InvoiceEditor } from "@/components/InvoiceEditor";
 import { InvoiceRecord } from "@/lib/types";
@@ -39,7 +40,11 @@ export default function InvoiceDetailPage({
 
   if (loading) {
     return (
-      <div className="p-8 text-sm text-ink-soft">{t("loadingInvoiceMsg")}</div>
+      <LeoLoader
+      minHeight="60vh"
+      title="Sri Vijayalakshmi Nursery"
+      subtitle={t("loadingInvoiceMsg")}
+    />
     );
   }
 

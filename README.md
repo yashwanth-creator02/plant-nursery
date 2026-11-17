@@ -36,6 +36,27 @@ A modern, full-stack internal management application for plant nurseries and ret
   - Live preview synchronization across active invoice builder tabs via DOM events (`nurseryLogoUpdated`) without full page reloads.
   - Payment QR code card configuration for UPI payment scans directly on printed receipts.
 
+- **Brand Loading State**
+  - Shared lion symbol from the brand system with native infinite sequential color fill wave (no stroke tracing), without a card surface.
+  - The lion color is a blend of the nursery pine and rust tokens, so the loader carries the project palette instead of the brand copper ramp.
+  - A Loading... caption and a delayed report link sit under the symbol.
+  - Used for route transitions, authentication, page data loading, and full-surface modal loading instead of text placeholders or skeleton grids.
+  - Inline button and action spinners remain for short, local operations.
+
+- **Brand Sliding-Door Search**
+  - Ported from the brand hero search and scaled to toolbar height (36px, 34px on mobile).
+  - The pine door and its handle cover the bar at rest, slide right on focus to reveal the field, and snap shut on submit.
+  - Filtering is live through the existing search state; the submit only announces the result count in a polite live region.
+  - Used for the stock, invoices, and gallery page searches and for the analytics and photo-upload filters. The invoice stock combobox keeps its own input because it drives a keyboard-navigable selection list.
+  - Escape clears the query, the handle is a real submit button, and reduced motion drops every transition.
+  - The vendored `leo-theme.css` must not declare `--radius-*` or `--shadow-*`: those names belong to Tailwind and would reshape every control in the app. They were removed for that reason.
+
+- **Theme Tokens and Selection Fills**
+  - Light-mode `--pine` is `#2e4c41` and `--pine-tint` is `#e5ebe7`, deliberately muted so filled buttons, active navigation, and the search door read as forest rather than vivid green on parchment.
+  - Selected states use the pine tokens, never raw Tailwind color scales: the invoice type selector and the analytics payment-mode filters previously used `emerald-600` and now use `bg-pine`.
+  - The analytics cash series keeps its own emerald marks so cash, online, and credit stay distinguishable in the charts.
+  - Collapsed sidebar rail: the expand control overlays the logo and fades in on hover or keyboard focus, so the rail shows only the mark at rest.
+
 - **Comprehensive Bilingual Localization (Kannada & English)**
   - Seamless 1-click language toggle across the entire application without layout clipping or horizontal distortion.
   - **1-Click AI Translation**: On-the-fly Google translation (`translateOnTheFly`) with nursery botanical dictionary fallback for stock items, categories, subcategories, photo descriptions, and custom line items.

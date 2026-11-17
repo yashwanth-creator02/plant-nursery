@@ -46,3 +46,9 @@ next-env.d.ts
 # brand-leo-utils: managed skills (source of truth lives in the brand-leo-utils repo)
 .agent/skills/
 .tmp/
+
+# Generated knowledge graph (rebuild with: graphify extract . --code-only)
+graphify-out/
+
+# Local config backups
+*.bak-*
