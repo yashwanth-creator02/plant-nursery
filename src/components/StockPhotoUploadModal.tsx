@@ -14,6 +14,7 @@ import {
   Languages,
 } from "lucide-react";
 import { StockItem, GalleryStockItem } from "@/lib/types";
+import { BrandSearchBar } from "@/components/brand/BrandSearchBar";
 import { useLanguage, translateItem, translateCategory } from "@/lib/language-context";
 import { translateOnTheFly } from "@/lib/translator";
 
@@ -279,12 +280,17 @@ export function StockPhotoUploadModal({
               {language === "kn" ? "ದಾಸ್ತಾನು ವಸ್ತುವನ್ನು ಆಯ್ಕೆಮಾಡಿ *" : "Select Stock Item *"}
             </label>
             <div className="space-y-1.5">
-              <input
-                type="text"
+              <BrandSearchBar
                 value={itemSearchQuery}
-                onChange={(e) => setItemSearchQuery(e.target.value)}
+                onChange={setItemSearchQuery}
                 placeholder={language === "kn" ? "ಸಸ್ಯ ಅಥವಾ ವಸ್ತುವನ್ನು ಹುಡುಕಿ..." : "Search plant item..."}
-                className="h-8 w-full rounded-lg border border-line bg-paper px-3 text-xs text-ink placeholder-ink-soft/60 focus:border-pine focus:outline-none"
+                label={language === "kn" ? "ದಾಸ್ತಾನು ವಸ್ತು ಹುಡುಕಿ" : "Search stock item"}
+                emptyMessage={language === "kn" ? "ಹುಡುಕಲು ಒಂದು ಹೆಸರು ನಮೂದಿಸಿ." : "Type a name to search."}
+                resultSummary={
+                  language === "kn"
+                    ? `${searchableStockItems.length} ವಸ್ತುಗಳು ಕಂಡುಬಂದಿವೆ.`
+                    : `Showing ${searchableStockItems.length} items.`
+                }
               />
               <select
                 value={uploadTargetItemId}

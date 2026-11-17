@@ -4,11 +4,11 @@
 
 import { useEffect, useState, useMemo } from "react";
 import {
-  Search,
   Image as ImageIcon,
   Images,
   Plus,
 } from "lucide-react";
+import { BrandSearchBar } from "@/components/brand/BrandSearchBar";
 import { GalleryStockItem, StockCategory } from "@/lib/types";
 import { StockItemDetailModal } from "@/components/StockItemDetailModal";
 import { StockPhotoUploadModal } from "@/components/StockPhotoUploadModal";
@@ -188,32 +188,25 @@ export default function GalleryPage() {
 
       {/* Sticky Search & Filter Bar */}
       <div className="sticky top-0 z-20 mb-6 rounded-xl border border-line bg-paper-flat/90 p-3 backdrop-blur-md shadow-xs">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
           {/* Search Input */}
-          <div className="relative flex-1">
-            <Search
-              size={18}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-soft/70"
-            />
-            <input
-              type="text"
+          <div className="w-full lg:min-w-[16rem] lg:flex-1">
+            <BrandSearchBar
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={setSearchQuery}
               placeholder={
                 language === "kn"
                   ? "ಹೆಸರು, ವರ್ಗ ಅಥವಾ ವಿವರಣೆ ಹುಡುಕಿ..."
                   : "Search by plant name, category, or description..."
               }
-              className="h-10 w-full rounded-lg border border-line bg-surface pl-10 pr-4 text-xs sm:text-sm text-ink placeholder-ink-soft/60 focus:border-pine focus:outline-none"
+              label={language === "kn" ? "ಗ್ಯಾಲರಿ ಹುಡುಕಿ" : "Search gallery"}
+              emptyMessage={language === "kn" ? "ಹುಡುಕಲು ಒಂದು ಹೆಸರು ನಮೂದಿಸಿ." : "Type a name to search."}
+              resultSummary={
+                language === "kn"
+                  ? `${filteredItems.length} ಚಿತ್ರಗಳು ಕಂಡುಬಂದಿವೆ.`
+                  : `Showing ${filteredItems.length} photos.`
+              }
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ink-soft hover:text-ink cursor-pointer"
-              >
-                {language === "kn" ? "ತೆರವು" : "Clear"}
-              </button>
-            )}
           </div>
 
           {/* Filter Pills */}

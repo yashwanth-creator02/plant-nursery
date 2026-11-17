@@ -64,13 +64,9 @@
   /* ========================================================================
      6. MOTION & ELEVATION TOKENS
      ======================================================================== */
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --radius-full: 9999px;
-  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 12px 30px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 25px 60px rgba(0, 0, 0, 0.65);
+  /* Radius and shadow tokens are dropped: the brand values collide with
+     Tailwind's own --radius-* and --shadow-* scale and would reshape every
+     control in the app. The loader uses neither. */
   --shadow-glow: 0 0 35px var(--brand-primary-glow);
   --transition-fast: 150ms cubic-bezier(0.16, 1, 0.3, 1);
   --transition-base: 280ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -114,8 +110,5 @@
   --color-info: #2563EB;
   --color-info-bg: rgba(37, 99, 235, 0.1);
 
-  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 12px 30px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 25px 60px rgba(0, 0, 0, 0.12);
   --shadow-glow: 0 0 30px rgba(197, 83, 27, 0.25);
 }
