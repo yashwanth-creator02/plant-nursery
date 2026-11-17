@@ -248,6 +248,23 @@ gitignored here. The brand-leo-utils repository is the source of truth; the loca
 folder is a disposable copy owned by whichever agent is handling the session, not one
 specific tool.
 
+## Capability Catalog
+
+Installed MCP servers, skills and plugins are catalogued in
+`~/.config/opencode/skills/repo-initializer/references/catalog.md`. Regenerate it with
+`python ~/.config/opencode/skills/repo-initializer/scripts/build_catalog.py`.
+
+This repo enables only the subset listed in `.opencode/opencode.jsonc`: `context7`,
+`supabase`, `graphify`, and `vercel`. Plugins are not restricted and stay enabled
+globally. If a task needs a capability that is not enabled here, read the catalog, tell
+the user what enabling it would add and why it is needed, and wait for approval before
+changing any configuration.
+
+A denied skill or MCP server is removed from the registry, not merely hidden: it cannot
+be loaded on demand later. Anything left out of `.opencode/opencode.jsonc` has to be
+enabled deliberately. Skills are owned by the global config, so a repo-level
+`skill.use` statement is ignored while the global config has any.
+
 <!-- brand-leo-utils:skill-sync:start -->
 ## Skills (brand-leo-utils)
 

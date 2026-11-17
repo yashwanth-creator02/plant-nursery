@@ -49,3 +49,6 @@ next-env.d.ts
 
 # Generated knowledge graph (rebuild with: graphify extract . --code-only)
 graphify-out/
+
+# Local config backups
+*.bak-*
