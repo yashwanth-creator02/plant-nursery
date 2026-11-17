@@ -1144,7 +1144,7 @@ export function SalesAnalyticsModal({
                 type="button"
                 onClick={() => setPaymentModeFilter("cash")}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer font-medium ${paymentModeFilter === "cash"
-                  ? "bg-emerald-600 text-white font-semibold shadow-xs"
+                  ? "bg-pine text-surface font-semibold shadow-xs"
                   : "text-ink-soft hover:text-ink"
                   }`}
               >
