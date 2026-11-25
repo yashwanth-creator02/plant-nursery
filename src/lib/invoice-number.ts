@@ -47,10 +47,12 @@ export async function getNextInvoiceNumber(): Promise<string> {
   return candidate;
 }
 
+type DbOrTx = Parameters<Parameters<typeof db.transaction>[0]>[0] | typeof db;
+
 // Advance the sequence after an invoice number has been used
 export async function advanceInvoiceSequence(
   usedNumber: string,
-  txRunner?: any
+  txRunner?: DbOrTx
 ): Promise<string> {
   const runner = txRunner ?? db;
   let next = incrementInvoiceNumber(usedNumber);

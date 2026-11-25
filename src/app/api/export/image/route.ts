@@ -20,19 +20,20 @@ function isSafeRemoteImageUrl(rawUrl: string): boolean {
     if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
       return false;
     }
-    const hostname = parsed.hostname.toLowerCase();
+    const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
     if (
       hostname === "localhost" ||
       hostname === "0.0.0.0" ||
       hostname === "127.0.0.1" ||
       hostname === "169.254.169.254" ||
+      hostname === "::1" ||
+      hostname === "::" ||
       hostname.startsWith("127.") ||
       hostname.startsWith("10.") ||
       hostname.startsWith("192.168.") ||
       /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname) ||
       hostname.endsWith(".local") ||
       hostname.endsWith(".internal") ||
-      hostname === "::1" ||
       hostname.startsWith("fe80:")
     ) {
       return false;
@@ -74,6 +75,7 @@ export async function GET(req: NextRequest) {
         return new NextResponse(Buffer.from(latest.logoData, "utf-8"), {
           headers: {
             "Content-Type": "image/svg+xml",
+            "Content-Security-Policy": "default-src 'none'",
             "Cache-Control": "public, max-age=3600",
           },
         });
@@ -140,6 +142,9 @@ export async function GET(req: NextRequest) {
       }
 
       if (u.signature.startsWith("http")) {
+        if (!isSafeRemoteImageUrl(u.signature)) {
+          return NextResponse.json({ error: "Restricted signature URL." }, { status: 400 });
+        }
         const res = await fetch(u.signature);
         if (!res.ok) throw new Error(`Failed to fetch signature image: ${res.statusText}`);
         const arrayBuf = await res.arrayBuffer();

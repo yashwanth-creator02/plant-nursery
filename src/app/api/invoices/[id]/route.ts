@@ -49,6 +49,18 @@ class InvoiceNumberConflictError extends Error {
   }
 }
 
+class InvoiceAlreadyFinalizedError extends Error {
+  constructor() {
+    super("Invoice already finalized");
+  }
+}
+
+class InvoiceNotFoundError extends Error {
+  constructor() {
+    super("Invoice not found");
+  }
+}
+
 async function loadInvoiceForUser(id: string, userId: string, isAdmin: boolean) {
   const invoice = await db.query.invoices.findFirst({
     where: eq(invoices.id, id),
@@ -116,6 +128,30 @@ export async function PATCH(
     const { invoiceNumber: customNumber, customerName, customerDetails, notes, items, action, paymentMode, force, signature, isSigned } = parsed.data;
 
     const result = await db.transaction(async (tx) => {
+      // Row lock the invoice to prevent concurrent finalization / duplicate deductions
+      const [txInvoice] = await tx
+        .select()
+        .from(invoices)
+        .where(eq(invoices.id, id))
+        .for("update")
+        .limit(1);
+
+      if (!txInvoice) {
+        throw new InvoiceNotFoundError();
+      }
+      if (txInvoice.status === "final") {
+        throw new InvoiceAlreadyFinalizedError();
+      }
+
+      let existingDiscount = 0;
+      if (existing.headerSnapshot) {
+        try {
+          const snap = JSON.parse(existing.headerSnapshot);
+          existingDiscount = Number(snap.discount) || 0;
+        } catch {}
+      }
+      const effectiveDiscount = parsed.data.discount !== undefined ? parsed.data.discount : existingDiscount;
+
       let nextInvNum = existing.invoiceNumber;
       if (customNumber && customNumber.trim() && customNumber.trim() !== existing.invoiceNumber) {
         const trimmed = customNumber.trim();
@@ -225,7 +261,7 @@ export async function PATCH(
               proprietor: effectiveProprietor,
               cgstRate: activeSettings.cgstRate || "2.50",
               sgstRate: activeSettings.sgstRate || "2.50",
-              discount: parsed.data.discount || 0,
+              discount: effectiveDiscount,
               logoData: activeLogo,
               signature: effectiveSig,
               isSigned: effectiveIsSigned,
@@ -330,7 +366,7 @@ export async function PATCH(
               proprietor: effectiveProprietor,
               cgstRate: activeSettings.cgstRate || "2.50",
               sgstRate: activeSettings.sgstRate || "2.50",
-              discount: parsed.data.discount || 0,
+              discount: effectiveDiscount,
               logoData: activeLogo,
               signature: effectiveSig,
               isSigned: effectiveIsSigned,
@@ -348,6 +384,7 @@ export async function PATCH(
             paymentMode: paymentMode ?? existing.paymentMode ?? "cash",
             status: action === "finalize" ? "final" : existing.status,
             headerSnapshot: nextHeaderSnapshot,
+            ...(parsed.data.total !== undefined && { total: parsed.data.total.toFixed(2) }),
             finalizedAt: action === "finalize" ? new Date() : existing.finalizedAt,
             updatedAt: new Date(),
           })
@@ -369,6 +406,15 @@ export async function PATCH(
 
     return NextResponse.json({ invoice: result });
   } catch (err) {
+    if (err instanceof InvoiceAlreadyFinalizedError) {
+      return NextResponse.json(
+        { error: "This invoice is already finalized and can't be edited." },
+        { status: 409 }
+      );
+    }
+    if (err instanceof InvoiceNotFoundError) {
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    }
     if (err instanceof InvoiceNumberConflictError) {
       return NextResponse.json(
         {
