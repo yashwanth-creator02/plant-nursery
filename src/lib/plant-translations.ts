@@ -596,7 +596,7 @@ export function numberToKannadaWords(n: number): string {
 
   function convertFull(num: number): string {
     if (num === 0) return "";
-    let parts: string[] = [];
+    const parts: string[] = [];
 
     // Crore (1,00,00,000)
     if (num >= 10000000) {

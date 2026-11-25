@@ -1002,7 +1002,7 @@ export function InvoiceEditor({
       setRestoredDraft(false);
 
       // Update URL without unmounting the component
-      window.history.replaceState(null, "", `/invoices/${saved.id}`);
+      window.history.replaceState(null, "", `/${language}/invoices/${saved.id}`);
 
       if (action === "final") {
         setStep("preview");
@@ -1056,7 +1056,7 @@ export function InvoiceEditor({
         <button
           onClick={() => {
             resetForm();
-            router.push("/invoice");
+            router.push(`/${language}/invoice`);
           }}
           className="flex items-center gap-1.5 rounded-md border border-line-strong px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:bg-line/50"
         >
@@ -2029,20 +2029,17 @@ export function InvoiceEditor({
                   title={headerDetails.logoData ? (billLanguage === "kn" ? "ಶ್ರೀ ವಿಜಯಲಕ್ಷ್ಮಿ ನರ್ಸರಿ ಲಾಂಛನ" : "Sri Vijayalakshmi Nursery Logo") : "Botanical logo"}
                 >
                   {headerDetails.logoData ? (
-                    headerDetails.logoData.trim().startsWith("<svg") ? (
-                      <div
-                        className="flex h-full w-full items-center justify-center [&>svg]:h-full [&>svg]:w-full"
-                        dangerouslySetInnerHTML={{ __html: headerDetails.logoData }}
-                      />
-                    ) : (
-                      <img
-                        src={headerDetails.logoData}
-                        alt="Nursery Logo"
-                        loading="eager"
-                        decoding="sync"
-                        className="h-full w-full object-contain"
-                      />
-                    )
+                    <img
+                      src={
+                        headerDetails.logoData.trim().startsWith("<svg")
+                          ? `data:image/svg+xml;utf8,${encodeURIComponent(headerDetails.logoData)}`
+                          : headerDetails.logoData
+                      }
+                      alt="Nursery Logo"
+                      loading="eager"
+                      decoding="sync"
+                      className="h-full w-full object-contain"
+                    />
                   ) : (
                     <InvoiceSprig className="h-16 w-16 text-[var(--invoice-ink)]" />
                   )}

@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { stockItems } from "@/db/schema";
-import { requireUser } from "@/lib/session";
+import { stockItems, stockItemImages } from "@/db/schema";
+import { requireUser, requireAdmin } from "@/lib/session";
 import { handleApiError } from "@/lib/api-utils";
+import { deleteStorageFile } from "@/lib/supabase-storage";
 
 const updateSchema = z.object({
   name: z.string().trim().min(1).optional(),
@@ -76,8 +77,24 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireUser();
+    await requireAdmin();
     const { id } = await params;
+
+    const images = await db
+      .select({ storagePath: stockItemImages.storagePath })
+      .from(stockItemImages)
+      .where(eq(stockItemImages.stockItemId, id));
+
+    for (const img of images) {
+      if (img.storagePath) {
+        try {
+          await deleteStorageFile(img.storagePath);
+        } catch (storageErr) {
+          console.warn(`Failed to delete storage file ${img.storagePath}:`, storageErr);
+        }
+      }
+    }
+
     await db.delete(stockItems).where(eq(stockItems.id, id));
     return NextResponse.json({ ok: true });
   } catch (err) {

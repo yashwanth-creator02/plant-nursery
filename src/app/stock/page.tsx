@@ -2116,7 +2116,7 @@ export default function StockPage() {
             <p className="mb-4 text-xs leading-relaxed text-ink-soft">
               {language === "kn" ? (
                 <>
-                  <strong className="text-ink">"{reassignModal.name}"</strong> ಗೆ ನಿಯೋಜಿಸಲಾದ{" "}
+                  <strong className="text-ink">&quot;{reassignModal.name}&quot;</strong> ಗೆ ನಿಯೋಜಿಸಲಾದ{" "}
                   <strong className="font-semibold text-pine-deep">
                     {reassignModal.itemCount} ಸಕ್ರಿಯ ದಾಸ್ತಾನು ವಸ್ತುಗಳು
                   </strong>{" "}
@@ -2128,7 +2128,7 @@ export default function StockPage() {
                   <strong className="font-semibold text-pine-deep">
                     {reassignModal.itemCount} active stock item{reassignModal.itemCount === 1 ? "" : "s"}
                   </strong>{" "}
-                  assigned to <strong className="text-ink">"{reassignModal.name}"</strong>.
+                  assigned to <strong className="text-ink">&quot;{reassignModal.name}&quot;</strong>.
                   Before deleting, choose which tag to reassign these items to:
                 </>
               )}

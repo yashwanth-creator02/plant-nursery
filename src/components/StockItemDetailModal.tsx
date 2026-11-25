@@ -1074,7 +1074,7 @@ export function StockItemDetailModal({
           >
             {showViewInStock && (
               <Link
-                href="/stock"
+                href={`/${language}/stock`}
                 className="flex flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-medium text-ink transition-colors hover:bg-line/40 text-center"
               >
                 <Boxes size={14} />

@@ -1037,7 +1037,7 @@ export function ProfilePanel({
                             type="button"
                             onClick={() => {
                               onClose();
-                              router.push(`/invoices?version=${v.version}`);
+                              router.push(`/${language}/invoices?version=${v.version}`);
                             }}
                             className="inline-flex items-center gap-1 font-semibold text-pine-deep hover:underline cursor-pointer"
                             title={`Filter invoices created under Version ${v.version}`}
@@ -1196,18 +1196,15 @@ export function ProfilePanel({
               ) : logoData ? (
                 <div className="rounded-lg border border-line bg-paper-flat/70 p-3 flex flex-col items-center gap-3">
                   <div className="flex items-center justify-center p-2 rounded border border-line bg-white shadow-xs">
-                    {logoData.trim().startsWith("<svg") ? (
-                      <div
-                        className="h-16 w-16 flex items-center justify-center [&>svg]:max-h-full [&>svg]:max-w-full [&>svg]:w-auto [&>svg]:h-auto object-contain text-[#1b365d]"
-                        dangerouslySetInnerHTML={{ __html: logoData }}
-                      />
-                    ) : (
-                      <img
-                        src={logoData}
-                        alt="Nursery Custom Logo"
-                        className="h-16 w-auto max-w-[160px] object-contain"
-                      />
-                    )}
+                    <img
+                      src={
+                        logoData.trim().startsWith("<svg")
+                          ? `data:image/svg+xml;utf8,${encodeURIComponent(logoData)}`
+                          : logoData
+                      }
+                      alt="Nursery Custom Logo"
+                      className="h-16 w-auto max-w-[160px] object-contain"
+                    />
                   </div>
                   <span className="text-[11px] font-medium text-ink-soft">
                     {t("activeLogoNote")}
@@ -1483,7 +1480,7 @@ export function ProfilePanel({
         onNavigate={(invoiceId) => {
           setSalesModalOpen(false);
           onClose();
-          router.push(`/invoices/${invoiceId}`);
+          router.push(`/${language}/invoices/${invoiceId}`);
         }}
         isAdmin={isAdmin}
       />

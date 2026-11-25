@@ -68,29 +68,37 @@ export async function POST(req: NextRequest) {
       // If finalizing immediately, verify + deduct stock inside the
       // transaction so a stock shortfall rolls back the whole invoice unless forced.
       if (status === "final") {
+        const itemQuantities = new Map<string, { quantity: number; name: string }>();
+        for (const li of items) {
+          if (!li.stockItemId) continue;
+          const current = itemQuantities.get(li.stockItemId);
+          itemQuantities.set(li.stockItemId, {
+            quantity: (current?.quantity ?? 0) + (li.quantity ?? 1),
+            name: li.name || current?.name || "Item",
+          });
+        }
+
         if (!force) {
-          for (const li of items) {
-            if (!li.stockItemId) continue;
+          for (const [stockItemId, agg] of itemQuantities.entries()) {
             const [stockItem] = await tx
               .select()
               .from(stockItems)
-              .where(eq(stockItems.id, li.stockItemId))
+              .where(eq(stockItems.id, stockItemId))
               .limit(1);
             if (!stockItem) continue;
-            if (stockItem.quantity < li.quantity) {
+            if (stockItem.quantity < agg.quantity) {
               throw new StockShortageError(stockItem.name, stockItem.quantity);
             }
           }
         }
-        for (const li of items) {
-          if (!li.stockItemId) continue;
+        for (const [stockItemId, agg] of itemQuantities.entries()) {
           await tx
             .update(stockItems)
             .set({
-              quantity: sqlDecrement(li.quantity),
+              quantity: sqlDecrement(agg.quantity),
               updatedAt: new Date(),
             })
-            .where(eq(stockItems.id, li.stockItemId));
+            .where(eq(stockItems.id, stockItemId));
         }
       }
 
@@ -110,7 +118,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Advance sequence so future invoices continue from this series
-      await advanceInvoiceSequence(invoiceNumber);
+      await advanceInvoiceSequence(invoiceNumber, tx);
 
       const activeSettings = await tx
         .select()

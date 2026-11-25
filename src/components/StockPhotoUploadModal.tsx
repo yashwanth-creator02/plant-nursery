@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import {
   Upload,
   X,
@@ -54,6 +54,14 @@ export function StockPhotoUploadModal({
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
+
+  const stopCameraStream = useCallback(() => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach((track) => track.stop());
+      cameraStreamRef.current = null;
+    }
+    setCameraActive(false);
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -129,14 +137,6 @@ export function StockPhotoUploadModal({
         "Camera access was denied or not supported. You can still use 'Upload File' or the device camera button below."
       );
     }
-  };
-
-  const stopCameraStream = () => {
-    if (cameraStreamRef.current) {
-      cameraStreamRef.current.getTracks().forEach((track) => track.stop());
-      cameraStreamRef.current = null;
-    }
-    setCameraActive(false);
   };
 
   const captureLivePhoto = () => {

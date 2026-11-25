@@ -200,7 +200,7 @@ export function SalesAnalyticsModal({
       onNavigate(invoiceId);
     } else {
       onClose();
-      router.push(`/invoices/${invoiceId}`);
+      router.push(`/${language}/invoices/${invoiceId}`);
     }
   };
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -251,6 +251,7 @@ export function SalesAnalyticsModal({
     key: string;
     x: number;
     y: number;
+    wrapperWidth?: number;
   } | null>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const barsWrapperRef = useRef<HTMLDivElement>(null);
@@ -754,9 +755,9 @@ export function SalesAnalyticsModal({
 
   // Order size / ticket value distribution
   const orderSizeDistribution = useMemo(() => {
-    let small = { count: 0, revenue: 0 };
-    let medium = { count: 0, revenue: 0 };
-    let large = { count: 0, revenue: 0 };
+    const small = { count: 0, revenue: 0 };
+    const medium = { count: 0, revenue: 0 };
+    const large = { count: 0, revenue: 0 };
 
     filteredInvoices.forEach((inv) => {
       const amt = getInvoiceAmount(inv);
@@ -1568,7 +1569,7 @@ export function SalesAnalyticsModal({
                                     const barRect = (barEl || e.currentTarget).getBoundingClientRect();
                                     const x = barRect.left + barRect.width / 2 - wRect.left;
                                     const y = barRect.top - wRect.top;
-                                    setHoveredTooltip({ key: bucket.key, x, y });
+                                    setHoveredTooltip({ key: bucket.key, x, y, wrapperWidth: wRect.width });
                                   }
                                 }}
                                 onMouseMove={(e) => {
@@ -1578,7 +1579,7 @@ export function SalesAnalyticsModal({
                                     const barRect = (barEl || e.currentTarget).getBoundingClientRect();
                                     const x = barRect.left + barRect.width / 2 - wRect.left;
                                     const y = barRect.top - wRect.top;
-                                    setHoveredTooltip({ key: bucket.key, x, y });
+                                    setHoveredTooltip({ key: bucket.key, x, y, wrapperWidth: wRect.width });
                                   }
                                 }}
                                 onMouseLeave={() => {
@@ -1651,7 +1652,7 @@ export function SalesAnalyticsModal({
                         {hoveredTooltip && (() => {
                           const active = timelineData.find((b) => b.key === hoveredTooltip.key);
                           if (!active) return null;
-                          const wrapperW = barsWrapperRef.current?.clientWidth || 700;
+                          const wrapperW = hoveredTooltip.wrapperWidth || 700;
                           const cardWidth = 224;
                           // Center card on bar, clamped within container boundaries
                           const cardCenterX = Math.max(

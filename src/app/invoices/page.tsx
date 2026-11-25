@@ -259,7 +259,7 @@ function InvoicesContent() {
           )}
           {invoices.length === 0 && (
             <Link
-              href="/invoice"
+              href={`/${language}/invoice`}
               className="mt-3 inline-block text-sm font-medium text-pine-deep underline"
             >
               {language === "kn" ? "ಹೊಸ ರಶೀದಿ" : "New invoice"}
@@ -290,7 +290,7 @@ function InvoicesContent() {
                 >
                   <td className="px-4 py-2.5">
                     <Link
-                      href={`/invoices/${inv.id}`}
+                      href={`/${language}/invoices/${inv.id}`}
                       className="font-mono tabular text-pine-deep hover:underline"
                     >
                       {inv.invoiceNumber}

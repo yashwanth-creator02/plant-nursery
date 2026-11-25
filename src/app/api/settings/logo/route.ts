@@ -23,6 +23,21 @@ export async function GET() {
   }
 }
 
+function isSafeSvg(svg: string): boolean {
+  const dangerousPatterns = [
+    /<script/i,
+    /<\/script>/i,
+    /<foreignObject/i,
+    /<iframe/i,
+    /<object/i,
+    /<embed/i,
+    /javascript:/i,
+    /data:\s*text\/html/i,
+    /on\w+\s*=/i,
+  ];
+  return !dangerousPatterns.some((pattern) => pattern.test(svg));
+}
+
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser();
@@ -49,6 +64,14 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
+
+      if (isRawSvg && !isSafeSvg(trimmed)) {
+        return NextResponse.json(
+          { error: "SVG logo contains prohibited scripts or active event handlers." },
+          { status: 400 }
+        );
+      }
+
       logoData = trimmed;
     }
 
