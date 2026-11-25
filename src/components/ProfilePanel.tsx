@@ -1037,7 +1037,7 @@ export function ProfilePanel({
                             type="button"
                             onClick={() => {
                               onClose();
-                              router.push(`/invoices?version=${v.version}`);
+                              router.push(`/${language}/invoices?version=${v.version}`);
                             }}
                             className="inline-flex items-center gap-1 font-semibold text-pine-deep hover:underline cursor-pointer"
                             title={`Filter invoices created under Version ${v.version}`}
@@ -1480,7 +1480,7 @@ export function ProfilePanel({
         onNavigate={(invoiceId) => {
           setSalesModalOpen(false);
           onClose();
-          router.push(`/invoices/${invoiceId}`);
+          router.push(`/${language}/invoices/${invoiceId}`);
         }}
         isAdmin={isAdmin}
       />

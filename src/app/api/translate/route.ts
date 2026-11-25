@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { translateItemName } from "@/lib/plant-translations";
+import { requireUser } from "@/lib/session";
+import { handleApiError } from "@/lib/api-utils";
 
 export async function POST(req: NextRequest) {
   try {
+    await requireUser();
     const body = await req.json().catch(() => null);
     const text = typeof body?.text === "string" ? body.text.trim() : "";
     const targetLang = typeof body?.to === "string" ? body.to.trim().toLowerCase() : "kn";
@@ -89,10 +92,7 @@ export async function POST(req: NextRequest) {
       translatedText: dictionaryMatch || text,
       provider: "dictionary_fallback",
     });
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err?.message || "Translation failed" },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    return handleApiError(err);
   }
 }

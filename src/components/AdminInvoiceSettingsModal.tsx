@@ -372,7 +372,7 @@ export function AdminInvoiceSettingsModal({
                         type="button"
                         onClick={() => {
                           onClose();
-                          router.push(`/invoices?version=${v.version}`);
+                          router.push(`/${language}/invoices?version=${v.version}`);
                         }}
                         className="inline-flex items-center gap-1 rounded bg-pine-tint px-2 py-1 text-[11px] font-semibold text-pine-deep hover:bg-pine/20 cursor-pointer"
                         title={`Filter invoices created under Version ${v.version}`}

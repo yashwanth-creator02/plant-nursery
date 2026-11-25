@@ -200,7 +200,7 @@ export function SalesAnalyticsModal({
       onNavigate(invoiceId);
     } else {
       onClose();
-      router.push(`/invoices/${invoiceId}`);
+      router.push(`/${language}/invoices/${invoiceId}`);
     }
   };
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());

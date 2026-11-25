@@ -1002,7 +1002,7 @@ export function InvoiceEditor({
       setRestoredDraft(false);
 
       // Update URL without unmounting the component
-      window.history.replaceState(null, "", `/invoices/${saved.id}`);
+      window.history.replaceState(null, "", `/${language}/invoices/${saved.id}`);
 
       if (action === "final") {
         setStep("preview");
@@ -1056,7 +1056,7 @@ export function InvoiceEditor({
         <button
           onClick={() => {
             resetForm();
-            router.push("/invoice");
+            router.push(`/${language}/invoice`);
           }}
           className="flex items-center gap-1.5 rounded-md border border-line-strong px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:bg-line/50"
         >
