@@ -1,7 +1,7 @@
 // src/app/api/settings/invoice-sequence/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/session";
+import { requireUser, requireAdmin } from "@/lib/session";
 import { handleApiError } from "@/lib/api-utils";
 import {
   getNextInvoiceNumber,
@@ -20,7 +20,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    await requireUser();
+    await requireAdmin();
     const body = await req.json().catch(() => null);
     const customNumber = body?.nextInvoiceNumber;
 

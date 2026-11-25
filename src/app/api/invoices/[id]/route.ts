@@ -129,36 +129,44 @@ export async function PATCH(
           throw new InvoiceNumberConflictError(trimmed);
         }
         nextInvNum = trimmed;
-        await advanceInvoiceSequence(trimmed);
+        await advanceInvoiceSequence(trimmed, tx);
       }
 
       if (items) {
         const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
         if (action === "finalize") {
+          const itemQuantities = new Map<string, { quantity: number; name: string }>();
+          for (const li of items) {
+            if (!li.stockItemId) continue;
+            const current = itemQuantities.get(li.stockItemId);
+            itemQuantities.set(li.stockItemId, {
+              quantity: (current?.quantity ?? 0) + (li.quantity ?? 1),
+              name: li.name || current?.name || "Item",
+            });
+          }
+
           if (!force) {
-            for (const li of items) {
-              if (!li.stockItemId) continue;
+            for (const [stockItemId, agg] of itemQuantities.entries()) {
               const [stockItem] = await tx
                 .select()
                 .from(stockItems)
-                .where(eq(stockItems.id, li.stockItemId))
+                .where(eq(stockItems.id, stockItemId))
                 .limit(1);
               if (!stockItem) continue;
-              if (stockItem.quantity < li.quantity) {
+              if (stockItem.quantity < agg.quantity) {
                 throw new StockShortageError(stockItem.name, stockItem.quantity);
               }
             }
           }
-          for (const li of items) {
-            if (!li.stockItemId) continue;
+          for (const [stockItemId, agg] of itemQuantities.entries()) {
             await tx
               .update(stockItems)
               .set({
-                quantity: sql`${stockItems.quantity} - ${li.quantity}`,
+                quantity: sql`${stockItems.quantity} - ${agg.quantity}`,
                 updatedAt: new Date(),
               })
-              .where(eq(stockItems.id, li.stockItemId));
+              .where(eq(stockItems.id, stockItemId));
           }
         }
 
@@ -243,6 +251,93 @@ export async function PATCH(
           })
           .where(eq(invoices.id, id));
       } else {
+        if (action === "finalize" && existing.status !== "final") {
+          const existingLineItems = await tx
+            .select()
+            .from(invoiceItems)
+            .where(eq(invoiceItems.invoiceId, id));
+
+          const itemQuantities = new Map<string, { quantity: number; name: string }>();
+          for (const li of existingLineItems) {
+            if (!li.stockItemId) continue;
+            const current = itemQuantities.get(li.stockItemId);
+            itemQuantities.set(li.stockItemId, {
+              quantity: (current?.quantity ?? 0) + (li.quantity ?? 1),
+              name: li.name || current?.name || "Item",
+            });
+          }
+
+          if (!force) {
+            for (const [stockItemId, agg] of itemQuantities.entries()) {
+              const [stockItem] = await tx
+                .select()
+                .from(stockItems)
+                .where(eq(stockItems.id, stockItemId))
+                .limit(1);
+              if (!stockItem) continue;
+              if (stockItem.quantity < agg.quantity) {
+                throw new StockShortageError(stockItem.name, stockItem.quantity);
+              }
+            }
+          }
+          for (const [stockItemId, agg] of itemQuantities.entries()) {
+            await tx
+              .update(stockItems)
+              .set({
+                quantity: sql`${stockItems.quantity} - ${agg.quantity}`,
+                updatedAt: new Date(),
+              })
+              .where(eq(stockItems.id, stockItemId));
+          }
+        }
+
+        let nextHeaderSnapshot = existing.headerSnapshot;
+        if (action === "finalize" || !existing.headerSnapshot) {
+          const [activeSettings] = await tx
+            .select()
+            .from(businessSettings)
+            .orderBy(desc(businessSettings.version))
+            .limit(1);
+
+          const activeLogo = activeSettings?.logoData || null;
+
+          let effectiveSig: string | null = signature !== undefined ? signature : null;
+          let effectiveProprietor: string | null = null;
+          if (user.id) {
+            const userRow = await tx
+              .select({ signature: users.signature, proprietorName: users.proprietorName })
+              .from(users)
+              .where(eq(users.id, user.id))
+              .limit(1);
+            if (signature === undefined) {
+              effectiveSig = userRow.length > 0 ? userRow[0].signature : null;
+            }
+            effectiveProprietor = userRow.length > 0 ? userRow[0].proprietorName : null;
+          }
+
+          const effectiveIsSigned = isSigned !== undefined ? isSigned : true;
+
+          if (activeSettings) {
+            nextHeaderSnapshot = JSON.stringify({
+              businessName: activeSettings.businessName,
+              subheading1: activeSettings.subheading1,
+              subheading2: activeSettings.subheading2,
+              address: activeSettings.address,
+              mobiles: activeSettings.mobiles,
+              gstin: activeSettings.gstin,
+              email: activeSettings.email || "vijayalakshminurseryfarm@gmail.com",
+              invocation: activeSettings.invocation || "|| Shree gurugundanjaneya prasanna ||",
+              proprietor: effectiveProprietor,
+              cgstRate: activeSettings.cgstRate || "2.50",
+              sgstRate: activeSettings.sgstRate || "2.50",
+              discount: parsed.data.discount || 0,
+              logoData: activeLogo,
+              signature: effectiveSig,
+              isSigned: effectiveIsSigned,
+            });
+          }
+        }
+
         await tx
           .update(invoices)
           .set({
@@ -252,6 +347,7 @@ export async function PATCH(
             notes: notes ?? existing.notes,
             paymentMode: paymentMode ?? existing.paymentMode ?? "cash",
             status: action === "finalize" ? "final" : existing.status,
+            headerSnapshot: nextHeaderSnapshot,
             finalizedAt: action === "finalize" ? new Date() : existing.finalizedAt,
             updatedAt: new Date(),
           })

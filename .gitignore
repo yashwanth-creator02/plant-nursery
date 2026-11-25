@@ -52,3 +52,7 @@ graphify-out/
 
 # Local config backups
 *.bak-*
+
+# Agent scratchpads
+.superpowers/
+.cortexkit/

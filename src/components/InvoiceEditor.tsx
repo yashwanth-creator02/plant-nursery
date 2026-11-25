@@ -2029,20 +2029,17 @@ export function InvoiceEditor({
                   title={headerDetails.logoData ? (billLanguage === "kn" ? "ಶ್ರೀ ವಿಜಯಲಕ್ಷ್ಮಿ ನರ್ಸರಿ ಲಾಂಛನ" : "Sri Vijayalakshmi Nursery Logo") : "Botanical logo"}
                 >
                   {headerDetails.logoData ? (
-                    headerDetails.logoData.trim().startsWith("<svg") ? (
-                      <div
-                        className="flex h-full w-full items-center justify-center [&>svg]:h-full [&>svg]:w-full"
-                        dangerouslySetInnerHTML={{ __html: headerDetails.logoData }}
-                      />
-                    ) : (
-                      <img
-                        src={headerDetails.logoData}
-                        alt="Nursery Logo"
-                        loading="eager"
-                        decoding="sync"
-                        className="h-full w-full object-contain"
-                      />
-                    )
+                    <img
+                      src={
+                        headerDetails.logoData.trim().startsWith("<svg")
+                          ? `data:image/svg+xml;utf8,${encodeURIComponent(headerDetails.logoData)}`
+                          : headerDetails.logoData
+                      }
+                      alt="Nursery Logo"
+                      loading="eager"
+                      decoding="sync"
+                      className="h-full w-full object-contain"
+                    />
                   ) : (
                     <InvoiceSprig className="h-16 w-16 text-[var(--invoice-ink)]" />
                   )}

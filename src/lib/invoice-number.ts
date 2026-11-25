@@ -48,12 +48,16 @@ export async function getNextInvoiceNumber(): Promise<string> {
 }
 
 // Advance the sequence after an invoice number has been used
-export async function advanceInvoiceSequence(usedNumber: string): Promise<string> {
+export async function advanceInvoiceSequence(
+  usedNumber: string,
+  txRunner?: any
+): Promise<string> {
+  const runner = txRunner ?? db;
   let next = incrementInvoiceNumber(usedNumber);
 
   // Ensure next is not already taken in DB
   while (true) {
-    const [existing] = await db
+    const [existing] = await runner
       .select({ id: invoices.id })
       .from(invoices)
       .where(eq(invoices.invoiceNumber, next))
@@ -65,7 +69,7 @@ export async function advanceInvoiceSequence(usedNumber: string): Promise<string
     next = incrementInvoiceNumber(next);
   }
 
-  await db
+  await runner
     .insert(invoiceSequences)
     .values({ id: "default", nextInvoiceNumber: next, updatedAt: new Date() })
     .onConflictDoUpdate({

@@ -14,6 +14,35 @@ function dataUriToBuffer(dataUri: string): { buffer: Buffer; contentType: string
   return { buffer, contentType };
 }
 
+function isSafeRemoteImageUrl(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      return false;
+    }
+    const hostname = parsed.hostname.toLowerCase();
+    if (
+      hostname === "localhost" ||
+      hostname === "0.0.0.0" ||
+      hostname === "127.0.0.1" ||
+      hostname === "169.254.169.254" ||
+      hostname.startsWith("127.") ||
+      hostname.startsWith("10.") ||
+      hostname.startsWith("192.168.") ||
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname) ||
+      hostname.endsWith(".local") ||
+      hostname.endsWith(".internal") ||
+      hostname === "::1" ||
+      hostname.startsWith("fe80:")
+    ) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
     const sessionUser = await requireUser();
@@ -138,6 +167,13 @@ export async function GET(req: NextRequest) {
             },
           });
         }
+      }
+
+      if (!isSafeRemoteImageUrl(url)) {
+        return NextResponse.json(
+          { error: "Invalid or restricted remote image URL." },
+          { status: 400 }
+        );
       }
 
       const res = await fetch(url);

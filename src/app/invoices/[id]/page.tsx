@@ -13,7 +13,7 @@ export default function InvoiceDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [invoice, setInvoice] = useState<InvoiceRecord | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -52,7 +52,7 @@ export default function InvoiceDetailPage({
     return (
       <div className="p-8">
         <p className="mb-3 text-sm text-rust">{error || t("invoiceNotFoundMsg")}</p>
-        <Link href="/invoices" className="text-sm text-pine-deep underline">
+        <Link href={`/${language}/invoices`} className="text-sm text-pine-deep underline">
           {t("backToInvoicesBtn")}
         </Link>
       </div>
